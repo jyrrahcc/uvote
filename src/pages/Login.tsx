@@ -22,10 +22,13 @@ const Login = () => {
     try {
       const success = await loginAsAdmin();
       if (success) {
+        toast.success("Admin login successful");
         // Give the auth state a moment to update before navigating
         setTimeout(() => {
           navigate("/dashboard");
-        }, 500);
+        }, 800);
+      } else {
+        toast.error("Admin login failed. Please check console for details.");
       }
     } catch (error) {
       console.error("Error during admin login:", error);
