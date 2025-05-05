@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
@@ -64,7 +63,7 @@ const Index = () => {
                 </Button>
                 <Button 
                   size="lg" 
-                  className="bg-secondary text-primary hover:bg-secondary/80 border border-white/20" 
+                  className="bg-[#9b87f5] text-white hover:bg-[#8a70f3] border border-white/20" 
                   asChild
                 >
                   <Link to="/how-it-works">

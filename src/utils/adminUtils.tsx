@@ -8,7 +8,7 @@ import { ReactNode } from "react";
 /**
  * Get the appropriate status badge for an election
  */
-export const getStatusBadge = (status: string) => {
+export const getStatusBadge = (status: string): ReactNode => {
   switch (status) {
     case 'active':
       return <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Active</span>;
@@ -24,7 +24,7 @@ export const getStatusBadge = (status: string) => {
 /**
  * Get the appropriate role badge for a user
  */
-export const getRoleBadge = (role: string) => {
+export const getRoleBadge = (role: string): ReactNode => {
   switch (role) {
     case 'admin':
       return <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">Admin</span>;
