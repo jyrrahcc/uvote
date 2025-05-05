@@ -1,9 +1,9 @@
 
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, User } from "lucide-react";
+import { Clock, User, Calendar } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface WelcomeHeaderProps {
@@ -36,19 +36,23 @@ const WelcomeHeader = ({ userRole }: WelcomeHeaderProps) => {
   };
 
   return (
-    <Card className="border border-muted/40 bg-card/50">
+    <Card className="border border-muted/40 bg-card/50 shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <Avatar className="h-16 w-16 border-2 border-primary/20">
-            <AvatarFallback className="bg-primary/10 text-primary text-xl">
-              {getInitials()}
-            </AvatarFallback>
+            {user?.user_metadata?.avatar_url ? (
+              <AvatarImage src={user.user_metadata.avatar_url} alt={getFullName()} />
+            ) : (
+              <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                {getInitials()}
+              </AvatarFallback>
+            )}
           </Avatar>
           
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold">
-                Welcome back, {user?.user_metadata?.first_name || 'User'}
+                Welcome back, {user?.user_metadata?.first_name || getFullName().split(' ')[0] || 'User'}
               </h1>
               {isAdmin && (
                 <Badge className="bg-primary/10 text-primary">
@@ -71,6 +75,18 @@ const WelcomeHeader = ({ userRole }: WelcomeHeaderProps) => {
                   Last login: {formatDistanceToNow(lastLoginDate, { addSuffix: true })}
                 </span>
               </div>
+              
+              {user?.created_at && (
+                <>
+                  <div className="hidden sm:block h-1 w-1 rounded-full bg-muted-foreground/30" />
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span className="text-sm">
+                      Member since: {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

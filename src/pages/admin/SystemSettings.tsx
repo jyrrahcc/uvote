@@ -23,12 +23,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Switch,
-  Input,
-  Button,
-  Separator
-} from "@/components/ui/components-index";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -379,7 +377,7 @@ const SystemSettings = () => {
                       
                       <FormField
                         control={notificationForm.control}
-                        name="newUserRegistration"
+                        name="newUserNotification"
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                             <FormControl>

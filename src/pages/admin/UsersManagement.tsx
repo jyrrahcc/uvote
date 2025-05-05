@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -10,8 +9,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { 
-  Button,
-  buttonVariants
+  Button
 } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
@@ -54,7 +52,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { 
   HoverCard,
@@ -340,7 +337,7 @@ const UsersManagement = () => {
                               <HoverCard>
                                 <HoverCardTrigger>
                                   <Badge variant="outline">
-                                    <Vote className="h-3 w-3 mr-1" />
+                                    <UserCheck className="h-3 w-3 mr-1" />
                                     Voter
                                   </Badge>
                                 </HoverCardTrigger>
