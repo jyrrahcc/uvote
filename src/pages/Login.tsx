@@ -11,7 +11,7 @@ import {
   loginAsAdmin, 
   ADMIN_TEST_EMAIL, 
   ADMIN_TEST_PASSWORD 
-} from "@/utils/adminUtils";
+} from "@/utils/admin/adminUserUtils";
 import { useState, useEffect } from "react";
 
 /**

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // Admin test credentials
-export const ADMIN_TEST_EMAIL = "admin@example.com";
+export const ADMIN_TEST_EMAIL = "admin@test.com"; // Using a more valid test email
 export const ADMIN_TEST_PASSWORD = "password123";
 
 /**
@@ -62,6 +62,7 @@ export const createAdminUser = async (): Promise<boolean> => {
           console.log("Admin role already assigned");
         } else {
           console.error("Error setting admin role:", roleError);
+          return false;
         }
       }
     }
