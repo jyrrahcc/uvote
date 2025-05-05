@@ -25,6 +25,7 @@ import Dashboard from "./pages/Dashboard";
 import MyVotes from "./pages/MyVotes";
 import UsersManagement from "./pages/admin/UsersManagement";
 import ElectionsManagement from "./pages/admin/ElectionsManagement";
+import Analytics from "./pages/admin/Analytics"; // New analytics page
 import CandidatesPage from "./features/candidates/pages/CandidatesPage";
 import VotingPage from "./features/elections/pages/VotingPage";
 import ResultsPage from "./features/elections/pages/ResultsPage";
@@ -98,6 +99,7 @@ const App = () => {
                   <Route element={<RoleProtectedRoute requiredRole="admin" />}>
                     <Route path="/admin/users" element={<UsersManagement />} />
                     <Route path="/admin/elections" element={<ElectionsManagement />} />
+                    <Route path="/admin/analytics" element={<Analytics />} />
                   </Route>
                 </Route>
               </Route>

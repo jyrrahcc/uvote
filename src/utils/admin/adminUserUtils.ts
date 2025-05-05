@@ -2,8 +2,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Admin test credentials
-export const ADMIN_TEST_EMAIL = "admin@uvote.com"; // Update to match the email in Supabase
+// Admin test credentials 
+export const ADMIN_TEST_EMAIL = "admin@uvote.com";
 export const ADMIN_TEST_PASSWORD = "password123";
 
 /**
@@ -11,20 +11,38 @@ export const ADMIN_TEST_PASSWORD = "password123";
  */
 export const createAdminUser = async (): Promise<boolean> => {
   try {
-    // Check if admin user already exists in auth
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: ADMIN_TEST_EMAIL,
-      password: ADMIN_TEST_PASSWORD,
-    });
+    console.log("Attempting to create admin user:", ADMIN_TEST_EMAIL);
     
-    // If sign in works, admin exists already
-    if (data.user) {
-      console.log("Admin user already exists");
-      await supabase.auth.signOut(); // Sign out after checking
+    // First check if the user already exists in auth.users
+    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(ADMIN_TEST_EMAIL);
+    
+    if (existingUser?.user) {
+      console.log("Admin user already exists in auth", existingUser.user.id);
+      
+      // Check if they have admin role
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', existingUser.user.id)
+        .eq('role', 'admin')
+        .single();
+      
+      // If admin role is missing, add it
+      if (!roleData) {
+        await supabase
+          .from('user_roles')
+          .insert({
+            user_id: existingUser.user.id,
+            role: 'admin'
+          });
+        console.log("Added admin role to existing user");
+      }
+      
       return true;
     }
     
-    // Create the admin user if it doesn't exist (signIn will fail)
+    // Create the admin user if it doesn't exist
+    console.log("Creating new admin user...");
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: ADMIN_TEST_EMAIL,
       password: ADMIN_TEST_PASSWORD,
@@ -38,33 +56,24 @@ export const createAdminUser = async (): Promise<boolean> => {
     
     if (signUpError) {
       console.error("Error creating admin user:", signUpError);
-      // If the user already exists, that's fine
-      if (signUpError.message.includes("already registered")) {
-        return true;
-      }
       return false;
     }
     
-    // Set the user role to admin
+    // Add admin role to the new user
     if (signUpData.user) {
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
           user_id: signUpData.user.id,
           role: 'admin'
-        })
-        .select()
-        .single();
+        });
       
       if (roleError) {
-        // Check if error is due to unique constraint (role already assigned)
-        if (roleError.code === '23505') {
-          console.log("Admin role already assigned");
-        } else {
-          console.error("Error setting admin role:", roleError);
-          return false;
-        }
+        console.error("Error setting admin role:", roleError);
+        return false;
       }
+      
+      console.log("Admin user created successfully with ID:", signUpData.user.id);
     }
     
     return true;
@@ -79,26 +88,73 @@ export const createAdminUser = async (): Promise<boolean> => {
  */
 export const loginAsAdmin = async (): Promise<boolean> => {
   try {
-    // First make sure the admin user exists
-    await createAdminUser();
+    console.log("Attempting admin login with:", ADMIN_TEST_EMAIL);
     
-    // Attempt to sign in
+    // Try to log in directly first
     const { data, error } = await supabase.auth.signInWithPassword({
       email: ADMIN_TEST_EMAIL,
       password: ADMIN_TEST_PASSWORD,
     });
     
     if (error) {
-      toast.error("Failed to login as admin: " + error.message);
-      console.error("Admin login error:", error);
-      return false;
+      console.error("Admin login failed, trying to create admin first:", error);
+      
+      // If login fails, try creating the admin and then logging in again
+      const adminCreated = await createAdminUser();
+      if (!adminCreated) {
+        toast.error("Failed to create admin user");
+        return false;
+      }
+      
+      // Try logging in again after creating
+      const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+        email: ADMIN_TEST_EMAIL,
+        password: ADMIN_TEST_PASSWORD,
+      });
+      
+      if (retryError) {
+        toast.error("Failed to login as admin: " + retryError.message);
+        console.error("Admin login retry error:", retryError);
+        return false;
+      }
+      
+      toast.success("Logged in as admin");
+      return true;
     }
     
+    console.log("Admin login successful");
     toast.success("Logged in as admin");
     return true;
   } catch (error) {
     console.error("Error in loginAsAdmin:", error);
     toast.error("An unexpected error occurred while logging in as admin");
     return false;
+  }
+};
+
+/**
+ * Get all admin users from the database
+ */
+export const getAdminUsers = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select(`
+        user_id,
+        profiles:user_id (
+          id,
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .eq('role', 'admin');
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error("Error fetching admin users:", error);
+    return [];
   }
 };

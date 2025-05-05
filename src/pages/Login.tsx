@@ -4,39 +4,20 @@ import PageLayout from "@/components/layout/PageLayout";
 import LoginForm from "@/features/auth/components/LoginForm";
 import { ArrowRight, Vote, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { 
-  createAdminUser, 
-  loginAsAdmin, 
-  ADMIN_TEST_EMAIL, 
-  ADMIN_TEST_PASSWORD 
-} from "@/utils/admin/adminUserUtils";
-import { useState, useEffect } from "react";
+import { loginAsAdmin, ADMIN_TEST_EMAIL, ADMIN_TEST_PASSWORD } from "@/utils/admin/adminUserUtils";
 
 /**
  * Login page component with enhanced design
  */
 const Login = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
-  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
-
-  // Initialize admin user when component mounts, but don't block rendering
-  useEffect(() => {
-    const initAdminUser = async () => {
-      try {
-        await createAdminUser();
-      } catch (error) {
-        console.error("Error initializing admin user:", error);
-      }
-    };
-
-    initAdminUser();
-  }, []);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleAdminLogin = async () => {
-    setIsCreatingAdmin(true);
+    setIsLoggingIn(true);
     
     try {
       const success = await loginAsAdmin();
@@ -48,22 +29,15 @@ const Login = () => {
       }
     } catch (error) {
       console.error("Error during admin login:", error);
-      toast({
-        title: "Login Failed",
-        description: "There was a problem logging in as admin. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to login as admin. Please check console for details.");
     } finally {
-      setIsCreatingAdmin(false);
+      setIsLoggingIn(false);
     }
   };
 
   const copyAdminCredentials = () => {
     navigator.clipboard.writeText(`Email: ${ADMIN_TEST_EMAIL}\nPassword: ${ADMIN_TEST_PASSWORD}`);
-    toast({
-      title: "Copied!",
-      description: "Admin credentials copied to clipboard",
-    });
+    toast("Admin credentials copied to clipboard");
   };
 
   return (
@@ -100,10 +74,10 @@ const Login = () => {
                     size="sm"
                     className="flex items-center" 
                     onClick={handleAdminLogin}
-                    disabled={isCreatingAdmin}
+                    disabled={isLoggingIn}
                   >
                     <Shield size={16} className="mr-2 text-amber-500" />
-                    {isCreatingAdmin ? "Logging in..." : "Login as Admin"}
+                    {isLoggingIn ? "Logging in..." : "Login as Admin"}
                   </Button>
                   
                   <div className="text-xs text-muted-foreground flex items-center gap-2">
