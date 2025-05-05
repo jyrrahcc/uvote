@@ -1,11 +1,14 @@
 
 import PageLayout from "@/components/layout/PageLayout";
 import RegisterForm from "@/features/auth/components/RegisterForm";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 /**
  * Register page component
  */
 const Register = () => {
+  const isMobile = useIsMobile();
+  
   return (
     <PageLayout>
       <div className="container mx-auto py-12 px-4">

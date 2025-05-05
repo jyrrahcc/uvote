@@ -1,4 +1,5 @@
 
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
@@ -13,6 +14,7 @@ interface PageLayoutProps {
  */
 const PageLayout = ({ children, className = "" }: PageLayoutProps) => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   return (
     <div className="flex flex-col min-h-screen">

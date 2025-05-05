@@ -75,7 +75,7 @@ const CandidatesPage = () => {
       
       if (error) throw error;
       
-      setElection(data);
+      setElection(data as unknown as Election);
     } catch (error) {
       console.error("Error fetching election details:", error);
       toast.error("Failed to fetch election details");
@@ -93,7 +93,7 @@ const CandidatesPage = () => {
       
       if (error) throw error;
       
-      setCandidates(data || []);
+      setCandidates(data as unknown as Candidate[]);
     } catch (error) {
       console.error("Error fetching candidates:", error);
       toast.error("Failed to fetch candidates");
@@ -123,7 +123,7 @@ const CandidatesPage = () => {
       
       // Update local state
       if (data) {
-        setCandidates([...candidates, ...data]);
+        setCandidates([...candidates, ...(data as unknown as Candidate[])]);
       }
     } catch (error) {
       console.error("Error adding candidate:", error);
@@ -254,7 +254,7 @@ const CandidatesPage = () => {
             <CandidateCard 
               key={candidate.id} 
               candidate={candidate} 
-              onDelete={isAdmin ? handleDeleteCandidate : undefined} 
+              onDelete={isAdmin ? () => handleDeleteCandidate(candidate.id) : undefined} 
             />
           ))}
         </div>
