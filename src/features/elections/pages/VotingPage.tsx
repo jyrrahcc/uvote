@@ -16,18 +16,13 @@ import {
 } from "@/types";
 import CandidatesList from "@/features/candidates/components/CandidatesList";
 
-// Interface for CandidatesList props to ensure type safety
-interface CandidatesListProps {
-  candidates: Candidate[];
-  selectedCandidateId: string | null;
-  onSelectCandidate: (candidateId: string) => void;
-  readOnly: boolean;
-}
+// No need to redefine the interface here since we're using the component's interface
 
 /**
  * Voting page component displays election details and allows voting
  */
 const VotingPage = () => {
+  
   const { electionId } = useParams<{ electionId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -114,6 +109,7 @@ const VotingPage = () => {
 
   // Function to verify access code
   const verifyAccessCode = () => {
+    
     if (!election) return;
     
     if (accessCode === election.accessCode) {
@@ -133,6 +129,7 @@ const VotingPage = () => {
 
   // Submit vote
   const handleVote = async () => {
+    
     if (!user || !selectedCandidate || !election) return;
     
     try {

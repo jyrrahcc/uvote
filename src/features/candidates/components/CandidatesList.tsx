@@ -7,18 +7,24 @@ import CandidateCard from "./CandidateCard";
 
 interface CandidatesListProps {
   candidates: Candidate[];
-  loading: boolean;
-  isAdmin: boolean;
-  onDeleteCandidate: (id: string) => void;
-  onOpenAddDialog: () => void;
+  loading?: boolean;
+  isAdmin?: boolean;
+  onDeleteCandidate?: (id: string) => void;
+  onOpenAddDialog?: () => void;
+  selectedCandidateId?: string | null;
+  onSelectCandidate?: (candidateId: string) => void;
+  readOnly?: boolean;
 }
 
 const CandidatesList = ({ 
   candidates, 
-  loading, 
-  isAdmin,
+  loading = false, 
+  isAdmin = false,
   onDeleteCandidate,
-  onOpenAddDialog
+  onOpenAddDialog,
+  selectedCandidateId,
+  onSelectCandidate,
+  readOnly = false
 }: CandidatesListProps) => {
   if (loading) {
     return <div className="text-center py-10">Loading candidates...</div>;
@@ -42,6 +48,28 @@ const CandidatesList = ({
     );
   }
 
+  // For voting page, when selection is enabled
+  if (onSelectCandidate) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {candidates.map((candidate) => (
+          <div 
+            key={candidate.id}
+            onClick={() => !readOnly && onSelectCandidate(candidate.id)}
+            className={`cursor-pointer transition-all ${selectedCandidateId === candidate.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+          >
+            <CandidateCard 
+              candidate={candidate} 
+              onClick={() => {}} 
+              onDelete={undefined}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // For admin/management page when deletion is available
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {candidates.map((candidate) => (
@@ -49,7 +77,7 @@ const CandidatesList = ({
           key={candidate.id} 
           candidate={candidate}
           onClick={() => {}} 
-          onDelete={isAdmin ? () => onDeleteCandidate(candidate.id) : undefined} 
+          onDelete={isAdmin ? () => onDeleteCandidate?.(candidate.id) : undefined} 
         />
       ))}
     </div>
