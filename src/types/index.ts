@@ -42,7 +42,7 @@ export interface Candidate {
   imageUrl?: string;
   electionId: string;
   position: string;
-  votes: number;
+  votes?: number;
 }
 
 /**
@@ -91,3 +91,8 @@ export interface Notification {
   title?: string;
   duration?: number;
 }
+
+/**
+ * UserRole type for RBAC
+ */
+export type UserRole = 'admin' | 'voter';

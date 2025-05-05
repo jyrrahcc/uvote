@@ -1,4 +1,5 @@
 
+import { useAuth } from "@/features/auth/context/AuthContext";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
@@ -11,6 +12,8 @@ interface PageLayoutProps {
  * Standard page layout with navbar, content area, and footer
  */
 const PageLayout = ({ children, className = "" }: PageLayoutProps) => {
+  const { user } = useAuth();
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />

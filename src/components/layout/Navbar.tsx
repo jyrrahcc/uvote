@@ -1,9 +1,10 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, User } from "lucide-react";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { useRole } from "@/features/auth/context/RoleContext";
 
 /**
  * Main navigation bar component
@@ -11,6 +12,13 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { isAdmin } = useRole();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <header className="fixed top-0 w-full bg-white/95 backdrop-blur-sm z-50 border-b border-border">
@@ -34,6 +42,11 @@ const Navbar = () => {
             <Link to="/how-it-works" className="text-foreground hover:text-primary transition-colors">
               How It Works
             </Link>
+            {user && (
+              <Link to="/dashboard" className="text-foreground hover:text-primary transition-colors">
+                Dashboard
+              </Link>
+            )}
           </nav>
 
           {/* Authentication buttons */}
@@ -46,7 +59,7 @@ const Navbar = () => {
                     Profile
                   </Link>
                 </Button>
-                <Button onClick={() => signOut()}>
+                <Button onClick={handleSignOut}>
                   Sign Out
                 </Button>
               </>
@@ -100,6 +113,15 @@ const Navbar = () => {
           >
             How It Works
           </Link>
+          {user && (
+            <Link 
+              to="/dashboard" 
+              className="block px-3 py-2 rounded-md text-base font-medium hover:bg-secondary hover:text-primary-foreground"
+              onClick={() => setIsOpen(false)}
+            >
+              Dashboard
+            </Link>
+          )}
           <div className="pt-4 pb-3 border-t border-border">
             <div className="flex flex-col space-y-2 px-3">
               {user ? (
@@ -110,7 +132,7 @@ const Navbar = () => {
                   <Button 
                     onClick={() => {
                       setIsOpen(false);
-                      signOut();
+                      handleSignOut();
                     }}
                   >
                     Sign Out
