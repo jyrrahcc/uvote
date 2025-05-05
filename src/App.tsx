@@ -29,6 +29,14 @@ import CandidatesPage from "./features/candidates/pages/CandidatesPage";
 import VotingPage from "./features/elections/pages/VotingPage";
 import ResultsPage from "./features/elections/pages/ResultsPage";
 
+// Import new pages
+import Security from "./pages/Security";
+import FAQ from "./pages/FAQ";
+import Blog from "./pages/Blog";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Contact from "./pages/Contact";
+
 /**
  * Main App component that sets up providers and routing
  */
@@ -57,6 +65,14 @@ const App = () => {
               {/* Public routes */}
               <Route path="/" element={<Index />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
+              
+              {/* New public routes */}
+              <Route path="/security" element={<Security />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/contact" element={<Contact />} />
               
               {/* Public routes (only when logged out) */}
               <Route element={<PublicOnlyRoute />}>

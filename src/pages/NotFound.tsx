@@ -2,10 +2,10 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
-import { Search } from "lucide-react";
+import { Search, Home, HelpCircle, FileText, Mail } from "lucide-react";
 
 /**
- * Enhanced 404 Not Found page
+ * Enhanced 404 Not Found page with more helpful resources
  */
 const NotFound = () => {
   useEffect(() => {
@@ -37,6 +37,42 @@ const NotFound = () => {
           <Button size="lg" variant="outline" asChild>
             <Link to="/elections">Browse Elections</Link>
           </Button>
+        </div>
+
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm border border-border">
+            <HelpCircle className="h-8 w-8 text-primary mb-2" />
+            <h3 className="font-medium">Need Help?</h3>
+            <p className="text-sm text-muted-foreground mb-2">Check our FAQ or contact support</p>
+            <div className="flex gap-2 mt-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/faq">FAQ</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/contact">Contact</Link>
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm border border-border">
+            <FileText className="h-8 w-8 text-primary mb-2" />
+            <h3 className="font-medium">Resources</h3>
+            <p className="text-sm text-muted-foreground mb-2">Explore our helpful resources</p>
+            <div className="flex gap-2 mt-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/how-it-works">How It Works</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/blog">Blog</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-10">
+          <p className="text-sm text-muted-foreground">
+            If you continue to experience issues, please <Link to="/contact" className="text-primary hover:underline">contact our support team</Link>.
+          </p>
         </div>
       </div>
     </div>
