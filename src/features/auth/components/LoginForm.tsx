@@ -34,7 +34,8 @@ const LoginForm = () => {
         description: "You've been logged in successfully.",
       });
       
-      navigate("/");
+      // Always redirect to dashboard after successful login
+      navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -50,6 +51,7 @@ const LoginForm = () => {
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle();
+      // Note: Redirect happens in AuthContext after successful OAuth
     } catch (error) {
       console.error("Google login error:", error);
       toast({
@@ -63,6 +65,7 @@ const LoginForm = () => {
   const handleMicrosoftLogin = async () => {
     try {
       await signInWithMicrosoft();
+      // Note: Redirect happens in AuthContext after successful OAuth
     } catch (error) {
       console.error("Microsoft login error:", error);
       toast({

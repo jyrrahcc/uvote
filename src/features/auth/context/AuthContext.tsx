@@ -41,6 +41,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Redirect to dashboard when user logs in via OAuth
+        if (event === 'SIGNED_IN' && session) {
+          navigate('/dashboard');
+        }
       }
     );
 
@@ -54,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);

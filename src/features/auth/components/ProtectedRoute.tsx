@@ -19,7 +19,7 @@ export const ProtectedRoute = ({
 };
 
 export const PublicOnlyRoute = ({ 
-  redirectTo = "/" 
+  redirectTo = "/dashboard" 
 }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   
