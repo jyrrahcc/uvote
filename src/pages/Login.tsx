@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
 import LoginForm from "@/features/auth/components/LoginForm";
@@ -5,7 +6,12 @@ import { ArrowRight, Vote, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { createAdminUser, loginAsAdmin, ADMIN_TEST_EMAIL, ADMIN_TEST_PASSWORD } from "@/utils/adminUtils";
+import { 
+  createAdminUser, 
+  loginAsAdmin, 
+  ADMIN_TEST_EMAIL, 
+  ADMIN_TEST_PASSWORD 
+} from "@/utils/adminUtils";
 import { useState, useEffect } from "react";
 
 /**
