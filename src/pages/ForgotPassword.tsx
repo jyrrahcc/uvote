@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import PageLayout from "@/components/layout/PageLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft, KeyRound, MailCheck } from "lucide-react";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -45,21 +46,27 @@ const ForgotPassword = () => {
 
   return (
     <PageLayout>
-      <div className="container mx-auto py-12 px-4">
+      <div className="container mx-auto py-16 px-4">
         <div className="max-w-md mx-auto">
-          <h1 className="text-3xl font-bold text-center mb-8">Reset Password</h1>
-          <Card>
+          <Card className="border-none shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-primary/80 to-primary p-6 text-white">
+              <div className="flex items-center justify-center mb-2">
+                <KeyRound size={28} className="mr-2" />
+                <h1 className="text-2xl font-bold">Reset Password</h1>
+              </div>
+            </div>
+            
             <CardHeader>
-              <CardTitle className="text-2xl">Forgot Password</CardTitle>
-              <CardDescription>
-                Enter your email to receive a password reset link
+              <CardDescription className="text-center">
+                Enter your email address and we'll send you a link to reset your password.
               </CardDescription>
             </CardHeader>
+            
             {!isSubmitted ? (
               <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
                       type="email"
@@ -67,40 +74,41 @@ const ForgotPassword = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your.email@example.com"
                       required
+                      className="h-11"
                     />
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-4">
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full h-11" 
                     disabled={isLoading}
                   >
                     {isLoading ? "Sending..." : "Send Reset Link"}
                   </Button>
                   <div className="text-center text-sm">
-                    Remember your password?{" "}
-                    <Link to="/login" className="text-primary hover:underline">
-                      Back to Login
+                    <Link to="/login" className="text-primary hover:underline inline-flex items-center">
+                      <ArrowLeft size={14} className="mr-1" /> Back to Login
                     </Link>
                   </div>
                 </CardFooter>
               </form>
             ) : (
-              <CardContent className="space-y-4">
-                <div className="text-center py-6">
-                  <h3 className="text-lg font-medium">Email Sent</h3>
-                  <p className="mt-2 text-muted-foreground">
-                    If an account exists with that email, you'll receive a password reset link shortly.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    asChild
-                  >
-                    <Link to="/login">Return to Login</Link>
-                  </Button>
+              <CardContent className="space-y-4 py-8 text-center">
+                <div className="flex justify-center text-primary">
+                  <MailCheck size={48} />
                 </div>
+                <h3 className="text-lg font-medium mt-4">Check Your Email</h3>
+                <p className="text-muted-foreground">
+                  If an account exists with that email, you'll receive a password reset link shortly.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  asChild
+                >
+                  <Link to="/login">Return to Login</Link>
+                </Button>
               </CardContent>
             )}
           </Card>

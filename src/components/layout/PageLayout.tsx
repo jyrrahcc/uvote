@@ -1,8 +1,8 @@
 
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -17,9 +17,9 @@ const PageLayout = ({ children, className = "" }: PageLayoutProps) => {
   const isMobile = useIsMobile();
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background">
       <Navbar />
-      <main className={`flex-grow pt-16 ${className}`}>
+      <main className={`flex-grow ${className}`}>
         {children}
       </main>
       <Footer />
