@@ -2,13 +2,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
 /**
  * Main navigation bar component
  */
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   return (
     <header className="fixed top-0 w-full bg-white/95 backdrop-blur-sm z-50 border-b border-border">
@@ -36,12 +38,28 @@ const Navbar = () => {
 
           {/* Authentication buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" asChild>
-              <Link to="/login">Log in</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/register">Sign Up</Link>
-            </Button>
+            {user ? (
+              <>
+                <Button variant="outline" asChild>
+                  <Link to="/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                </Button>
+                <Button onClick={() => signOut()}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" asChild>
+                  <Link to="/login">Log in</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/register">Sign Up</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -84,12 +102,30 @@ const Navbar = () => {
           </Link>
           <div className="pt-4 pb-3 border-t border-border">
             <div className="flex flex-col space-y-2 px-3">
-              <Button variant="outline" asChild className="w-full" onClick={() => setIsOpen(false)}>
-                <Link to="/login">Log in</Link>
-              </Button>
-              <Button asChild className="w-full" onClick={() => setIsOpen(false)}>
-                <Link to="/register">Sign Up</Link>
-              </Button>
+              {user ? (
+                <>
+                  <Button variant="outline" asChild onClick={() => setIsOpen(false)}>
+                    <Link to="/profile">Profile</Link>
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setIsOpen(false);
+                      signOut();
+                    }}
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" asChild className="w-full" onClick={() => setIsOpen(false)}>
+                    <Link to="/login">Log in</Link>
+                  </Button>
+                  <Button asChild className="w-full" onClick={() => setIsOpen(false)}>
+                    <Link to="/register">Sign Up</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

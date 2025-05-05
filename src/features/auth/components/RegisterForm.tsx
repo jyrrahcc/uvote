@@ -1,11 +1,12 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "../context/AuthContext";
 
 /**
  * Registration form for new users
@@ -17,26 +18,29 @@ const RegisterForm = () => {
   const [lastName, setLastName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // In a real app, this would call Supabase auth.signUp
-      console.log("Registering with:", { firstName, lastName, email });
+      const { error } = await signUp(email, password, firstName, lastName);
       
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (error) throw error;
       
       toast({
         title: "Account created",
         description: "Please check your email to verify your account.",
       });
+      
+      navigate("/login");
     } catch (error) {
+      console.error("Registration error:", error);
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {

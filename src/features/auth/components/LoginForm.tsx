@@ -1,11 +1,12 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "../context/AuthContext";
 
 /**
  * Login form for authenticating existing users
@@ -15,26 +16,29 @@ const LoginForm = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { signIn } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // In a real app, this would call Supabase auth.signInWithPassword
-      console.log("Logging in with:", { email });
+      const { error } = await signIn(email, password);
       
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (error) throw error;
       
       toast({
         title: "Success",
         description: "You've been logged in successfully.",
       });
+      
+      navigate("/");
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
