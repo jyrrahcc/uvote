@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -92,41 +91,6 @@ export const createAdminUser = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Unexpected error in createAdminUser:", error);
-    return false;
-  }
-};
-
-/**
- * Login as admin for testing purposes
- */
-export const loginAsAdmin = async (): Promise<boolean> => {
-  try {
-    console.log("Attempting admin login with:", ADMIN_TEST_EMAIL);
-    
-    // Ensure admin user exists first
-    const adminCreated = await createAdminUser();
-    if (!adminCreated) {
-      toast.error("Failed to create or verify admin user");
-      return false;
-    }
-    
-    // Now try to login
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: ADMIN_TEST_EMAIL,
-      password: ADMIN_TEST_PASSWORD,
-    });
-    
-    if (error) {
-      toast.error("Failed to login as admin: " + error.message);
-      console.error("Admin login error:", error);
-      return false;
-    }
-    
-    toast.success("Logged in as admin");
-    return true;
-  } catch (error) {
-    console.error("Error in loginAsAdmin:", error);
-    toast.error("An unexpected error occurred while logging in as admin");
     return false;
   }
 };

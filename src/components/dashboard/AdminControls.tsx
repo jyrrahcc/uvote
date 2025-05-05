@@ -1,74 +1,180 @@
 
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Vote, BarChart, Shield } from "lucide-react";
+import { 
+  Users, 
+  Vote, 
+  BarChart, 
+  Shield, 
+  Settings, 
+  LineChart, 
+  List, 
+  ArrowRight
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useRole } from "@/features/auth/context/RoleContext";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
 const AdminControls = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { userRole } = useRole();
 
   return (
-    <div className="pt-6">
-      <h2 className="text-xl font-semibold mb-4">Admin Controls</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="hover:shadow-md transition-shadow">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold">Admin Dashboard</h2>
+        <Badge variant="outline" className="bg-primary/10 text-primary">
+          Admin Access
+        </Badge>
+      </div>
+      
+      <p className="text-muted-foreground">
+        Welcome to the admin dashboard. As an administrator, you have access to manage elections, 
+        users, and view analytics for the entire voting system.
+      </p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-8">
+        <Card className="hover:shadow-md transition-shadow border-muted/60">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center text-lg">
-              <Vote className="mr-2 h-5 w-5 text-primary" />
-              Election Management
-            </CardTitle>
+            <div className="flex items-start justify-between">
+              <CardTitle className="flex items-center text-lg">
+                <Vote className="mr-2 h-5 w-5 text-primary" />
+                Election Management
+              </CardTitle>
+              <Badge variant="outline" className="bg-primary/5">Admin</Badge>
+            </div>
+            <CardDescription>
+              Create and manage all platform elections
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground text-sm mb-4">
               Create, edit, and manage elections. Monitor ongoing elections and view results.
             </p>
+          </CardContent>
+          <CardFooter>
             <Button 
               onClick={() => navigate("/admin/elections")} 
-              className="w-full"
+              className="w-full justify-between"
             >
               Manage Elections
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
-          </CardContent>
+          </CardFooter>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow border-muted/60">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center text-lg">
-              <Users className="mr-2 h-5 w-5 text-primary" />
-              User Management
-            </CardTitle>
+            <div className="flex items-start justify-between">
+              <CardTitle className="flex items-center text-lg">
+                <Users className="mr-2 h-5 w-5 text-primary" />
+                User Management
+              </CardTitle>
+              <Badge variant="outline" className="bg-primary/5">Admin</Badge>
+            </div>
+            <CardDescription>
+              Manage users and permissions
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Manage user accounts, assign roles, and monitor user activity.
+            <p className="text-muted-foreground text-sm mb-4">
+              Manage user accounts, assign roles, promote administrators, and monitor user activity.
             </p>
+          </CardContent>
+          <CardFooter>
             <Button 
               onClick={() => navigate("/admin/users")} 
-              className="w-full"
+              className="w-full justify-between"
             >
               Manage Users
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
-          </CardContent>
+          </CardFooter>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow border-muted/60">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center text-lg">
-              <BarChart className="mr-2 h-5 w-5 text-primary" />
-              Analytics & Reports
-            </CardTitle>
+            <div className="flex items-start justify-between">
+              <CardTitle className="flex items-center text-lg">
+                <BarChart className="mr-2 h-5 w-5 text-primary" />
+                Analytics Dashboard
+              </CardTitle>
+              <Badge variant="outline" className="bg-primary/5">Admin</Badge>
+            </div>
+            <CardDescription>
+              Visualize platform metrics
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4">
-              View detailed analytics and generate reports about elections and voter engagement.
+            <p className="text-muted-foreground text-sm mb-4">
+              View detailed analytics about elections, voter participation, and system usage patterns.
             </p>
+          </CardContent>
+          <CardFooter>
             <Button 
               onClick={() => navigate("/admin/analytics")} 
-              className="w-full"
+              className="w-full justify-between"
             >
               View Analytics
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
+          </CardFooter>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+        <Card className="hover:shadow-md transition-shadow border-muted/60">
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between">
+              <CardTitle className="flex items-center text-lg">
+                <Shield className="mr-2 h-5 w-5 text-primary" />
+                System Settings
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground text-sm mb-4">
+              Configure system-wide settings, security options, and notification preferences.
+            </p>
           </CardContent>
+          <CardFooter>
+            <Button 
+              variant="outline"
+              onClick={() => navigate("/admin/settings")} 
+              className="w-full justify-between"
+            >
+              System Settings
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow border-muted/60">
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between">
+              <CardTitle className="flex items-center text-lg">
+                <LineChart className="mr-2 h-5 w-5 text-primary" />
+                Election Results
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground text-sm mb-4">
+              View comprehensive reports and statistics for all completed elections.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              variant="outline"
+              onClick={() => navigate("/admin/results")} 
+              className="w-full justify-between"
+            >
+              View Results
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     </div>
