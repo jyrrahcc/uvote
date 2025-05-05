@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // Admin test credentials
-export const ADMIN_TEST_EMAIL = "admin@test.com"; // Using a more valid test email
+export const ADMIN_TEST_EMAIL = "admin@uvote.com"; // Update to match the email in Supabase
 export const ADMIN_TEST_PASSWORD = "password123";
 
 /**
