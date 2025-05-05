@@ -13,32 +13,41 @@ export const createAdminUser = async (): Promise<boolean> => {
   try {
     console.log("Attempting to create admin user:", ADMIN_TEST_EMAIL);
     
-    // First check if the user already exists in auth.users
-    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(ADMIN_TEST_EMAIL);
+    // First check if the user already exists by trying to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: ADMIN_TEST_EMAIL,
+      password: ADMIN_TEST_PASSWORD,
+    });
     
-    if (existingUser?.user) {
-      console.log("Admin user already exists in auth", existingUser.user.id);
+    // If we can sign in, the user exists
+    if (!signInError) {
+      console.log("Admin user already exists, checking for admin role");
       
-      // Check if they have admin role
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', existingUser.user.id)
-        .eq('role', 'admin')
-        .single();
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
       
-      // If admin role is missing, add it
-      if (!roleData) {
-        await supabase
+      if (user) {
+        // Check if they have admin role
+        const { data: roleData } = await supabase
           .from('user_roles')
-          .insert({
-            user_id: existingUser.user.id,
-            role: 'admin'
-          });
-        console.log("Added admin role to existing user");
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .single();
+        
+        // If admin role is missing, add it
+        if (!roleData) {
+          await supabase
+            .from('user_roles')
+            .insert({
+              user_id: user.id,
+              role: 'admin'
+            });
+          console.log("Added admin role to existing user");
+        }
+        
+        return true;
       }
-      
-      return true;
     }
     
     // Create the admin user if it doesn't exist
