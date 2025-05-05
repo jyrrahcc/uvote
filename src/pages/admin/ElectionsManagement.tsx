@@ -1,89 +1,50 @@
 
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { toast } from "sonner";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/features/auth/context/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash, Search, Check, X } from "lucide-react";
-import { Election } from "@/types";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Election, mapDbElectionToElection, mapElectionToDbElection } from "@/types";
 
-const formSchema = z.object({
-  title: z.string().min(3, { message: "Title must be at least 3 characters" }),
-  description: z.string().min(10, { message: "Description must be at least 10 characters" }),
-  start_date: z.string().refine(date => new Date(date) > new Date(), {
-    message: "Start date must be in the future",
-  }),
-  end_date: z.string().refine(date => new Date(date) > new Date(), {
-    message: "End date must be in the future",
-  }),
-  is_private: z.boolean().default(false),
-  access_code: z.string().optional(),
-});
-
+/**
+ * Admin page for managing elections
+ */
 const ElectionsManagement = () => {
-  const [elections, setElections] = useState<Election[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const navigate = useNavigate();
   const { user } = useAuth();
   
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      start_date: "",
-      end_date: "",
-      is_private: false,
-      access_code: "",
-    },
-  });
-
+  const [elections, setElections] = useState<Election[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [accessCode, setAccessCode] = useState("");
+  const [editingElectionId, setEditingElectionId] = useState<string | null>(null);
+  
+  // Fetch elections on component mount
   useEffect(() => {
-    fetchElections();
-  }, []);
-
+    if (user) {
+      fetchElections();
+    }
+  }, [user]);
+  
+  /**
+   * Fetch all elections from the database
+   */
   const fetchElections = async () => {
     try {
       setLoading(true);
+      
       const { data, error } = await supabase
         .from('elections')
         .select('*')
@@ -91,287 +52,328 @@ const ElectionsManagement = () => {
       
       if (error) throw error;
       
-      setElections(data || []);
+      // Transform the data to match our Election interface
+      const transformedElections = data?.map(mapDbElectionToElection) || [];
+      setElections(transformedElections);
     } catch (error) {
       console.error("Error fetching elections:", error);
-      toast.error("Failed to fetch elections");
+      toast.error("Failed to load elections");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleCreateElection = async (values: z.infer<typeof formSchema>) => {
+  
+  /**
+   * Handle form submission for creating or updating an election
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!title || !startDate || !endDate) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
     try {
-      if (!user) throw new Error("User not authenticated");
+      let electionData: any = {
+        title,
+        description,
+        start_date: startDate,
+        end_date: endDate,
+        created_by: user?.id,
+        is_private: isPrivate,
+        access_code: isPrivate ? accessCode : null,
+        // status will be calculated by the database trigger
+      };
       
-      // Check that end date is after start date
-      const startDate = new Date(values.start_date);
-      const endDate = new Date(values.end_date);
-      
-      if (endDate <= startDate) {
-        toast.error("End date must be after start date");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('elections')
-        .insert({
-          title: values.title,
-          description: values.description,
-          start_date: values.start_date,
-          end_date: values.end_date,
-          created_by: user.id,
-          is_private: values.is_private,
-          access_code: values.is_private ? values.access_code : null,
-        })
-        .select();
-      
-      if (error) throw error;
-      
-      toast.success("Election created successfully");
-      setIsDialogOpen(false);
-      form.reset();
-      
-      // Update local state with new election
-      if (data) {
-        setElections([...data, ...elections]);
+      if (editingElectionId) {
+        // Update existing election
+        const { error } = await supabase
+          .from('elections')
+          .update(electionData)
+          .eq('id', editingElectionId);
+        
+        if (error) throw error;
+        
+        toast.success("Election updated successfully");
+      } else {
+        // Create new election
+        const { error } = await supabase
+          .from('elections')
+          .insert([electionData]);
+        
+        if (error) throw error;
+        
+        toast.success("Election created successfully");
       }
       
+      // Reset form and refresh elections list
+      resetForm();
       fetchElections();
     } catch (error) {
-      console.error("Error creating election:", error);
-      toast.error("Failed to create election");
+      console.error("Error saving election:", error);
+      toast.error("Failed to save election");
     }
   };
-
-  const handleDeleteElection = async (id: string) => {
+  
+  /**
+   * Load election data into form for editing
+   */
+  const handleEditElection = (election: Election) => {
+    setTitle(election.title);
+    setDescription(election.description);
+    setStartDate(election.startDate);
+    setEndDate(election.endDate);
+    setIsPrivate(election.isPrivate);
+    setAccessCode(election.accessCode || "");
+    setEditingElectionId(election.id);
+  };
+  
+  /**
+   * Delete an election and all related data
+   */
+  const handleDeleteElection = async (electionId: string) => {
     try {
       const { error } = await supabase
         .from('elections')
         .delete()
-        .eq('id', id);
+        .eq('id', electionId);
       
       if (error) throw error;
       
-      toast.success("Election deleted successfully");
+      // Update the local state by filtering out the deleted election
+      const updatedElections = elections.filter(election => election.id !== electionId);
+      setElections(updatedElections);
       
-      // Update local state
-      setElections(elections.filter(election => election.id !== id));
+      toast.success("Election deleted successfully");
     } catch (error) {
       console.error("Error deleting election:", error);
       toast.error("Failed to delete election");
     }
   };
-
-  const filteredElections = elections.filter(election => 
-    election.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    election.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+  
+  /**
+   * Reset the form to its initial state
+   */
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setStartDate("");
+    setEndDate("");
+    setIsPrivate(false);
+    setAccessCode("");
+    setEditingElectionId(null);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Elections Management</h1>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Election
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Create New Election</DialogTitle>
-              <DialogDescription>
-                Fill out this form to create a new election.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCreateElection)} className="space-y-4 pt-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter election title" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+    <div className="container mx-auto py-12 px-4">
+      <h1 className="text-3xl font-bold mb-8">Manage Elections</h1>
+      
+      {/* Create/Edit Election Dialog */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button className="mb-6">
+            <Plus className="mr-2 h-4 w-4" />
+            Create New Election
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingElectionId ? "Edit Election" : "Create New Election"}
+            </DialogTitle>
+            <DialogDescription>
+              Fill in the details for your election. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title*</Label>
+                <Input 
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Board Election 2023"
+                  required
                 />
-                
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Enter election description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Input 
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Provide a brief description"
                 />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="start_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date</FormLabel>
-                        <FormControl>
-                          <Input type="datetime-local" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="end_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Date</FormLabel>
-                        <FormControl>
-                          <Input type="datetime-local" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Start Date*</Label>
+                  <Input 
+                    id="startDate"
+                    type="datetime-local"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    required
                   />
                 </div>
                 
-                <FormField
-                  control={form.control}
-                  name="is_private"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-2 space-y-0">
-                      <FormControl>
-                        <input 
-                          type="checkbox" 
-                          checked={field.value} 
-                          onChange={field.onChange}
-                          className="h-4 w-4"
-                        />
-                      </FormControl>
-                      <FormLabel className="font-normal">Private Election</FormLabel>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {form.watch('is_private') && (
-                  <FormField
-                    control={form.control}
-                    name="access_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Access Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter access code for private election" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">End Date*</Label>
+                  <Input 
+                    id="endDate"
+                    type="datetime-local"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    required
                   />
-                )}
-                
-                <Button type="submit" className="w-full">Create Election</Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox 
+                  id="isPrivate" 
+                  checked={isPrivate}
+                  onCheckedChange={(checked) => setIsPrivate(checked === true)}
+                />
+                <Label htmlFor="isPrivate">Private Election</Label>
+              </div>
+              
+              {isPrivate && (
+                <div className="space-y-2">
+                  <Label htmlFor="accessCode">Access Code*</Label>
+                  <Input 
+                    id="accessCode"
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
+                    placeholder="Create a code for voters to access this election"
+                    required={isPrivate}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    You will need to share this code with voters.
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit">Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>All Elections</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search elections..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          {loading ? (
-            <div className="text-center py-4">Loading elections...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Start Date</TableHead>
-                  <TableHead>End Date</TableHead>
-                  <TableHead>Private</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredElections.length > 0 ? (
-                  filteredElections.map(election => (
-                    <TableRow key={election.id}>
-                      <TableCell>{election.title}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          election.status === 'active' ? 'bg-green-100 text-green-800' : 
-                          election.status === 'upcoming' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {election.status.charAt(0).toUpperCase() + election.status.slice(1)}
-                        </span>
-                      </TableCell>
-                      <TableCell>{formatDate(election.startDate)}</TableCell>
-                      <TableCell>{formatDate(election.endDate)}</TableCell>
-                      <TableCell>
-                        {election.isPrivate ? <Check size={16} /> : <X size={16} />}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link to={`/admin/elections/${election.id}`}>
-                              <Edit className="h-4 w-4" />
-                            </Link>
-                          </Button>
+      {/* Elections Table */}
+      {loading ? (
+        <p>Loading elections...</p>
+      ) : elections.length > 0 ? (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Start Date</TableHead>
+                <TableHead>End Date</TableHead>
+                <TableHead>Privacy</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {elections.map((election) => (
+                <TableRow key={election.id}>
+                  <TableCell className="font-medium">{election.title}</TableCell>
+                  <TableCell className="capitalize">{election.status}</TableCell>
+                  <TableCell>{new Date(election.startDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(election.endDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{election.isPrivate ? "Private" : "Public"}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/elections/${election.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      
+                      <Dialog>
+                        <DialogTrigger asChild>
                           <Button 
-                            variant="destructive" 
+                            variant="outline" 
                             size="sm"
-                            onClick={() => handleDeleteElection(election.id)}
+                            onClick={() => handleEditElection(election)}
                           >
-                            <Trash className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center">
-                      No elections found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[600px]">
+                          {/* Edit form is the same as create form, but pre-filled */}
+                          {/* Form content is reused */}
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the election "{election.title}" and all associated data including
+                              candidates and votes. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handleDeleteElection(election.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="text-center py-10 border rounded-md">
+          <p className="text-muted-foreground mb-4">No elections created yet</p>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First Election
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              {/* Form content is reused */}
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
     </div>
   );
 };

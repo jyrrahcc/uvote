@@ -15,8 +15,8 @@ import { Search, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { Election } from "@/types";
-import ElectionCard from "@/features/elections/components/ElectionsList";
+import { Election, mapDbElectionToElection } from "@/types";
+import ElectionCard from "@/features/elections/components/ElectionCard";
 
 /**
  * Elections listing page component
@@ -43,7 +43,9 @@ const Elections = () => {
       
       if (error) throw error;
       
-      setElections(data || []);
+      // Transform data to match our Election interface
+      const transformedElections = data?.map(mapDbElectionToElection) || [];
+      setElections(transformedElections);
     } catch (error) {
       console.error("Error fetching elections:", error);
       toast.error("Failed to fetch elections");

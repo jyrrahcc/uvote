@@ -18,7 +18,8 @@ const featuredElections: Election[] = [
     createdBy: "admin-2",
     createdAt: "2025-04-01T00:00:00Z",
     updatedAt: "2025-04-01T00:00:00Z",
-    isPrivate: false
+    isPrivate: false,
+    accessCode: ""
   },
   {
     id: "1",
@@ -30,7 +31,8 @@ const featuredElections: Election[] = [
     createdBy: "admin-1",
     createdAt: "2025-08-01T00:00:00Z",
     updatedAt: "2025-08-01T00:00:00Z",
-    isPrivate: false
+    isPrivate: false,
+    accessCode: ""
   },
 ];
 
@@ -60,7 +62,11 @@ const Index = () => {
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/20" asChild>
+                <Button 
+                  size="lg" 
+                  className="bg-secondary text-primary hover:bg-secondary/80 border border-white/20" 
+                  asChild
+                >
                   <Link to="/how-it-works">
                     Learn How It Works
                   </Link>
