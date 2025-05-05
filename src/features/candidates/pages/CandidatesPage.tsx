@@ -85,7 +85,8 @@ const CandidatesPage = () => {
       
       if (error) throw error;
       
-      setElection(data as Election);
+      // Type casting to match our Election type
+      setElection(data as unknown as Election);
     } catch (error) {
       console.error("Error fetching election details:", error);
       toast.error("Failed to fetch election details");
@@ -104,7 +105,8 @@ const CandidatesPage = () => {
       
       if (error) throw error;
       
-      setCandidates(data as Candidate[]);
+      // Type casting to match our Candidate[] type
+      setCandidates(data as unknown as Candidate[]);
     } catch (error) {
       console.error("Error fetching candidates:", error);
       toast.error("Failed to fetch candidates");
@@ -126,7 +128,7 @@ const CandidatesPage = () => {
       // Using generic syntax for Supabase to avoid type errors
       const { data, error } = await supabase
         .from('candidates')
-        .insert(newCandidate)
+        .insert(newCandidate as any)
         .select();
       
       if (error) throw error;
@@ -137,7 +139,8 @@ const CandidatesPage = () => {
       
       // Update local state
       if (data) {
-        setCandidates([...candidates, ...(data as Candidate[])]);
+        // Type casting to match our Candidate[] type
+        setCandidates([...candidates, ...(data as unknown as Candidate[])]);
       }
     } catch (error) {
       console.error("Error adding candidate:", error);

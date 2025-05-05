@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // Admin test credentials
 export const ADMIN_TEST_EMAIL = "admin@uvote.com";
@@ -13,13 +13,11 @@ export const ADMIN_TEST_PASSWORD = "adminPassword123!";
 export const createAdminUser = async () => {
   try {
     // Check if admin user already exists
-    const { data: existingUsers } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', ADMIN_TEST_EMAIL)
-      .single();
+    const { data: existingUsers, error: checkError } = await supabase.auth.admin
+      .listUsers({ page: 1, perPage: 10 })
+      .catch(() => ({ data: null, error: null }));
     
-    if (existingUsers) {
+    if (existingUsers?.users?.some(user => user.email === ADMIN_TEST_EMAIL)) {
       console.log("Admin user already exists");
       return;
     }
@@ -48,7 +46,7 @@ export const createAdminUser = async () => {
         .insert({
           user_id: data.user.id,
           role: 'admin',
-        });
+        } as any);
 
       if (roleError) {
         console.error("Error assigning admin role:", roleError);
