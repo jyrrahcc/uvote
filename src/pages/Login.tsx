@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
 import LoginForm from "@/features/auth/components/LoginForm";
@@ -17,10 +16,14 @@ const Login = () => {
   const navigate = useNavigate();
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
 
-  // Create admin user when component mounts
+  // Initialize admin user when component mounts, but don't block rendering
   useEffect(() => {
     const initAdminUser = async () => {
-      await createAdminUser();
+      try {
+        await createAdminUser();
+      } catch (error) {
+        console.error("Error initializing admin user:", error);
+      }
     };
 
     initAdminUser();
@@ -32,8 +35,18 @@ const Login = () => {
     try {
       const success = await loginAsAdmin();
       if (success) {
-        navigate("/dashboard");
+        // Give the auth state a moment to update before navigating
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 500);
       }
+    } catch (error) {
+      console.error("Error during admin login:", error);
+      toast({
+        title: "Login Failed",
+        description: "There was a problem logging in as admin. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsCreatingAdmin(false);
     }

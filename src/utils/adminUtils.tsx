@@ -1,4 +1,3 @@
-
 import { Election, Candidate, User } from "@/types";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Copy, Mail, MoreHorizontal } from "lucide-react";
@@ -15,14 +14,14 @@ export const ADMIN_TEST_PASSWORD = "password123";
  */
 export const createAdminUser = async (): Promise<boolean> => {
   try {
-    // Check if admin user already exists
-    const { data: existingUser } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', ADMIN_TEST_EMAIL)
-      .single();
+    // Check if admin user already exists in auth.users
+    const { data: userExists, error: userCheckError } = await supabase.auth.admin.getUserByEmail(ADMIN_TEST_EMAIL);
     
-    if (existingUser) {
+    if (userCheckError) {
+      console.log("Checking if user exists:", userCheckError);
+      // If we can't check, try to create anyway
+    } else if (userExists) {
+      console.log("Admin user already exists");
       return true; // Admin already exists
     }
     
@@ -30,10 +29,20 @@ export const createAdminUser = async (): Promise<boolean> => {
     const { data, error } = await supabase.auth.signUp({
       email: ADMIN_TEST_EMAIL,
       password: ADMIN_TEST_PASSWORD,
+      options: {
+        data: {
+          first_name: "Admin",
+          last_name: "User",
+        },
+      },
     });
     
     if (error) {
       console.error("Error creating admin user:", error);
+      // If the user already exists, that's fine
+      if (error.message.includes("already registered")) {
+        return true;
+      }
       return false;
     }
     
@@ -44,10 +53,17 @@ export const createAdminUser = async (): Promise<boolean> => {
         .insert({
           user_id: data.user.id,
           role: 'admin'
-        });
+        })
+        .select()
+        .single();
       
       if (roleError) {
-        console.error("Error setting admin role:", roleError);
+        // Check if error is due to unique constraint (role already assigned)
+        if (roleError.code === '23505') {
+          console.log("Admin role already assigned");
+        } else {
+          console.error("Error setting admin role:", roleError);
+        }
       }
     }
     
@@ -63,13 +79,17 @@ export const createAdminUser = async (): Promise<boolean> => {
  */
 export const loginAsAdmin = async (): Promise<boolean> => {
   try {
+    // First make sure the admin user exists
+    await createAdminUser();
+    
+    // Attempt to sign in
     const { data, error } = await supabase.auth.signInWithPassword({
       email: ADMIN_TEST_EMAIL,
       password: ADMIN_TEST_PASSWORD,
     });
     
     if (error) {
-      toast.error("Failed to login as admin");
+      toast.error("Failed to login as admin: " + error.message);
       console.error("Admin login error:", error);
       return false;
     }
@@ -78,6 +98,7 @@ export const loginAsAdmin = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Error in loginAsAdmin:", error);
+    toast.error("An unexpected error occurred while logging in as admin");
     return false;
   }
 };
