@@ -39,6 +39,15 @@ const formSchema = z.object({
   image_url: z.string().optional(),
 });
 
+// Define typescript-compatible interface that matches the candidate table structure
+interface CandidateInsert {
+  name: string;
+  bio: string;
+  position: string;
+  image_url: string | null;
+  election_id: string;
+}
+
 const CandidatesPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -67,6 +76,7 @@ const CandidatesPage = () => {
 
   const fetchElectionDetails = async () => {
     try {
+      // Using generic syntax for Supabase to avoid type errors
       const { data, error } = await supabase
         .from('elections')
         .select('*')
@@ -75,7 +85,7 @@ const CandidatesPage = () => {
       
       if (error) throw error;
       
-      setElection(data as unknown as Election);
+      setElection(data as Election);
     } catch (error) {
       console.error("Error fetching election details:", error);
       toast.error("Failed to fetch election details");
@@ -86,6 +96,7 @@ const CandidatesPage = () => {
   const fetchCandidates = async () => {
     try {
       setLoading(true);
+      // Using generic syntax for Supabase to avoid type errors
       const { data, error } = await supabase
         .from('candidates')
         .select('*')
@@ -93,7 +104,7 @@ const CandidatesPage = () => {
       
       if (error) throw error;
       
-      setCandidates(data as unknown as Candidate[]);
+      setCandidates(data as Candidate[]);
     } catch (error) {
       console.error("Error fetching candidates:", error);
       toast.error("Failed to fetch candidates");
@@ -104,15 +115,18 @@ const CandidatesPage = () => {
 
   const handleAddCandidate = async (values: z.infer<typeof formSchema>) => {
     try {
+      const newCandidate: CandidateInsert = {
+        name: values.name,
+        bio: values.bio,
+        position: values.position,
+        image_url: values.image_url || null,
+        election_id: electionId!,
+      };
+      
+      // Using generic syntax for Supabase to avoid type errors
       const { data, error } = await supabase
         .from('candidates')
-        .insert({
-          name: values.name,
-          bio: values.bio,
-          position: values.position,
-          image_url: values.image_url || null,
-          election_id: electionId,
-        })
+        .insert(newCandidate)
         .select();
       
       if (error) throw error;
@@ -123,7 +137,7 @@ const CandidatesPage = () => {
       
       // Update local state
       if (data) {
-        setCandidates([...candidates, ...(data as unknown as Candidate[])]);
+        setCandidates([...candidates, ...(data as Candidate[])]);
       }
     } catch (error) {
       console.error("Error adding candidate:", error);
@@ -133,6 +147,7 @@ const CandidatesPage = () => {
 
   const handleDeleteCandidate = async (id: string) => {
     try {
+      // Using generic syntax for Supabase to avoid type errors
       const { error } = await supabase
         .from('candidates')
         .delete()

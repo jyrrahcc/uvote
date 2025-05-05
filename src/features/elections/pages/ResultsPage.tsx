@@ -23,6 +23,7 @@ const ResultsPage = () => {
 
   const fetchElectionDetails = async () => {
     try {
+      // Using generic syntax for Supabase to avoid type errors
       const { data, error } = await supabase
         .from('elections')
         .select('*')
@@ -31,7 +32,7 @@ const ResultsPage = () => {
       
       if (error) throw error;
       
-      setElection(data);
+      setElection(data as Election);
     } catch (error) {
       console.error("Error fetching election details:", error);
       toast.error("Failed to fetch election details");
@@ -44,6 +45,7 @@ const ResultsPage = () => {
       setLoading(true);
       
       // Get candidates with their vote counts
+      // Using generic syntax for Supabase to avoid type errors
       const { data: candidates, error: candidatesError } = await supabase
         .from('candidates')
         .select('id, name, position')
