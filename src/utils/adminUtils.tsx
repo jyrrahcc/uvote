@@ -4,6 +4,83 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Copy, Mail, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+// Admin test credentials
+export const ADMIN_TEST_EMAIL = "admin@example.com";
+export const ADMIN_TEST_PASSWORD = "password123";
+
+/**
+ * Create an admin user for testing purposes
+ */
+export const createAdminUser = async (): Promise<boolean> => {
+  try {
+    // Check if admin user already exists
+    const { data: existingUser } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', ADMIN_TEST_EMAIL)
+      .single();
+    
+    if (existingUser) {
+      return true; // Admin already exists
+    }
+    
+    // Create the admin user
+    const { data, error } = await supabase.auth.signUp({
+      email: ADMIN_TEST_EMAIL,
+      password: ADMIN_TEST_PASSWORD,
+    });
+    
+    if (error) {
+      console.error("Error creating admin user:", error);
+      return false;
+    }
+    
+    // Set the user role to admin
+    if (data.user) {
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: data.user.id,
+          role: 'admin'
+        });
+      
+      if (roleError) {
+        console.error("Error setting admin role:", roleError);
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in createAdminUser:", error);
+    return false;
+  }
+};
+
+/**
+ * Login as admin for testing purposes
+ */
+export const loginAsAdmin = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: ADMIN_TEST_EMAIL,
+      password: ADMIN_TEST_PASSWORD,
+    });
+    
+    if (error) {
+      toast.error("Failed to login as admin");
+      console.error("Admin login error:", error);
+      return false;
+    }
+    
+    toast.success("Logged in as admin");
+    return true;
+  } catch (error) {
+    console.error("Error in loginAsAdmin:", error);
+    return false;
+  }
+};
 
 /**
  * Get the appropriate status badge for an election
@@ -57,9 +134,7 @@ export const shareElection = (election: Election) => {
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareUrl).then(() => {
-      toast({
-        description: "Link copied to clipboard",
-      });
+      toast("Link copied to clipboard");
     });
   };
   
@@ -115,28 +190,17 @@ export const generateAccessCode = () => {
 
 // Create custom toast notifications
 export const notifySuccess = (message: ReactNode) => {
-  toast({
-    description: message,
-    className: "bg-green-50 border-green-200 text-green-800"
-  });
+  toast(message);
 };
 
 export const notifyError = (message: ReactNode) => {
-  toast({
-    description: message,
-    className: "bg-red-50 border-red-200 text-red-800"
-  });
+  toast(message);
 };
 
 export const notifyInfo = (message: ReactNode) => {
-  toast({
-    description: message
-  });
+  toast(message);
 };
 
 export const notifyWarning = (message: ReactNode) => {
-  toast({
-    description: message,
-    className: "bg-yellow-50 border-yellow-200 text-yellow-800"
-  });
+  toast(message);
 };

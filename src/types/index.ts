@@ -51,6 +51,26 @@ export interface Result {
 }
 
 /**
+ * Election Result type definition
+ */
+export interface ElectionResult {
+  electionId: string;
+  candidates: {
+    id: string;
+    name: string;
+    votes: number;
+    percentage: number;
+  }[];
+  totalVotes: number;
+  winner: {
+    id: string;
+    name: string;
+    votes: number;
+    percentage: number;
+  } | null;
+}
+
+/**
  * User type definition
  */
 export interface User {

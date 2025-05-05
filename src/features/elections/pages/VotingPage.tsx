@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -16,6 +15,14 @@ import {
   mapDbCandidateToCandidate 
 } from "@/types";
 import CandidatesList from "@/features/candidates/components/CandidatesList";
+
+// Interface for CandidatesList props to ensure type safety
+interface CandidatesListProps {
+  candidates: Candidate[];
+  selectedCandidateId: string | null;
+  onSelectCandidate: (candidateId: string) => void;
+  readOnly: boolean;
+}
 
 /**
  * Voting page component displays election details and allows voting
