@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "../context/AuthContext";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Login form for authenticating existing users
@@ -15,7 +17,7 @@ const LoginForm = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle, signInWithMicrosoft } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,6 +44,32 @@ const LoginForm = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Google login error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to login with Google. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    try {
+      await signInWithMicrosoft();
+    } catch (error) {
+      console.error("Microsoft login error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to login with Microsoft. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -86,8 +114,6 @@ const LoginForm = () => {
               autoComplete="current-password"
             />
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
           <Button 
             type="submit" 
             className="w-full" 
@@ -95,6 +121,33 @@ const LoginForm = () => {
           >
             {isLoading ? "Logging in..." : "Log in"}
           </Button>
+          
+          <div className="flex items-center gap-2 my-4">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">OR</span>
+            <Separator className="flex-1" />
+          </div>
+          
+          <div className="flex flex-col gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleGoogleLogin}
+            >
+              Continue with Google
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleMicrosoftLogin}
+            >
+              Continue with Microsoft
+            </Button>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-center">
           <div className="text-center text-sm">
             Don't have an account?{" "}
             <Link to="/register" className="text-primary hover:underline">

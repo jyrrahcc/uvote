@@ -20,6 +20,8 @@ type AuthContextType = {
     error: AuthError | null;
     data: { session: Session | null; user: User | null } | null;
   }>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithMicrosoft: () => Promise<void>;
   signOut: () => Promise<void>;
   loading: boolean;
 };
@@ -82,6 +84,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return result;
   };
 
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+    setLoading(false);
+  };
+
+  const signInWithMicrosoft = async () => {
+    setLoading(true);
+    await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+    });
+    setLoading(false);
+  };
+
   const signOut = async () => {
     setLoading(true);
     await supabase.auth.signOut();
@@ -96,6 +114,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         signIn,
         signUp,
+        signInWithGoogle,
+        signInWithMicrosoft,
         signOut,
         loading,
       }}

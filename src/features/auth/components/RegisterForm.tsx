@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "../context/AuthContext";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Registration form for new users
@@ -17,7 +19,7 @@ const RegisterForm = () => {
   const [lastName, setLastName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle, signInWithMicrosoft } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,6 +49,32 @@ const RegisterForm = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Google login error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to login with Google. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    try {
+      await signInWithMicrosoft();
+    } catch (error) {
+      console.error("Microsoft login error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to login with Microsoft. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -57,6 +85,31 @@ const RegisterForm = () => {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          <div className="flex flex-col gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleGoogleLogin}
+            >
+              Sign up with Google
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleMicrosoftLogin}
+            >
+              Sign up with Microsoft
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-2 my-4">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">OR</span>
+            <Separator className="flex-1" />
+          </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
@@ -106,8 +159,6 @@ const RegisterForm = () => {
               Password must be at least 8 characters long
             </p>
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
           <Button 
             type="submit" 
             className="w-full" 
@@ -115,6 +166,8 @@ const RegisterForm = () => {
           >
             {isLoading ? "Creating account..." : "Create account"}
           </Button>
+        </CardContent>
+        <CardFooter className="flex justify-center">
           <div className="text-center text-sm">
             Already have an account?{" "}
             <Link to="/login" className="text-primary hover:underline">
