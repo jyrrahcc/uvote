@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, FileText } from "lucide-react";
 import { Election, Candidate } from "@/types";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { useAuth } from "@/features/auth/context/AuthContext";

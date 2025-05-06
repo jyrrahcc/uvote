@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText } from "lucide-react";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { CandidateApplication, fetchUserCandidateApplications, deleteCandidateApplication } from "../services/candidateApplicationService";
-import ApplicationStatusBadge from "./ApplicationStatusBadge";
+import ApplicationStatusBadge from "../components/ApplicationStatusBadge";
 import { formatDistanceToNow } from "date-fns";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
