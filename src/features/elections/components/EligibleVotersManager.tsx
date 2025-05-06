@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Trash2, Plus, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { DlsudVoter } from "@/types";
+import { DlsudVoter, DlsudProfile, mapDbProfileToProfile } from "@/types";
 
 export interface EligibleVotersManagerProps {
   electionId: string | null;
@@ -81,16 +81,21 @@ const EligibleVotersManager = forwardRef(({
       if (profilesError) throw profilesError;
       
       // Map profiles to our voter interface
-      const loadedVoters: DlsudVoter[] = profilesData.map(profile => ({
-        id: profile.id,
-        userId: profile.id,
-        studentId: profile.student_id || "",
-        firstName: profile.first_name || "",
-        lastName: profile.last_name || "",
-        email: profile.email || "",
-        department: profile.department || "",
-        yearLevel: profile.year_level || ""
-      }));
+      const loadedVoters: DlsudVoter[] = profilesData.map(profile => {
+        // Use our mapping function to handle optional fields properly
+        const mappedProfile = mapDbProfileToProfile(profile);
+        
+        return {
+          id: mappedProfile.id,
+          userId: mappedProfile.id,
+          studentId: mappedProfile.student_id || "",
+          firstName: mappedProfile.first_name,
+          lastName: mappedProfile.last_name,
+          email: mappedProfile.email,
+          department: mappedProfile.department || "",
+          yearLevel: mappedProfile.year_level || ""
+        };
+      });
       
       setVoters(loadedVoters);
     } catch (error) {
@@ -158,18 +163,23 @@ const EligibleVotersManager = forwardRef(({
       }
       
       // Add each found user to our voters list if they're not already there
-      const newVoters = data.filter(
-        profile => !voters.some(v => v.userId === profile.id)
-      ).map(profile => ({
-        id: profile.id,
-        userId: profile.id,
-        studentId: profile.student_id || "",
-        firstName: profile.first_name || "",
-        lastName: profile.last_name || "",
-        email: profile.email || "",
-        department: profile.department || "",
-        yearLevel: profile.year_level || ""
-      }));
+      const newVoters = data
+        .filter(profile => !voters.some(v => v.userId === profile.id))
+        .map(profile => {
+          // Use our mapping function to handle optional fields properly
+          const mappedProfile = mapDbProfileToProfile(profile);
+          
+          return {
+            id: mappedProfile.id,
+            userId: mappedProfile.id,
+            studentId: mappedProfile.student_id || "",
+            firstName: mappedProfile.first_name,
+            lastName: mappedProfile.last_name,
+            email: mappedProfile.email,
+            department: mappedProfile.department || "",
+            yearLevel: mappedProfile.year_level || ""
+          };
+        });
       
       if (newVoters.length === 0) {
         toast.info("All found users are already in your eligible voters list");

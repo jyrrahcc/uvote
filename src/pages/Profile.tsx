@@ -5,24 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { DlsudProfile } from "@/types";
 
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  created_at: string;
-}
+const DLSU_DEPARTMENTS = [
+  "College of Business Administration and Accountancy",
+  "College of Education",
+  "College of Engineering, Architecture and Technology",
+  "College of Humanities, Arts and Social Sciences",
+  "College of Science and Computer Studies",
+  "College of Criminal Justice Education",
+  "College of Tourism and Hospitality Management"
+];
+
+const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
 
 const Profile = () => {
   const { user, signOut } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<DlsudProfile | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [department, setDepartment] = useState("");
+  const [yearLevel, setYearLevel] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -45,8 +54,11 @@ const Profile = () => {
 
         if (data) {
           setProfile(data);
-          setFirstName(data.first_name);
-          setLastName(data.last_name);
+          setFirstName(data.first_name || "");
+          setLastName(data.last_name || "");
+          setStudentId(data.student_id || "");
+          setDepartment(data.department || "");
+          setYearLevel(data.year_level || "");
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -74,6 +86,9 @@ const Profile = () => {
         .update({
           first_name: firstName,
           last_name: lastName,
+          student_id: studentId,
+          department: department,
+          year_level: yearLevel,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
@@ -117,11 +132,11 @@ const Profile = () => {
     <PageLayout>
       <div className="container mx-auto py-12 px-4">
         <div className="max-w-md mx-auto">
-          <h1 className="text-3xl font-bold text-center mb-8">Your Profile</h1>
+          <h1 className="text-3xl font-bold text-center mb-8">Your DLSU-D Profile</h1>
           <Card>
             <CardHeader>
               <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your personal details</CardDescription>
+              <CardDescription>Update your DLSU-D student details</CardDescription>
             </CardHeader>
             <form onSubmit={handleUpdateProfile}>
               <CardContent className="space-y-4">
@@ -156,6 +171,52 @@ const Profile = () => {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="studentId">Student ID</Label>
+                  <Input
+                    id="studentId"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    placeholder="e.g., 2018-00123-ST-0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your DLSU-D Student ID Number
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="department">College/Department</Label>
+                  <Select
+                    value={department}
+                    onValueChange={setDepartment}
+                  >
+                    <SelectTrigger id="department">
+                      <SelectValue placeholder="Select your college" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Not specified</SelectItem>
+                      {DLSU_DEPARTMENTS.map((dept) => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="yearLevel">Year Level</Label>
+                  <Select
+                    value={yearLevel}
+                    onValueChange={setYearLevel}
+                  >
+                    <SelectTrigger id="yearLevel">
+                      <SelectValue placeholder="Select your year level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Not specified</SelectItem>
+                      {YEAR_LEVELS.map((year) => (
+                        <SelectItem key={year} value={year}>{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="joined">Joined</Label>
                   <Input
                     id="joined"
@@ -170,7 +231,7 @@ const Profile = () => {
               <CardFooter className="flex flex-col space-y-4">
                 <Button 
                   type="submit" 
-                  className="w-full" 
+                  className="w-full bg-[#008f50] hover:bg-[#007a45]" 
                   disabled={isSaving}
                 >
                   {isSaving ? "Saving..." : "Save Changes"}

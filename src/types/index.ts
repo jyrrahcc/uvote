@@ -104,6 +104,21 @@ export interface DlsudVoter {
 }
 
 /**
+ * Supabase Profile type definition for DLSU-D
+ */
+export interface DlsudProfile {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  created_at: string;
+  updated_at: string;
+  student_id?: string;
+  department?: string;
+  year_level?: string;
+}
+
+/**
  * Supabase to App Schema Transformation Functions
  */
 export const mapDbElectionToElection = (dbElection: any): Election => ({
@@ -176,4 +191,19 @@ export const mapDbVoterToVoter = (dbVoter: any): DlsudVoter => ({
   email: dbVoter.email,
   department: dbVoter.department,
   yearLevel: dbVoter.year_level
+});
+
+/**
+ * Maps database profile to app profile object
+ */
+export const mapDbProfileToProfile = (profile: any): DlsudProfile => ({
+  id: profile.id,
+  email: profile.email,
+  first_name: profile.first_name,
+  last_name: profile.last_name,
+  created_at: profile.created_at,
+  updated_at: profile.updated_at,
+  student_id: profile.student_id || '',
+  department: profile.department || '',
+  year_level: profile.year_level || ''
 });
