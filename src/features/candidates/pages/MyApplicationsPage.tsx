@@ -1,152 +1,137 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText } from "lucide-react";
-import { useAuth } from "@/features/auth/context/AuthContext";
-import { CandidateApplication, fetchUserCandidateApplications, deleteCandidateApplication } from "../services/candidateApplicationService";
+import { FileText, Trash } from "lucide-react";
+import { 
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
+} from "@/components/ui/card";
 import ApplicationStatusBadge from "../components/ApplicationStatusBadge";
-import { formatDistanceToNow } from "date-fns";
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { useUserCandidateApplications } from "../hooks/useCandidateApplications";
+import { deleteCandidateApplication } from "../services/candidateApplicationService";
+import { toast } from "sonner";
+import { formatDate } from "@/utils/dateUtils";
+import { Link } from "react-router-dom";
 
 const MyApplicationsPage = () => {
-  const [applications, setApplications] = useState<CandidateApplication[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  const loadMyApplications = async () => {
-    if (!user) return;
-    
+  const { applications, loading, error, refetch } = useUserCandidateApplications();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+  const handleDelete = async (applicationId: string) => {
     try {
-      setLoading(true);
-      const data = await fetchUserCandidateApplications(user.id);
-      setApplications(data);
-    } catch (error) {
-      console.error("Error loading my applications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadMyApplications();
-  }, [user]);
-
-  const handleWithdrawApplication = async (applicationId: string) => {
-    try {
+      setDeletingId(applicationId);
       await deleteCandidateApplication(applicationId);
-      // Refresh the applications list
-      loadMyApplications();
+      toast.success("Application deleted successfully");
+      refetch();
     } catch (error) {
-      console.error("Error withdrawing application:", error);
+      console.error("Error deleting application:", error);
+      toast.error("Failed to delete application");
+    } finally {
+      setDeletingId(null);
     }
   };
-
-  const handleViewElection = (electionId: string) => {
-    navigate(`/elections/${electionId}`);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center">
-            <FileText className="mr-2 h-6 w-6" />
-            My Candidate Applications
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            View and manage your candidate applications for elections
-          </p>
+  
+  if (loading) {
+    return (
+      <div className="container mx-auto py-12 px-4">
+        <h1 className="text-2xl font-bold mb-6">My Applications</h1>
+        <div className="text-center py-12">
+          <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your applications...</p>
         </div>
-        <Button variant="outline" onClick={() => navigate("/elections")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Elections
-        </Button>
       </div>
-
-      {loading ? (
-        <div className="space-y-4">
-          {[1, 2].map(i => (
-            <div key={i} className="h-40 bg-muted/20 animate-pulse rounded-md"></div>
-          ))}
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="container mx-auto py-12 px-4">
+        <h1 className="text-2xl font-bold mb-6">My Applications</h1>
+        <div className="text-center py-12 border rounded-md">
+          <p className="text-destructive mb-4">Failed to load your applications.</p>
+          <Button onClick={refetch}>Retry</Button>
         </div>
-      ) : applications.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-4">You haven't submitted any candidate applications yet.</p>
-            <Button onClick={() => navigate("/elections")}>
-              Browse Elections
-            </Button>
-          </CardContent>
-        </Card>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="container mx-auto py-12 px-4">
+      <h1 className="text-2xl font-bold mb-6">My Applications</h1>
+      
+      {applications.length === 0 ? (
+        <div className="text-center py-12 border rounded-md">
+          <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-xl mb-2">No applications found</p>
+          <p className="text-muted-foreground mb-6">
+            You haven't applied to be a candidate in any elections yet.
+          </p>
+          <Link to="/elections">
+            <Button>Browse Elections</Button>
+          </Link>
+        </div>
       ) : (
-        <div className="space-y-6">
-          {applications.map(application => (
-            <Card key={application.id} className="overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {applications.map((application) => (
+            <Card key={application.id} className="flex flex-col">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>{application.name}</CardTitle>
-                  <ApplicationStatusBadge status={application.status} />
+                <div className="flex justify-between items-start mb-2">
+                  <CardTitle className="text-lg">{application.name}</CardTitle>
+                  <ApplicationStatusBadge status={application.status as 'pending' | 'approved' | 'rejected'} />
                 </div>
                 <CardDescription>
                   Position: {application.position}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm mb-2">{application.bio}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Submitted {formatDistanceToNow(new Date(application.createdAt), { addSuffix: true })}
+              
+              <CardContent className="flex-grow">
+                {application.bio && (
+                  <div className="mb-4">
+                    <p className="font-medium text-sm">Bio:</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-3">
+                      {application.bio}
                     </p>
                   </div>
-                  
-                  {application.feedback && (
-                    <div>
-                      <p className="text-sm font-medium">Admin Feedback:</p>
-                      <p className="text-sm text-muted-foreground">{application.feedback}</p>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between pt-4 border-t">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleViewElection(application.electionId)}
-                    >
+                )}
+                
+                {application.feedback && (
+                  <div className="mb-4">
+                    <p className="font-medium text-sm">Feedback:</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-3">
+                      {application.feedback}
+                    </p>
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground mt-4">
+                  Submitted on {formatDate(application.created_at)}
+                </p>
+              </CardContent>
+              
+              <CardFooter>
+                <div className="flex justify-between items-center w-full">
+                  <Link to={`/elections/${application.election_id}`}>
+                    <Button variant="outline" size="sm">
                       View Election
                     </Button>
-                    
-                    {application.status === 'pending' && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive">
-                            Withdraw Application
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Withdraw Application</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to withdraw your candidate application? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleWithdrawApplication(application.id)}
-                              className="bg-destructive text-destructive-foreground"
-                            >
-                              Withdraw
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
+                  </Link>
+                  
+                  {application.status === "pending" && (
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDelete(application.id)}
+                      disabled={deletingId === application.id}
+                    >
+                      {deletingId === application.id ? (
+                        <span className="animate-spin mr-1">...</span>
+                      ) : (
+                        <Trash className="h-4 w-4 mr-1" />
+                      )}
+                      Withdraw
+                    </Button>
+                  )}
                 </div>
-              </CardContent>
+              </CardFooter>
             </Card>
           ))}
         </div>

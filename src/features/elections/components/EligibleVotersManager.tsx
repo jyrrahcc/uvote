@@ -38,6 +38,17 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   const [loading, setLoading] = useState(false);
   const [selectedVoters, setSelectedVoters] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Fetch current user ID on mount
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      setCurrentUserId(data.session?.user?.id || null);
+    };
+    
+    fetchCurrentUser();
+  }, []);
   
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -140,7 +151,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
         const eligibleVoters = selectedVoters.map(userId => ({
           election_id: electionId,
           user_id: userId,
-          added_by: (await supabase.auth.getSession()).data.session?.user?.id
+          added_by: currentUserId
         }));
         
         const { error: insertError } = await supabase

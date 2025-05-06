@@ -1,48 +1,29 @@
 
-/**
- * Candidate type definition
- */
 export interface Candidate {
   id: string;
   name: string;
-  bio: string;
   position: string;
-  imageUrl: string;
-  posterUrl?: string; // Added poster URL field
-  electionId: string;
-  createdAt: string;
-  studentId?: string; // Added student ID field for DLSU-D context
-  department?: string; // Added department field for DLSU-D context
-  yearLevel?: string; // Added year level field for DLSU-D context
+  bio?: string;
+  image_url?: string;
+  election_id: string;
+  student_id?: string;
+  department?: string;
+  year_level?: string;
 }
 
-/**
- * Supabase to App Schema Transformation Functions for Candidate
- */
-export const mapDbCandidateToCandidate = (dbCandidate: any): Candidate => ({
-  id: dbCandidate.id,
-  name: dbCandidate.name,
-  bio: dbCandidate.bio || '',
-  position: dbCandidate.position,
-  imageUrl: dbCandidate.image_url || '',
-  posterUrl: dbCandidate.poster_url || '',
-  electionId: dbCandidate.election_id,
-  createdAt: dbCandidate.created_at,
-  studentId: dbCandidate.student_id,
-  department: dbCandidate.department,
-  yearLevel: dbCandidate.year_level
-});
-
-export const mapCandidateToDbCandidate = (candidate: Candidate): any => ({
-  id: candidate.id,
-  name: candidate.name,
-  bio: candidate.bio,
-  position: candidate.position,
-  image_url: candidate.imageUrl,
-  poster_url: candidate.posterUrl,
-  election_id: candidate.electionId,
-  created_at: candidate.createdAt,
-  student_id: candidate.studentId,
-  department: candidate.department,
-  year_level: candidate.yearLevel
-});
+export interface CandidateApplication {
+  id: string;
+  name: string;
+  position: string;
+  bio: string | null;
+  image_url: string | null;
+  election_id: string;
+  user_id: string;
+  status: string;
+  feedback: string | null;
+  created_at: string;
+  updated_at: string | null;
+  student_id?: string | null;
+  department?: string | null;
+  year_level?: string | null;
+}

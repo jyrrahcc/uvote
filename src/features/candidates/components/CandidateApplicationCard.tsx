@@ -2,135 +2,118 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Check, X, User } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { CandidateApplication, updateApplicationStatus } from "../services/candidateApplicationService";
+import { toast } from "sonner";
+import { Check, CheckCircle, Clock, FileText, X } from "lucide-react";
+import { CandidateApplication } from "@/types";
 import ApplicationStatusBadge from "./ApplicationStatusBadge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { updateCandidateApplication } from "../services/candidateApplicationService";
+import { formatDate } from "@/utils/dateUtils";
 
 interface CandidateApplicationCardProps {
   application: CandidateApplication;
-  onStatusUpdate: () => void;
+  isAdmin: boolean;
+  onStatusChange?: () => void;
 }
 
-const CandidateApplicationCard = ({ application, onStatusUpdate }: CandidateApplicationCardProps) => {
-  const [showFeedbackInput, setShowFeedbackInput] = useState(false);
-  const [feedback, setFeedback] = useState(application.feedback || "");
-  const [processing, setProcessing] = useState(false);
-  
-  const handleApprove = async () => {
+const CandidateApplicationCard = ({ application, isAdmin, onStatusChange }: CandidateApplicationCardProps) => {
+  const [loading, setLoading] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState("");
+
+  const handleStatusChange = async (newStatus: "approved" | "rejected") => {
     try {
-      setProcessing(true);
-      await updateApplicationStatus(application.id, "approved", feedback);
-      onStatusUpdate();
+      setLoading(newStatus);
+      await updateCandidateApplication(application.id, {
+        status: newStatus,
+        feedback: feedback || undefined
+      });
+
+      toast.success(`Application ${newStatus === "approved" ? "approved" : "rejected"} successfully`);
+      if (onStatusChange) {
+        onStatusChange();
+      }
+    } catch (error) {
+      console.error(`Error ${newStatus} application:`, error);
+      toast.error(`Failed to ${newStatus === "approved" ? "approve" : "reject"} application`);
     } finally {
-      setProcessing(false);
+      setLoading(null);
     }
   };
-  
-  const handleReject = async () => {
-    try {
-      setProcessing(true);
-      await updateApplicationStatus(application.id, "rejected", feedback);
-      onStatusUpdate();
-    } finally {
-      setProcessing(false);
-    }
-  };
-  
-  const getInitials = (name: string) => {
-    return name.split(' ').map((n) => n[0]).join('').toUpperCase();
-  };
-  
+
   const isPending = application.status === "pending";
-  
+  const isApproved = application.status === "approved";
+  const isRejected = application.status === "rejected";
+
   return (
-    <Card className="overflow-hidden">
+    <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex justify-between items-start mb-2">
           <CardTitle className="text-lg">{application.name}</CardTitle>
-          <ApplicationStatusBadge status={application.status} />
+          <ApplicationStatusBadge status={application.status as 'pending' | 'approved' | 'rejected'} />
         </div>
         <CardDescription>
           Position: {application.position}
         </CardDescription>
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="flex space-x-4 mb-4">
-          <Avatar className="h-12 w-12 border">
-            {application.imageUrl ? (
-              <AvatarImage src={application.imageUrl} alt={application.name} />
-            ) : (
-              <AvatarFallback>
-                {getInitials(application.name)}
-              </AvatarFallback>
-            )}
-          </Avatar>
-          <div>
-            <p className="text-sm text-muted-foreground">
-              Applied {formatDistanceToNow(new Date(application.createdAt), { addSuffix: true })}
-            </p>
-            <p className="text-sm mt-1">{application.bio}</p>
-          </div>
-        </div>
-        
-        {(application.feedback || showFeedbackInput) && (
-          <div className="mt-4">
-            <p className="text-sm font-medium mb-1">Feedback:</p>
-            {isPending ? (
-              <Textarea 
-                value={feedback} 
-                onChange={(e) => setFeedback(e.target.value)} 
-                placeholder="Add feedback (optional)" 
-                className="text-sm"
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground italic">{application.feedback || "No feedback provided"}</p>
-            )}
+        {application.image_url && (
+          <div className="mt-3 w-full h-40 relative">
+            <img 
+              src={application.image_url} 
+              alt={`${application.name}`} 
+              className="w-full h-full object-cover rounded-md"
+            />
           </div>
         )}
-      </CardContent>
-      
-      {isPending && (
-        <CardFooter className="flex justify-between pt-2 border-t bg-muted/10">
-          {!showFeedbackInput && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowFeedbackInput(true)}
-            >
-              Add Feedback
-            </Button>
+      </CardHeader>
+      <CardContent className="py-2 flex-grow">
+        <div className="space-y-2 text-sm">
+          {application.bio && (
+            <div>
+              <p className="font-medium">Bio:</p>
+              <p className="text-muted-foreground whitespace-pre-line">{application.bio}</p>
+            </div>
           )}
           
-          <div className="ml-auto flex gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" disabled={processing}>
-                  <X className="mr-1 h-4 w-4" />
-                  Reject
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reject Application</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to reject this application? This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleReject} className="bg-destructive text-destructive-foreground">
-                    Reject
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          {application.feedback && (
+            <div className="mt-4">
+              <p className="font-medium">Feedback:</p>
+              <p className="text-muted-foreground whitespace-pre-line">{application.feedback}</p>
+            </div>
+          )}
+          
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground">
+              Submitted on {formatDate(application.created_at)}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+
+      {isAdmin && isPending && (
+        <CardFooter className="flex flex-col gap-2">
+          <div className="flex gap-2 w-full">
+            <Button
+              variant="outline"
+              className="flex-1 bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:text-red-800"
+              onClick={() => handleStatusChange("rejected")}
+              disabled={!!loading}
+            >
+              {loading === "rejected" ? (
+                <span className="animate-spin mr-1">...</span>
+              ) : (
+                <X className="h-4 w-4 mr-1" />
+              )}
+              Reject
+            </Button>
             
-            <Button size="sm" disabled={processing} onClick={handleApprove}>
-              <Check className="mr-1 h-4 w-4" />
+            <Button
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              onClick={() => handleStatusChange("approved")}
+              disabled={!!loading}
+            >
+              {loading === "approved" ? (
+                <span className="animate-spin mr-1">...</span>
+              ) : (
+                <Check className="h-4 w-4 mr-1" />
+              )}
               Approve
             </Button>
           </div>

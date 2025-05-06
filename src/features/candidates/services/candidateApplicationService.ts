@@ -1,157 +1,139 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { CandidateApplication } from "@/types";
 
-export interface CandidateApplicationInsert {
-  election_id: string;
-  user_id: string;
-  name: string;
-  position: string;
-  bio: string;
-  image_url: string | null;
-  student_id?: string | null;
-  department?: string | null;
-  year_level?: string | null;
+export interface UpdateCandidateApplicationData {
+  status?: "approved" | "rejected";
+  feedback?: string;
 }
 
-export interface CandidateApplication {
-  id: string;
+export interface CreateCandidateApplicationData {
   election_id: string;
-  user_id: string;
   name: string;
   position: string;
-  bio: string;
-  image_url: string | null;
-  created_at: string;
-  status: 'pending' | 'approved' | 'rejected';
-  feedback: string | null;
-  student_id: string | null;
-  department: string | null;
-  year_level: string | null;
+  bio?: string;
+  image_url?: string;
+  student_id?: string;
+  department?: string;
+  year_level?: string;
 }
 
-/**
- * Create a new candidate application
- */
-export const createCandidateApplication = async (
-  application: CandidateApplicationInsert
-): Promise<void> => {
-  const { error } = await supabase.from('candidate_applications').insert([application]);
-  
-  if (error) {
-    console.error("Error creating candidate application:", error);
+// Fetch all candidate applications for an election
+export async function fetchCandidateApplicationsForElection(electionId: string): Promise<CandidateApplication[]> {
+  try {
+    const { data, error } = await supabase
+      .from("candidate_applications")
+      .select("*")
+      .eq("election_id", electionId);
+
+    if (error) {
+      throw new Error(`Failed to fetch applications: ${error.message}`);
+    }
+
+    return data as unknown as CandidateApplication[];
+  } catch (error) {
+    console.error("Error fetching candidate applications:", error);
     throw error;
   }
-};
+}
 
-/**
- * Check if a user has already applied for a specific election
- */
-export const hasUserAppliedForElection = async (
-  electionId: string,
-  userId: string
-): Promise<boolean> => {
+// Fetch all candidate applications for current user
+export async function fetchCandidateApplicationsByUser(): Promise<CandidateApplication[]> {
   try {
-    const { data, error } = await supabase
-      .from('candidate_applications')
-      .select('id')
-      .eq('election_id', electionId)
-      .eq('user_id', userId)
-      .single();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
     
-    if (error && error.code !== 'PGRST116') {
-      console.error("Error checking candidate application:", error);
-      return false;
+    if (!userId) {
+      throw new Error("User is not authenticated");
     }
     
-    return !!data;
-  } catch (error) {
-    console.error("Error checking if user has applied:", error);
-    return false;
-  }
-};
-
-/**
- * Get all applications for a specific election
- */
-export const getElectionApplications = async (
-  electionId: string
-): Promise<CandidateApplication[]> => {
-  try {
     const { data, error } = await supabase
-      .from('candidate_applications')
-      .select('*')
-      .eq('election_id', electionId)
-      .order('created_at', { ascending: false });
+      .from("candidate_applications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
     
     if (error) {
-      console.error("Error fetching applications:", error);
-      throw error;
-    }
-    
-    return data as CandidateApplication[];
-  } catch (error) {
-    console.error("Error getting election applications:", error);
-    toast.error("Failed to fetch candidate applications");
-    return [];
-  }
-};
-
-/**
- * Get applications submitted by a specific user
- */
-export const getUserApplications = async (
-  userId: string
-): Promise<CandidateApplication[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('candidate_applications')
-      .select('*, elections(title, status)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Error fetching user applications:", error);
-      throw error;
+      throw new Error(`Failed to fetch user applications: ${error.message}`);
     }
     
     return data as unknown as CandidateApplication[];
   } catch (error) {
-    console.error("Error getting user applications:", error);
-    toast.error("Failed to fetch your candidate applications");
-    return [];
-  }
-};
-
-/**
- * Update application status
- */
-export const updateApplicationStatus = async (
-  applicationId: string,
-  status: 'approved' | 'rejected',
-  feedback?: string
-): Promise<void> => {
-  try {
-    const updateData: { status: string; feedback?: string } = { status };
-    
-    if (feedback) {
-      updateData.feedback = feedback;
-    }
-    
-    const { error } = await supabase
-      .from('candidate_applications')
-      .update(updateData)
-      .eq('id', applicationId);
-    
-    if (error) {
-      console.error("Error updating application status:", error);
-      throw error;
-    }
-    
-    // When approving, the trigger will handle creating the candidate record
-  } catch (error) {
-    console.error("Error updating application status:", error);
-    toast.error("Failed to update application status");
+    console.error("Error fetching user applications:", error);
     throw error;
   }
-};
+}
+
+// Update a candidate application (approve or reject)
+export async function updateCandidateApplication(
+  applicationId: string, 
+  updateData: UpdateCandidateApplicationData
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("candidate_applications")
+      .update({
+        status: updateData.status,
+        feedback: updateData.feedback,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", applicationId);
+    
+    if (error) {
+      throw new Error(`Failed to update application: ${error.message}`);
+    }
+  } catch (error) {
+    console.error("Error updating application:", error);
+    throw error;
+  }
+}
+
+// Create a new candidate application
+export async function createCandidateApplication(
+  applicationData: CreateCandidateApplicationData
+): Promise<CandidateApplication> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) {
+      throw new Error("User is not authenticated");
+    }
+    
+    const { data, error } = await supabase
+      .from("candidate_applications")
+      .insert([{
+        ...applicationData,
+        user_id: userId,
+        status: "pending"
+      }])
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Failed to create application: ${error.message}`);
+    }
+    
+    return data as unknown as CandidateApplication;
+  } catch (error) {
+    console.error("Error creating application:", error);
+    throw error;
+  }
+}
+
+// Delete a candidate application
+export async function deleteCandidateApplication(applicationId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("candidate_applications")
+      .delete()
+      .eq("id", applicationId);
+    
+    if (error) {
+      throw new Error(`Failed to delete application: ${error.message}`);
+    }
+  } catch (error) {
+    console.error("Error deleting application:", error);
+    throw error;
+  }
+}

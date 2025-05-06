@@ -1,19 +1,25 @@
 
 import { useState, useEffect } from "react";
-import { fetchCandidateApplications, CandidateApplication } from "../services/candidateApplicationService";
+import { CandidateApplication } from "@/types";
+import { 
+  fetchCandidateApplicationsForElection, 
+  fetchCandidateApplicationsByUser
+} from "../services/candidateApplicationService";
 
 export const useCandidateApplications = (electionId: string) => {
   const [applications, setApplications] = useState<CandidateApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [error, setError] = useState<Error | null>(null);
 
-  const loadApplications = async () => {
+  const fetchApplications = async () => {
     try {
       setLoading(true);
-      const data = await fetchCandidateApplications(electionId);
+      setError(null);
+      const data = await fetchCandidateApplicationsForElection(electionId);
       setApplications(data);
-    } catch (error) {
-      console.error("Error loading applications:", error);
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+      setError(err instanceof Error ? err : new Error("Failed to fetch applications"));
     } finally {
       setLoading(false);
     }
@@ -21,28 +27,45 @@ export const useCandidateApplications = (electionId: string) => {
 
   useEffect(() => {
     if (electionId) {
-      loadApplications();
+      fetchApplications();
     }
   }, [electionId]);
 
-  const filteredApplications = applications.filter(app => {
-    if (activeTab === "all") return true;
-    return app.status === activeTab;
-  });
+  return {
+    applications,
+    loading,
+    error,
+    refetch: fetchApplications
+  };
+};
 
-  const pendingCount = applications.filter(app => app.status === "pending").length;
-  const approvedCount = applications.filter(app => app.status === "approved").length;
-  const rejectedCount = applications.filter(app => app.status === "rejected").length;
+export const useUserCandidateApplications = () => {
+  const [applications, setApplications] = useState<CandidateApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchUserApplications = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchCandidateApplicationsByUser();
+      setApplications(data);
+    } catch (err) {
+      console.error("Error fetching user applications:", err);
+      setError(err instanceof Error ? err : new Error("Failed to fetch applications"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserApplications();
+  }, []);
 
   return {
     applications,
-    filteredApplications,
     loading,
-    activeTab,
-    setActiveTab,
-    pendingCount,
-    approvedCount,
-    rejectedCount,
-    loadApplications
+    error,
+    refetch: fetchUserApplications
   };
 };
