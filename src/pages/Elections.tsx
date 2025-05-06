@@ -35,13 +35,19 @@ const Elections = () => {
   const fetchElections = async () => {
     try {
       setLoading(true);
+      console.log("Fetching public elections...");
       
       const { data, error } = await supabase
         .from('elections')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching elections:", error);
+        throw error;
+      }
+      
+      console.log("Elections data from public page:", data);
       
       // Transform data to match our Election interface
       const transformedElections = data?.map(mapDbElectionToElection) || [];

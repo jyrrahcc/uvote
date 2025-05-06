@@ -44,13 +44,19 @@ const ElectionsManagement = () => {
   const fetchElections = async () => {
     try {
       setLoading(true);
+      console.log("Fetching elections...");
       
       const { data, error } = await supabase
         .from('elections')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching elections:", error);
+        throw error;
+      }
+      
+      console.log("Elections data:", data);
       
       // Transform the data to match our Election interface
       const transformedElections = data?.map(mapDbElectionToElection) || [];
@@ -83,7 +89,6 @@ const ElectionsManagement = () => {
         created_by: user?.id,
         is_private: isPrivate,
         access_code: isPrivate ? accessCode : null,
-        // status will be calculated by the database trigger
       };
       
       if (editingElectionId) {
@@ -317,8 +322,97 @@ const ElectionsManagement = () => {
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[600px]">
-                          {/* Edit form is the same as create form, but pre-filled */}
-                          {/* Form content is reused */}
+                          <DialogHeader>
+                            <DialogTitle>
+                              {editingElectionId ? "Edit Election" : "Create New Election"}
+                            </DialogTitle>
+                            <DialogDescription>
+                              Fill in the details for your election. Click save when you're done.
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                            <div className="grid grid-cols-1 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-title">Title*</Label>
+                                <Input 
+                                  id="edit-title"
+                                  value={title}
+                                  onChange={(e) => setTitle(e.target.value)}
+                                  placeholder="e.g., Board Election 2023"
+                                  required
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-description">Description</Label>
+                                <Input 
+                                  id="edit-description"
+                                  value={description}
+                                  onChange={(e) => setDescription(e.target.value)}
+                                  placeholder="Provide a brief description"
+                                />
+                              </div>
+                              
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-startDate">Start Date*</Label>
+                                  <Input 
+                                    id="edit-startDate"
+                                    type="datetime-local"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    required
+                                  />
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-endDate">End Date*</Label>
+                                  <Input 
+                                    id="edit-endDate"
+                                    type="datetime-local"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    required
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2 pt-2">
+                                <Checkbox 
+                                  id="edit-isPrivate" 
+                                  checked={isPrivate}
+                                  onCheckedChange={(checked) => setIsPrivate(checked === true)}
+                                />
+                                <Label htmlFor="edit-isPrivate">Private Election</Label>
+                              </div>
+                              
+                              {isPrivate && (
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-accessCode">Access Code*</Label>
+                                  <Input 
+                                    id="edit-accessCode"
+                                    value={accessCode}
+                                    onChange={(e) => setAccessCode(e.target.value)}
+                                    placeholder="Create a code for voters to access this election"
+                                    required={isPrivate}
+                                  />
+                                  <p className="text-sm text-muted-foreground">
+                                    You will need to share this code with voters.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <Button type="button" variant="outline" onClick={resetForm}>
+                                  Cancel
+                                </Button>
+                              </DialogClose>
+                              <Button type="submit">Save</Button>
+                            </DialogFooter>
+                          </form>
                         </DialogContent>
                       </Dialog>
                       
@@ -369,7 +463,95 @@ const ElectionsManagement = () => {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
-              {/* Form content is reused */}
+              <DialogHeader>
+                <DialogTitle>Create New Election</DialogTitle>
+                <DialogDescription>
+                  Fill in the details for your election. Click save when you're done.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-title">Title*</Label>
+                    <Input 
+                      id="new-title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g., Board Election 2023"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="new-description">Description</Label>
+                    <Input 
+                      id="new-description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Provide a brief description"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-startDate">Start Date*</Label>
+                      <Input 
+                        id="new-startDate"
+                        type="datetime-local"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="new-endDate">End Date*</Label>
+                      <Input 
+                        id="new-endDate"
+                        type="datetime-local"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Checkbox 
+                      id="new-isPrivate" 
+                      checked={isPrivate}
+                      onCheckedChange={(checked) => setIsPrivate(checked === true)}
+                    />
+                    <Label htmlFor="new-isPrivate">Private Election</Label>
+                  </div>
+                  
+                  {isPrivate && (
+                    <div className="space-y-2">
+                      <Label htmlFor="new-accessCode">Access Code*</Label>
+                      <Input 
+                        id="new-accessCode"
+                        value={accessCode}
+                        onChange={(e) => setAccessCode(e.target.value)}
+                        placeholder="Create a code for voters to access this election"
+                        required={isPrivate}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        You will need to share this code with voters.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" onClick={resetForm}>
+                      Cancel
+                    </Button>
+                  </DialogClose>
+                  <Button type="submit">Save</Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
