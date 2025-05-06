@@ -180,7 +180,7 @@ const Profile = () => {
                       <SelectValue placeholder="Select your college" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Not specified</SelectItem>
+                      <SelectItem value="not-specified">Not specified</SelectItem>
                       {DLSU_DEPARTMENTS.map((dept) => (
                         <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                       ))}
@@ -197,7 +197,7 @@ const Profile = () => {
                       <SelectValue placeholder="Select your year level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Not specified</SelectItem>
+                      <SelectItem value="not-specified">Not specified</SelectItem>
                       {YEAR_LEVELS.map((year) => (
                         <SelectItem key={year} value={year}>{year}</SelectItem>
                       ))}
