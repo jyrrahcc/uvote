@@ -24,14 +24,22 @@ export const fetchCandidatesForElection = async (electionId: string): Promise<Ca
   }
 };
 
+// Adding an alias for backward compatibility
+export const fetchCandidates = fetchCandidatesForElection;
+
 /**
  * Creates a new candidate
  */
 export const createCandidate = async (candidateData: Partial<Candidate>): Promise<Candidate> => {
   try {
+    // Make sure required fields are present
+    if (!candidateData.name || !candidateData.position) {
+      throw new Error("Candidate name and position are required");
+    }
+    
     const { data, error } = await supabase
       .from('candidates')
-      .insert([candidateData])
+      .insert(candidateData)
       .select()
       .single();
     

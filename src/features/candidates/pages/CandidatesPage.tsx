@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { fetchElectionDetails } from "@/features/elections/services/electionService";
-import { fetchCandidates, deleteCandidate } from "../services/candidateService";
+import { fetchCandidatesForElection, deleteCandidate } from "../services/candidateService";
 import { hasUserAppliedForElection } from "../services/candidateApplicationService";
 import { supabase } from "@/integrations/supabase/client";
 import { Election, Candidate } from "@/types";
@@ -40,7 +40,7 @@ const CandidatesPage = () => {
       setElection(electionData);
       
       // Fetch candidates
-      const candidatesData = await fetchCandidates(electionId!);
+      const candidatesData = await fetchCandidatesForElection(electionId!);
       setCandidates(candidatesData);
 
       // Check if current user has already registered as a candidate
@@ -50,7 +50,7 @@ const CandidatesPage = () => {
           .select('id')
           .eq('election_id', electionId)
           .eq('created_by', user.id)
-          .single();
+          .maybeSingle();
         
         setUserHasRegistered(!!data);
         
