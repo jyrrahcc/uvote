@@ -1,83 +1,83 @@
-
-import { Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Election } from "@/types";
-import { Users } from "lucide-react";
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Users, CheckCircle, Calendar, AlertCircle } from 'lucide-react';
+import { Election } from '@/types';
+import { formatDateRelative } from '@/utils/dateUtils';
 
 interface ElectionCardProps {
   election: Election;
 }
 
-/**
- * Card component to display an election
- */
-const ElectionCard = ({ election }: ElectionCardProps) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const getStatusBadgeVariant = (status: Election["status"]) => {
-    switch (status) {
-      case "active":
-        return "default";
-      case "upcoming":
-        return "secondary";
-      case "completed":
-        return "outline";
+const ElectionCard: React.FC<ElectionCardProps> = ({ election }) => {
+  
+  const getActionButton = () => {
+    switch (election.status) {
+      case 'active':
+        return (
+          <Button className="w-full" asChild>
+            <Link to={`/elections/${election.id}`}>Vote Now</Link>
+          </Button>
+        );
+      case 'completed':
+        return (
+          <Button className="w-full" variant="outline" asChild>
+            <Link to={`/elections/${election.id}/results`}>See Results</Link>
+          </Button>
+        );
+      case 'upcoming':
       default:
-        return "secondary";
+        return (
+          <Button className="w-full" variant="outline" disabled={true}>
+            Vote (Coming Soon)
+          </Button>
+        );
     }
   };
-
+  
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-xl">{election.title}</CardTitle>
-          <Badge variant={getStatusBadgeVariant(election.status)}>
-            {election.status.charAt(0).toUpperCase() + election.status.slice(1)}
-          </Badge>
-        </div>
-        <CardDescription>
-          {election.description.length > 100
-            ? `${election.description.substring(0, 100)}...`
-            : election.description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm space-y-2">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Start Date:</span>
-            <span>{formatDate(election.startDate)}</span>
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+      <CardContent className="p-6">
+        <h3 className="text-xl font-bold mb-2 truncate">{election.title}</h3>
+        <p className="text-muted-foreground line-clamp-2 mb-4">{election.description}</p>
+        
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center text-sm">
+            <Calendar className="h-4 w-4 mr-2 text-primary" />
+            {election.status === 'upcoming' && (
+              <span>Starts {formatDateRelative(election.startDate)}</span>
+            )}
+            {election.status === 'active' && (
+              <span>Ends {formatDateRelative(election.endDate)}</span>
+            )}
+            {election.status === 'completed' && (
+              <span>Ended {formatDateRelative(election.endDate)}</span>
+            )}
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">End Date:</span>
-            <span>{formatDate(election.endDate)}</span>
+          
+          <div className="flex items-center justify-between">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              ${election.status === 'active' ? 'bg-green-100 text-green-800' :
+                election.status === 'upcoming' ? 'bg-blue-100 text-blue-800' :
+                  'bg-gray-100 text-gray-800'}`
+            }>
+              {election.status === 'active' && <CheckCircle className="h-3 w-3 mr-1" />}
+              {election.status === 'upcoming' && <Calendar className="h-3 w-3 mr-1" />}
+              {election.status === 'completed' && <AlertCircle className="h-3 w-3 mr-1" />}
+              {election.status.charAt(0).toUpperCase() + election.status.slice(1)}
+            </span>
+            
+            <Link to={`/elections/${election.id}/candidates`} className="inline-flex items-center text-xs text-primary hover:underline">
+              <Users className="h-3 w-3 mr-1" />
+              View Candidates
+            </Link>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col gap-2">
-        <Button asChild className="w-full">
-          <Link to={`/elections/${election.id}`}>
-            {election.status === "active"
-              ? "Vote Now"
-              : election.status === "upcoming"
-                ? "View Details"
-                : "View Results"}
-          </Link>
-        </Button>
-        <Button variant="outline" asChild className="w-full">
-          <Link to={`/elections/${election.id}/candidates`}>
-            <Users className="mr-2 h-4 w-4" />
-            View Candidates
-          </Link>
-        </Button>
+      
+      <CardFooter className="px-6 py-4 bg-muted/50">
+        {getActionButton()}
       </CardFooter>
     </Card>
   );

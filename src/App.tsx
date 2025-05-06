@@ -29,8 +29,8 @@ import Analytics from "./pages/admin/Analytics";
 import SystemSettings from "./pages/admin/SystemSettings";
 import VotingPage from "./features/elections/pages/VotingPage";
 import ResultsPage from "./features/elections/pages/ResultsPage";
-// Import the new Candidates page
-import Candidates from "./pages/Candidates";
+// Import the CandidatesPage component from the correct location
+import CandidatesPage from "./features/candidates/pages/CandidatesPage";
 
 // Import other pages
 import Security from "./pages/Security";
@@ -93,8 +93,8 @@ const App = () => {
                   <Route path="/elections" element={<Elections />} />
                   <Route path="/elections/:electionId" element={<VotingPage />} />
                   <Route path="/elections/:electionId/results" element={<ResultsPage />} />
-                  {/* Updated route for the new Candidates page */}
-                  <Route path="/elections/:electionId/candidates" element={<Candidates />} />
+                  {/* Updated route for the Candidates page with the correct component */}
+                  <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
                   <Route path="/my-votes" element={<MyVotes />} />
                   <Route path="/profile" element={<Profile />} />
                   
