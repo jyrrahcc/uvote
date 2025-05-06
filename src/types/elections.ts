@@ -72,36 +72,43 @@ export interface DbElection {
   end_date: string;
   candidacy_start_date?: string | null;
   candidacy_end_date?: string | null;
-  status: 'upcoming' | 'active' | 'completed';
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  is_private: boolean;
+  status: string; // Changed from enum to string to match raw database format
+  created_by: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  is_private: boolean | null;
   access_code?: string | null;
-  restrict_voting?: boolean;
+  restrict_voting?: boolean | null;
   department?: string | null;
 }
 
 /**
  * Supabase to App Schema Transformation Functions for Election
  */
-export const mapDbElectionToElection = (dbElection: DbElection): Election => ({
-  id: dbElection.id,
-  title: dbElection.title,
-  description: dbElection.description || '',
-  startDate: dbElection.start_date,
-  endDate: dbElection.end_date,
-  candidacyStartDate: dbElection.candidacy_start_date || undefined,
-  candidacyEndDate: dbElection.candidacy_end_date || undefined,
-  status: dbElection.status,
-  createdBy: dbElection.created_by,
-  createdAt: dbElection.created_at,
-  updatedAt: dbElection.updated_at,
-  isPrivate: dbElection.is_private,
-  accessCode: dbElection.access_code || undefined,
-  restrictVoting: dbElection.restrict_voting,
-  department: dbElection.department || undefined
-});
+export const mapDbElectionToElection = (dbElection: DbElection): Election => {
+  // Cast the status to the appropriate type since we've validated it
+  let typedStatus: 'upcoming' | 'active' | 'completed' = 'upcoming';
+  if (dbElection.status === 'active') typedStatus = 'active';
+  else if (dbElection.status === 'completed') typedStatus = 'completed';
+
+  return {
+    id: dbElection.id,
+    title: dbElection.title,
+    description: dbElection.description || '',
+    startDate: dbElection.start_date,
+    endDate: dbElection.end_date,
+    candidacyStartDate: dbElection.candidacy_start_date || undefined,
+    candidacyEndDate: dbElection.candidacy_end_date || undefined,
+    status: typedStatus,
+    createdBy: dbElection.created_by || '',
+    createdAt: dbElection.created_at || '',
+    updatedAt: dbElection.updated_at || '',
+    isPrivate: dbElection.is_private || false,
+    accessCode: dbElection.access_code || undefined,
+    restrictVoting: dbElection.restrict_voting || false,
+    department: dbElection.department || undefined
+  };
+};
 
 export const mapElectionToDbElection = (election: Election): DbElection => ({
   id: election.id,
