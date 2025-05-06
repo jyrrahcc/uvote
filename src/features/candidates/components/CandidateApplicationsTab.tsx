@@ -1,45 +1,24 @@
 
-import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fetchCandidateApplications, CandidateApplication } from "../services/candidateApplicationService";
 import CandidateApplicationCard from "./CandidateApplicationCard";
+import { useCandidateApplications } from "../hooks/useCandidateApplications";
 
-interface CandidateApplicationsListProps {
+interface CandidateApplicationsTabProps {
   electionId: string;
 }
 
-const CandidateApplicationsList = ({ electionId }: CandidateApplicationsListProps) => {
-  const [applications, setApplications] = useState<CandidateApplication[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
-
-  const loadApplications = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchCandidateApplications(electionId);
-      setApplications(data);
-    } catch (error) {
-      console.error("Error loading applications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (electionId) {
-      loadApplications();
-    }
-  }, [electionId]);
-
-  const filteredApplications = applications.filter(app => {
-    if (activeTab === "all") return true;
-    return app.status === activeTab;
-  });
-
-  const pendingCount = applications.filter(app => app.status === "pending").length;
-  const approvedCount = applications.filter(app => app.status === "approved").length;
-  const rejectedCount = applications.filter(app => app.status === "rejected").length;
+const CandidateApplicationsTab = ({ electionId }: CandidateApplicationsTabProps) => {
+  const {
+    filteredApplications,
+    loading,
+    activeTab,
+    setActiveTab,
+    pendingCount,
+    approvedCount,
+    rejectedCount,
+    loadApplications
+  } = useCandidateApplications(electionId);
 
   if (loading) {
     return (
@@ -54,7 +33,7 @@ const CandidateApplicationsList = ({ electionId }: CandidateApplicationsListProp
     );
   }
 
-  if (applications.length === 0) {
+  if (filteredApplications.length === 0 && activeTab === "all") {
     return (
       <Card>
         <CardContent className="py-8 text-center">
@@ -68,7 +47,7 @@ const CandidateApplicationsList = ({ electionId }: CandidateApplicationsListProp
     <div className="space-y-6">
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="all">All ({applications.length})</TabsTrigger>
+          <TabsTrigger value="all">All ({filteredApplications.length})</TabsTrigger>
           <TabsTrigger value="pending">Pending ({pendingCount})</TabsTrigger>
           <TabsTrigger value="approved">Approved ({approvedCount})</TabsTrigger>
           <TabsTrigger value="rejected">Rejected ({rejectedCount})</TabsTrigger>
@@ -96,4 +75,4 @@ const CandidateApplicationsList = ({ electionId }: CandidateApplicationsListProp
   );
 };
 
-export default CandidateApplicationsList;
+export default CandidateApplicationsTab;

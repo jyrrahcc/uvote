@@ -2,30 +2,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, FileText } from "lucide-react";
-import { Election, Candidate } from "@/types";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { fetchElectionDetails } from "@/features/elections/services/electionService";
 import { fetchCandidates, deleteCandidate } from "../services/candidateService";
-import AddCandidateForm from "../components/AddCandidateForm";
-import CandidatesList from "../components/CandidatesList";
-import CandidateRegistrationForm from "../components/CandidateRegistrationForm";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
-import ApplyAsCandidateDialog from "../components/ApplyAsCandidateDialog";
-import CandidateApplicationsList from "../components/CandidateApplicationsList";
 import { hasUserAppliedForElection } from "../services/candidateApplicationService";
+import { supabase } from "@/integrations/supabase/client";
+import { Election, Candidate } from "@/types";
+import CandidatesPageHeader from "../components/CandidatesPageHeader";
+import CandidatesTabView from "../components/CandidatesTabView";
 
 const CandidatesPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
@@ -113,93 +98,30 @@ const CandidatesPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">
-            {election?.title || "Candidates"}
-          </h1>
-          {election && (
-            <p className="text-muted-foreground mt-1">
-              {election.description}
-            </p>
-          )}
-        </div>
-        
-        {isAdmin ? (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Candidate
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Add New Candidate</DialogTitle>
-                <DialogDescription>
-                  Fill out this form to add a new candidate to this election.
-                </DialogDescription>
-              </DialogHeader>
-              
-              {electionId && (
-                <AddCandidateForm
-                  electionId={electionId}
-                  onCandidateAdded={handleCandidateAdded}
-                  onClose={() => setIsDialogOpen(false)}
-                />
-              )}
-            </DialogContent>
-          </Dialog>
-        ) : (
-          electionId && user && !userHasRegistered && !userHasApplied && (
-            <ApplyAsCandidateDialog 
-              electionId={electionId}
-              userId={user.id}
-              electionActive={isElectionActiveOrUpcoming()}
-              onApplicationSubmitted={handleApplicationSubmitted}
-            />
-          )
-        )}
-      </div>
+      <CandidatesPageHeader
+        election={election}
+        isAdmin={isAdmin}
+        isDialogOpen={isDialogOpen}
+        setIsDialogOpen={setIsDialogOpen}
+        electionId={electionId || ''}
+        userId={user?.id}
+        userHasRegistered={userHasRegistered}
+        userHasApplied={userHasApplied}
+        handleCandidateAdded={handleCandidateAdded}
+        isElectionActiveOrUpcoming={isElectionActiveOrUpcoming}
+        handleApplicationSubmitted={handleApplicationSubmitted}
+      />
       
-      {isAdmin ? (
-        <Tabs defaultValue="candidates" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="candidates">
-              <Users className="h-4 w-4 mr-2" />
-              Candidates
-            </TabsTrigger>
-            <TabsTrigger value="applications">
-              <FileText className="h-4 w-4 mr-2" />
-              Applications
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="candidates" className="pt-4">
-            <CandidatesList
-              candidates={candidates}
-              loading={loading}
-              isAdmin={isAdmin}
-              onDeleteCandidate={handleDeleteCandidate}
-              onOpenAddDialog={() => setIsDialogOpen(true)}
-            />
-          </TabsContent>
-          
-          <TabsContent value="applications" className="pt-4">
-            {electionId && (
-              <CandidateApplicationsList electionId={electionId} />
-            )}
-          </TabsContent>
-        </Tabs>
-      ) : (
-        <CandidatesList
-          candidates={candidates}
-          loading={loading}
-          isAdmin={isAdmin}
-          onDeleteCandidate={handleDeleteCandidate}
-          onOpenAddDialog={() => setIsDialogOpen(true)}
-        />
-      )}
+      <CandidatesTabView
+        isAdmin={isAdmin}
+        candidates={candidates}
+        loading={loading}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        electionId={electionId || ''}
+        handleDeleteCandidate={handleDeleteCandidate}
+        onOpenAddDialog={() => setIsDialogOpen(true)}
+      />
     </div>
   );
 };
