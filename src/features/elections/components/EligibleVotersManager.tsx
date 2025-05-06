@@ -1,3 +1,4 @@
+
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,16 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, Search, User, UserPlus } from "lucide-react";
+import { AlertCircle, Search, User, UserPlus, Filter } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem,
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 interface EligibleVotersManagerProps {
   electionId: string | null;
@@ -22,8 +30,24 @@ interface VoterEntry {
   id: string;
   email: string;
   name: string;
+  department?: string;
+  year_level?: string;
+  student_id?: string;
   isSelected?: boolean;
 }
+
+// DLSU-D Departments for filtering
+const DLSU_DEPARTMENTS = [
+  "College of Business Administration and Accountancy",
+  "College of Education",
+  "College of Engineering, Architecture and Technology",
+  "College of Humanities, Arts and Social Sciences",
+  "College of Science and Computer Studies",
+  "College of Criminal Justice Education",
+  "College of Tourism and Hospitality Management"
+];
+
+const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
 
 const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   electionId,
@@ -37,6 +61,8 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   const [selectedVoters, setSelectedVoters] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
+  const [yearFilter, setYearFilter] = useState<string | null>(null);
   
   // Get the current user ID on component load
   useEffect(() => {
@@ -74,7 +100,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
       // Fetch users from profiles table
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name')
+        .select('id, email, first_name, last_name, department, year_level, student_id')
         .order('first_name', { ascending: true });
       
       if (error) throw error;
@@ -84,6 +110,9 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
         id: user.id,
         email: user.email || "",
         name: `${user.first_name} ${user.last_name}`.trim() || "Unnamed User",
+        department: user.department,
+        year_level: user.year_level,
+        student_id: user.student_id,
         isSelected: selectedVoters.includes(user.id)
       })) || [];
       
@@ -168,23 +197,73 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
     }
   };
   
+  // Filter voters based on filters and search term
   const filteredVoters = voters.filter(voter => {
     const searchTermLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       voter.name.toLowerCase().includes(searchTermLower) ||
-      voter.email.toLowerCase().includes(searchTermLower)
+      voter.email.toLowerCase().includes(searchTermLower) ||
+      (voter.student_id && voter.student_id.toLowerCase().includes(searchTermLower))
     );
+    
+    const matchesDepartment = !departmentFilter || voter.department === departmentFilter;
+    const matchesYear = !yearFilter || voter.year_level === yearFilter;
+    
+    return matchesSearch && matchesDepartment && matchesYear;
   });
 
   const handleToggleAllVoters = (checked: boolean) => {
     if (checked) {
-      // Select all filtered voters
-      const allFilteredVoterIds = filteredVoters.map(voter => voter.id);
-      setSelectedVoters(allFilteredVoterIds);
+      // Get IDs of all filtered voters
+      const filteredIds = filteredVoters.map(voter => voter.id);
+      // Combine with existing selections that aren't in the current filter
+      const otherSelectedIds = selectedVoters.filter(id => !filteredVoters.some(v => v.id === id));
+      setSelectedVoters([...otherSelectedIds, ...filteredIds]);
     } else {
-      // Deselect all filtered voters
-      setSelectedVoters([]);
+      // Remove all filtered voters from selection
+      const filteredIds = filteredVoters.map(voter => voter.id);
+      setSelectedVoters(selectedVoters.filter(id => !filteredIds.includes(id)));
     }
+  };
+  
+  // Select all users in a department
+  const handleSelectByDepartment = (department: string) => {
+    const departmentUserIds = voters
+      .filter(voter => voter.department === department)
+      .map(voter => voter.id);
+    
+    // Add the IDs to selected voters if not already there
+    setSelectedVoters(prev => {
+      const newSelection = [...prev];
+      departmentUserIds.forEach(id => {
+        if (!newSelection.includes(id)) {
+          newSelection.push(id);
+        }
+      });
+      return newSelection;
+    });
+    
+    toast.success(`Added all users from ${department}`);
+  };
+  
+  // Select all users in a year level
+  const handleSelectByYear = (year: string) => {
+    const yearUserIds = voters
+      .filter(voter => voter.year_level === year)
+      .map(voter => voter.id);
+    
+    // Add the IDs to selected voters if not already there
+    setSelectedVoters(prev => {
+      const newSelection = [...prev];
+      yearUserIds.forEach(id => {
+        if (!newSelection.includes(id)) {
+          newSelection.push(id);
+        }
+      });
+      return newSelection;
+    });
+    
+    toast.success(`Added all users from ${year}`);
   };
   
   // If voting is not restricted, don't show any eligible voters UI
@@ -194,7 +273,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
         <CardHeader>
           <CardTitle>Eligible Voters</CardTitle>
           <CardDescription>
-            Voting is currently open to all users. Enable "Restrict Voting" in the Details tab to limit who can vote in this election.
+            Voting is currently open to all users. Enable "Restrict Voting" to limit who can vote in this election.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -203,14 +282,21 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
             <h3 className="text-lg font-semibold mb-2">Open to All Voters</h3>
             <p className="text-muted-foreground max-w-md">
               Anyone with access to this election will be able to vote. To restrict voting to specific users, 
-              go back to the Details tab and enable the "Restrict Voting" option.
+              enable the "Restrict Voting" option above.
             </p>
+            
+            <Button 
+              onClick={() => setRestrictVoting(true)} 
+              variant="outline" 
+              className="mt-4"
+            >
+              Enable Voter Restriction
+            </Button>
           </div>
         </CardContent>
       </Card>
     );
   }
-  
   
   return (
     <Card>
@@ -223,7 +309,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
       
       <CardContent>
         <div className="space-y-4">
-          <div className="flex items-end gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <label htmlFor="search-voters" className="text-sm font-medium mb-2 block">
                 Search Users
@@ -232,13 +318,102 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
                   id="search-voters"
-                  placeholder="Search by name or email"
+                  placeholder="Search by name, email or student ID"
                   className="pl-8" 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
+            
+            <div className="w-full md:w-48">
+              <label htmlFor="dept-filter" className="text-sm font-medium mb-2 block">
+                Filter by College/Department
+              </label>
+              <Select 
+                value={departmentFilter || ""} 
+                onValueChange={(value) => setDepartmentFilter(value || null)}
+              >
+                <SelectTrigger id="dept-filter">
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Departments</SelectItem>
+                  {DLSU_DEPARTMENTS.map(dept => (
+                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="w-full md:w-32">
+              <label htmlFor="year-filter" className="text-sm font-medium mb-2 block">
+                Filter by Year Level
+              </label>
+              <Select 
+                value={yearFilter || ""} 
+                onValueChange={(value) => setYearFilter(value || null)}
+              >
+                <SelectTrigger id="year-filter">
+                  <SelectValue placeholder="All Years" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Years</SelectItem>
+                  {YEAR_LEVELS.map(year => (
+                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="flex flex-col md:flex-row gap-2 items-center">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              className="w-full md:w-auto"
+              onClick={() => {
+                if (departmentFilter) {
+                  handleSelectByDepartment(departmentFilter);
+                } else {
+                  toast.error("Please select a department first");
+                }
+              }}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Select All in Department
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              className="w-full md:w-auto"
+              onClick={() => {
+                if (yearFilter) {
+                  handleSelectByYear(yearFilter);
+                } else {
+                  toast.error("Please select a year level first");
+                }
+              }}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Select All in Year Level
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              className="w-full md:w-auto"
+              onClick={() => {
+                setSelectedVoters([]);
+                toast.success("Selection cleared");
+              }}
+            >
+              Clear All
+            </Button>
           </div>
           
           <div className="border rounded-md">
@@ -268,6 +443,8 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
                       </TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Year</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -281,12 +458,14 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
                         </TableCell>
                         <TableCell className="font-medium">{voter.name}</TableCell>
                         <TableCell>{voter.email}</TableCell>
+                        <TableCell>{voter.department || "—"}</TableCell>
+                        <TableCell>{voter.year_level || "—"}</TableCell>
                       </TableRow>
                     ))}
                     
-                    {filteredVoters.length === 0 && searchTerm && (
+                    {filteredVoters.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center py-8">
+                        <TableCell colSpan={5} className="text-center py-8">
                           <p className="text-muted-foreground">No matching users found</p>
                         </TableCell>
                       </TableRow>

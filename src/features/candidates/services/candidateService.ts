@@ -1,28 +1,23 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Candidate, mapDbCandidateToCandidate } from "@/types";
-import { CandidateInsert } from "../components/AddCandidateForm";
+import { Candidate, DbCandidate, mapDbCandidateToCandidate } from "@/types";
+import { toast } from "sonner";
 
 /**
- * Fetches all candidates for a specific election
+ * Fetches candidates for a specific election
  */
-export const fetchCandidates = async (electionId: string): Promise<Candidate[]> => {
+export const fetchCandidatesForElection = async (electionId: string): Promise<Candidate[]> => {
   try {
-    console.log("Fetching candidates for election:", electionId);
     const { data, error } = await supabase
       .from('candidates')
       .select('*')
-      .eq('election_id', electionId);
+      .eq('election_id', electionId)
+      .order('position', { ascending: true });
     
-    if (error) {
-      console.error("Error in fetchCandidates:", error);
-      throw error;
-    }
+    if (error) throw error;
     
-    console.log("Candidates data:", data);
-    
-    // Map database candidates to our Candidate type
-    return data.map(mapDbCandidateToCandidate);
+    // Transform data to match our Candidate interface
+    return data.map((candidate) => mapDbCandidateToCandidate(candidate as DbCandidate));
   } catch (error) {
     console.error("Error fetching candidates:", error);
     throw error;
@@ -30,77 +25,62 @@ export const fetchCandidates = async (electionId: string): Promise<Candidate[]> 
 };
 
 /**
- * Adds a new candidate to the specified election
+ * Creates a new candidate
  */
-export const addCandidate = async (candidateData: CandidateInsert): Promise<Candidate[]> => {
+export const createCandidate = async (candidateData: Partial<Candidate>): Promise<Candidate> => {
   try {
-    console.log("Adding candidate with data:", candidateData);
     const { data, error } = await supabase
       .from('candidates')
-      .insert(candidateData)
-      .select();
+      .insert([candidateData])
+      .select()
+      .single();
     
-    if (error) {
-      console.error("Error in addCandidate:", error);
-      throw error;
-    }
+    if (error) throw error;
     
-    console.log("Added candidate response:", data);
-    
-    // Map database candidates to our Candidate type
-    return data.map(mapDbCandidateToCandidate);
+    return mapDbCandidateToCandidate(data as DbCandidate);
   } catch (error) {
-    console.error("Error adding candidate:", error);
+    console.error("Error creating candidate:", error);
     throw error;
   }
 };
 
 /**
- * Deletes a candidate by ID
+ * Updates an existing candidate
  */
-export const deleteCandidate = async (id: string): Promise<void> => {
+export const updateCandidate = async (
+  candidateId: string, 
+  candidateData: Partial<Candidate>
+): Promise<Candidate> => {
   try {
-    console.log("Deleting candidate with ID:", id);
+    const { data, error } = await supabase
+      .from('candidates')
+      .update(candidateData)
+      .eq('id', candidateId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return mapDbCandidateToCandidate(data as DbCandidate);
+  } catch (error) {
+    console.error("Error updating candidate:", error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a candidate
+ */
+export const deleteCandidate = async (candidateId: string): Promise<void> => {
+  try {
     const { error } = await supabase
       .from('candidates')
       .delete()
-      .eq('id', id);
+      .eq('id', candidateId);
     
-    if (error) {
-      console.error("Error in deleteCandidate:", error);
-      throw error;
-    }
-    
-    console.log("Candidate deleted successfully");
+    if (error) throw error;
   } catch (error) {
     console.error("Error deleting candidate:", error);
     throw error;
-  }
-};
-
-/**
- * Checks if a user has already registered as a candidate for an election
- */
-export const hasUserRegisteredAsCandidate = async (electionId: string, userId: string): Promise<boolean> => {
-  try {
-    console.log("Checking if user is registered as candidate - election:", electionId, "user:", userId);
-    const { data, error } = await supabase
-      .from('candidates')
-      .select('id')
-      .eq('election_id', electionId)
-      .eq('created_by', userId)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 means no rows returned, which is expected if not registered
-      console.error("Error in hasUserRegisteredAsCandidate:", error);
-      throw error;
-    }
-    
-    console.log("User registered as candidate check result:", !!data);
-    return !!data;
-  } catch (error) {
-    console.error("Error checking candidate registration:", error);
-    return false;
   }
 };

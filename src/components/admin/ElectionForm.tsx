@@ -131,6 +131,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
   const candidacyStartDate = form.watch("candidacyStartDate");
   const candidacyEndDate = form.watch("candidacyEndDate");
   const positions = form.watch("positions");
+  const restrictVoting = form.watch("restrictVoting");
   
   // Fetch election data if editing
   useEffect(() => {
@@ -263,6 +264,41 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         }
         
         electionId = editingElectionId;
+        
+        // Handle updating candidates for existing election
+        if (candidateManagerRef.current) {
+          const candidatesData = candidateManagerRef.current.getCandidatesForNewElection?.();
+          console.log("Candidates to update for existing election:", candidatesData);
+          
+          if (candidatesData && candidatesData.length > 0) {
+            // First delete existing candidates
+            const { error: deleteError } = await supabase
+              .from('candidates')
+              .delete()
+              .eq('election_id', electionId);
+              
+            if (deleteError) {
+              console.error("Error deleting existing candidates:", deleteError);
+              toast.error(`Failed to update candidates: ${deleteError.message}`);
+            } else {
+              // Then insert new candidates
+              const candidatesToInsert = candidatesData.map((candidate: any) => ({
+                ...candidate,
+                election_id: electionId,
+              }));
+              
+              const { error: insertError } = await supabase
+                .from('candidates')
+                .insert(candidatesToInsert);
+              
+              if (insertError) {
+                console.error("Error adding updated candidates:", insertError);
+                toast.error(`Failed to update candidates: ${insertError.message}`);
+              }
+            }
+          }
+        }
+        
         toast.success("Election updated successfully");
       } else {
         // Create new election
@@ -286,7 +322,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         // If there are candidates to add, add them now
         if (candidateManagerRef.current && electionId) {
           const candidatesData = candidateManagerRef.current.getCandidatesForNewElection?.();
-          console.log("Candidates to add:", candidatesData);
+          console.log("Candidates to add for new election:", candidatesData);
           
           if (candidatesData && candidatesData.length > 0) {
             const candidatesToInsert = candidatesData.map((candidate: any) => ({
@@ -301,6 +337,8 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             if (candidatesError) {
               console.error("Error adding candidates:", candidatesError);
               toast.error(`Failed to add candidates: ${candidatesError.message}`);
+            } else {
+              console.log("Successfully added candidates to new election");
             }
           }
         }
@@ -553,7 +591,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                     control={form.control}
                     name="isPrivate"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                         <FormControl>
                           <Checkbox
                             checked={field.value}
@@ -561,9 +599,11 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>Private Election</FormLabel>
+                          <FormLabel>
+                            Make Election Private
+                          </FormLabel>
                           <p className="text-sm text-muted-foreground">
-                            Require an access code to view and vote in this election
+                            Private elections require an access code to view and participate
                           </p>
                         </div>
                       </FormItem>
@@ -578,26 +618,39 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                         <FormItem>
                           <FormLabel>Access Code*</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="Create a code for voters to access this election"
-                              {...field} 
+                            <Input
+                              placeholder="Required access code for private elections"
+                              {...field}
                               value={field.value || ""}
                             />
                           </FormControl>
-                          <p className="text-sm text-muted-foreground">
-                            You will need to share this code with voters.
-                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   )}
-                  
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="candidates">
+                <CandidateManager
+                  ref={candidateManagerRef}
+                  electionId={editingElectionId}
+                  isNewElection={!editingElectionId}
+                  candidacyStartDate={candidacyStartDate}
+                  candidacyEndDate={candidacyEndDate}
+                  isAdmin={true}
+                  positions={positions}
+                />
+              </TabsContent>
+              
+              <TabsContent value="voters">
+                <div className="space-y-4">
                   <FormField
                     control={form.control}
                     name="restrictVoting"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                         <FormControl>
                           <Checkbox
                             checked={field.value}
@@ -605,63 +658,55 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>Restrict Voting</FormLabel>
+                          <FormLabel>
+                            Restrict Voting
+                          </FormLabel>
                           <p className="text-sm text-muted-foreground">
-                            Only allow specific DLSU-D community members to vote in this election
+                            Only selected users will be allowed to vote in this election
                           </p>
                         </div>
                       </FormItem>
                     )}
                   />
+                  
+                  <EligibleVotersManager
+                    ref={eligibleVotersManagerRef}
+                    electionId={editingElectionId}
+                    isNewElection={!editingElectionId}
+                    restrictVoting={restrictVoting}
+                    setRestrictVoting={(value) => form.setValue("restrictVoting", value)}
+                  />
                 </div>
               </TabsContent>
               
-              <TabsContent value="candidates" className="space-y-4">
-                <CandidateManager
-                  electionId={editingElectionId}
-                  isNewElection={!editingElectionId}
-                  candidacyStartDate={candidacyStartDate}
-                  candidacyEndDate={candidacyEndDate}
-                  isAdmin={true} // Admin is always true in this component since it's in the admin section
-                  positions={positions}
-                  ref={candidateManagerRef}
-                />
-              </TabsContent>
-              
-              <TabsContent value="voters" className="space-y-4">
-                <EligibleVotersManager
-                  electionId={editingElectionId}
-                  isNewElection={!editingElectionId}
-                  restrictVoting={form.watch("restrictVoting")}
-                  setRestrictVoting={(value) => form.setValue("restrictVoting", value)}
-                  ref={eligibleVotersManagerRef}
-                />
-              </TabsContent>
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onCancel}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="bg-[#008f50] hover:bg-[#007a45]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent border-white"></span>
+                      {editingElectionId ? "Updating..." : "Creating..."}
+                    </>
+                  ) : (
+                    <>{editingElectionId ? "Update Election" : "Create Election"}</>
+                  )}
+                </Button>
+              </div>
             </form>
           </Form>
         </Tabs>
       </ScrollArea>
-      
-      <div className="p-6 border-t flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button 
-          type="button" 
-          className="bg-[#008f50] hover:bg-[#007a45]" 
-          onClick={form.handleSubmit(onSubmit)}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent border-white"></span>
-              Saving...
-            </>
-          ) : (
-            'Save'
-          )}
-        </Button>
-      </div>
     </div>
   );
 };

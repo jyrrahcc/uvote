@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Trash2, Plus, Upload, Image } from "lucide-react";
+import { Trash2, Plus, Upload, Image, X, Eye } from "lucide-react";
 import { Candidate, mapDbCandidateToCandidate } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -57,6 +57,8 @@ const CandidateManager = forwardRef(({
   const [uploadingImage, setUploadingImage] = useState<Record<number, boolean>>({});
   const [uploadingPoster, setUploadingPoster] = useState<Record<number, boolean>>({});
   const [availablePositions, setAvailablePositions] = useState<string[]>([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Initialize positions
   useEffect(() => {
@@ -178,6 +180,12 @@ const CandidateManager = forwardRef(({
     );
   };
 
+  // Preview image
+  const handlePreviewImage = (url: string) => {
+    setPreviewImage(url);
+    setShowPreview(true);
+  };
+
   // Handle image upload
   const handleImageUpload = async (index: number, event: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'poster') => {
     if (!event.target.files || event.target.files.length === 0 || !electionId) {
@@ -187,13 +195,19 @@ const CandidateManager = forwardRef(({
     const file = event.target.files[0];
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `${electionId}/${type === 'profile' ? 'profiles' : 'posters'}/${fileName}`;
+    const filePath = `${electionId || 'new'}/${type === 'profile' ? 'profiles' : 'posters'}/${fileName}`;
 
     try {
       if (type === 'profile') {
         setUploadingImage(prev => ({ ...prev, [index]: true }));
       } else {
         setUploadingPoster(prev => ({ ...prev, [index]: true }));
+      }
+      
+      // Create a temporary preview URL
+      const objectUrl = URL.createObjectURL(file);
+      if (type === 'profile') {
+        updateCandidate(index, 'image_url', objectUrl);
       }
       
       // Check if candidates bucket exists, create if not
@@ -203,7 +217,7 @@ const CandidateManager = forwardRef(({
       }
       
       // Upload the file to Supabase storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data } = await supabase.storage
         .from('candidates')
         .upload(filePath, file);
         
@@ -400,16 +414,29 @@ const CandidateManager = forwardRef(({
                   <div className="space-y-2">
                     <Label>Profile Image</Label>
                     <div className="flex flex-col gap-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => document.getElementById(`image-upload-${index}`)?.click()}
-                        disabled={uploadingImage[index]}
-                        className="w-full"
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        {uploadingImage[index] ? "Uploading..." : "Upload Image"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => document.getElementById(`image-upload-${index}`)?.click()}
+                          disabled={uploadingImage[index]}
+                          className="flex-1"
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          {uploadingImage[index] ? "Uploading..." : "Upload Image"}
+                        </Button>
+                        
+                        {candidate.image_url && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handlePreviewImage(candidate.image_url)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      
                       <Input 
                         id={`image-upload-${index}`}
                         type="file"
@@ -418,6 +445,7 @@ const CandidateManager = forwardRef(({
                         onChange={(e) => handleImageUpload(index, e, 'profile')}
                         disabled={uploadingImage[index]}
                       />
+                      
                       {candidate.image_url && (
                         <div className="mt-2 relative w-full h-40 border rounded-md overflow-hidden">
                           <img 
@@ -433,16 +461,19 @@ const CandidateManager = forwardRef(({
                   <div className="space-y-2">
                     <Label>Campaign Poster</Label>
                     <div className="flex flex-col gap-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => document.getElementById(`poster-upload-${index}`)?.click()}
-                        disabled={uploadingPoster[index]}
-                        className="w-full"
-                      >
-                        <Image className="mr-2 h-4 w-4" />
-                        {uploadingPoster[index] ? "Uploading..." : "Upload Poster"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => document.getElementById(`poster-upload-${index}`)?.click()}
+                          disabled={uploadingPoster[index]}
+                          className="flex-1"
+                        >
+                          <Image className="mr-2 h-4 w-4" />
+                          {uploadingPoster[index] ? "Uploading..." : "Upload Poster"}
+                        </Button>
+                      </div>
+                      
                       <Input 
                         id={`poster-upload-${index}`}
                         type="file"
@@ -451,7 +482,6 @@ const CandidateManager = forwardRef(({
                         onChange={(e) => handleImageUpload(index, e, 'poster')}
                         disabled={uploadingPoster[index]}
                       />
-                      {/* For now, we're not handling poster specifically since our schema doesn't have a separate field */}
                     </div>
                   </div>
                 </div>
@@ -468,6 +498,28 @@ const CandidateManager = forwardRef(({
           <Plus className="mr-2 h-4 w-4" />
           Add Another Candidate
         </Button>
+      )}
+      
+      {/* Image Preview Modal */}
+      {showPreview && previewImage && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPreview(false)}>
+          <div className="bg-white p-2 rounded-lg max-w-3xl max-h-[90vh] relative" onClick={(e) => e.stopPropagation()}>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              className="absolute top-2 right-2 z-10"
+              onClick={() => setShowPreview(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <img 
+              src={previewImage} 
+              alt="Preview" 
+              className="max-w-full max-h-[85vh] object-contain"
+            />
+          </div>
+        </div>
       )}
     </div>
   );
