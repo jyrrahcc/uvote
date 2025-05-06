@@ -13,23 +13,24 @@ import { Plus, FileCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { hasUserAppliedForElection } from "../services/candidateApplicationService";
 import CandidateApplicationForm from "./CandidateApplicationForm";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
 interface ApplyAsCandidateDialogProps {
   electionId: string;
-  userId: string;
   electionActive: boolean;
   onApplicationSubmitted: () => void;
 }
 
 const ApplyAsCandidateDialog = ({
   electionId,
-  userId,
   electionActive,
   onApplicationSubmitted
 }: ApplyAsCandidateDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const userId = user?.id || '';
   
   useEffect(() => {
     const checkApplicationStatus = async () => {
@@ -44,7 +45,7 @@ const ApplyAsCandidateDialog = ({
     checkApplicationStatus();
   }, [electionId, userId]);
   
-  const handleSubmit = () => {
+  const handleSuccess = () => {
     setIsOpen(false);
     onApplicationSubmitted();
     setHasApplied(true);
@@ -83,20 +84,16 @@ const ApplyAsCandidateDialog = ({
           Apply as Candidate
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Candidate Application</DialogTitle>
-          <DialogDescription>
-            Submit this form to apply as a candidate for this election. Your application will be reviewed by administrators.
-          </DialogDescription>
-        </DialogHeader>
-        
+      
+      {isOpen && (
         <CandidateApplicationForm
           electionId={electionId}
-          onApplicationSubmitted={handleSubmit}
-          onCancel={() => setIsOpen(false)}
+          userId={userId}
+          open={isOpen}
+          onClose={() => setIsOpen(false)}
+          onSuccess={handleSuccess}
         />
-      </DialogContent>
+      )}
     </Dialog>
   );
 };

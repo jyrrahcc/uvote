@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Dialog,
@@ -5,7 +6,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { FileImage } from "lucide-react";
-import {
-  uploadImage,
-} from "@/utils/imageUpload";
+import { uploadImage } from "@/utils/imageUpload";
 import { 
   submitCandidateApplication
 } from "../services/candidateApplicationService";
@@ -62,14 +60,15 @@ const CandidateApplicationForm = ({ electionId, userId, open, onClose, onSuccess
     try {
       setSubmitting(true);
       
-      // Use submitCandidateApplication instead of createCandidateApplication
+      // Submit the application with feedback set to null
       await submitCandidateApplication({
         name,
         position,
         bio,
         image_url: imageUrl,
         election_id: electionId,
-        user_id: userId
+        user_id: userId,
+        feedback: null
       });
       
       toast.success("Application submitted successfully");

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface CandidateCardProps {
@@ -11,7 +12,7 @@ interface CandidateCardProps {
   };
 }
 
-const CandidateCard = ({ candidate }: CandidateCardProps) => {
+export const CandidateCard = ({ candidate }: CandidateCardProps) => {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
@@ -31,7 +32,13 @@ const CandidateCard = ({ candidate }: CandidateCardProps) => {
           </div>
         )}
       </CardHeader>
-      
+      <CardContent>
+        {candidate.bio && (
+          <p className="text-sm text-muted-foreground line-clamp-3">{candidate.bio}</p>
+        )}
+      </CardContent>
     </Card>
   );
 };
+
+export default CandidateCard;
