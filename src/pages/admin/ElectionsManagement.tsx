@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CandidateManager } from "@/features/elections/components/CandidateManager";
+import { EligibleVotersManager } from "@/features/elections/components/EligibleVotersManager";
 
 /**
  * Form validation schema
@@ -32,7 +35,8 @@ const electionFormSchema = z.object({
       // Only validate access code if isPrivate is true
       if (val === undefined) return true;
       return true;
-    })
+    }),
+  restrictVoting: z.boolean().default(false),
 });
 
 type ElectionFormValues = z.infer<typeof electionFormSchema>;
@@ -50,6 +54,9 @@ const ElectionsManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingElectionId, setEditingElectionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("details");
+  const candidateManagerRef = useRef<any>(null);
+  const eligibleVotersManagerRef = useRef<any>(null);
   
   // Initialize form
   const form = useForm<ElectionFormValues>({
@@ -61,6 +68,7 @@ const ElectionsManagement = () => {
       endDate: "",
       isPrivate: false,
       accessCode: "",
+      restrictVoting: false,
     },
   });
   
@@ -126,6 +134,7 @@ const ElectionsManagement = () => {
         created_by: user?.id,
         is_private: values.isPrivate,
         access_code: values.isPrivate ? values.accessCode : null,
+        restrict_voting: values.restrictVoting,
       };
       
       console.log("Election data to be saved:", electionData);
@@ -147,13 +156,57 @@ const ElectionsManagement = () => {
       } else {
         // Create new election
         console.log("Creating new election");
-        const { error } = await supabase
+        const { data: newElection, error } = await supabase
           .from('elections')
-          .insert([electionData]);
+          .insert([electionData])
+          .select();
         
         if (error) {
           console.error("Error creating election:", error);
           throw error;
+        }
+        
+        if (newElection && newElection.length > 0) {
+          // If there are candidates to add, add them now
+          if (candidateManagerRef.current && newElection[0].id) {
+            const candidatesData = candidateManagerRef.current.getCandidatesForNewElection?.();
+            if (candidatesData && candidatesData.length > 0) {
+              const candidatesToInsert = candidatesData.map((candidate: any) => ({
+                ...candidate,
+                election_id: newElection[0].id,
+              }));
+              
+              const { error: candidatesError } = await supabase
+                .from('candidates')
+                .insert(candidatesToInsert);
+              
+              if (candidatesError) {
+                console.error("Error adding candidates:", candidatesError);
+                toast.error("Failed to add candidates");
+              }
+            }
+          }
+          
+          // If we're restricting voting and there are eligible voters, add them
+          if (values.restrictVoting && eligibleVotersManagerRef.current && newElection[0].id) {
+            const eligibleVoters = eligibleVotersManagerRef.current.getEligibleVotersForNewElection?.();
+            if (eligibleVoters && eligibleVoters.length > 0) {
+              const votersToInsert = eligibleVoters.map((userId: string) => ({
+                election_id: newElection[0].id,
+                user_id: userId,
+                added_by: user?.id,
+              }));
+              
+              const { error: votersError } = await supabase
+                .from('eligible_voters')
+                .insert(votersToInsert);
+              
+              if (votersError) {
+                console.error("Error adding eligible voters:", votersError);
+                toast.error("Failed to add eligible voters");
+              }
+            }
+          }
         }
         
         toast.success("Election created successfully");
@@ -182,9 +235,11 @@ const ElectionsManagement = () => {
       endDate: election.endDate,
       isPrivate: election.isPrivate,
       accessCode: election.accessCode || "",
+      restrictVoting: election.restrictVoting || false,
     });
     setEditingElectionId(election.id);
     setIsDialogOpen(true);
+    setActiveTab("details");
   };
   
   /**
@@ -222,8 +277,10 @@ const ElectionsManagement = () => {
       endDate: "",
       isPrivate: false,
       accessCode: "",
+      restrictVoting: false,
     });
     setEditingElectionId(null);
+    setActiveTab("details");
   };
   
   /**
@@ -264,14 +321,17 @@ const ElectionsManagement = () => {
       <h1 className="text-3xl font-bold mb-8">Manage Elections</h1>
       
       {/* Create/Edit Election Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        if (!open) handleDialogClose();
+        setIsDialogOpen(open);
+      }}>
         <DialogTrigger asChild>
           <Button className="mb-6" onClick={handleNewElection}>
             <Plus className="mr-2 h-4 w-4" />
             Create New Election
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>
               {editingElectionId ? "Edit Election" : "Create New Election"}
@@ -281,127 +341,179 @@ const ElectionsManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-              <div className="grid grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title*</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="e.g., Board Election 2023"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Provide a brief description"
-                          {...field} 
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date*</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="datetime-local"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="candidates">Candidates</TabsTrigger>
+              <TabsTrigger value="voters">Eligible Voters</TabsTrigger>
+            </TabsList>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                <TabsContent value="details" className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title*</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g., Board Election 2023"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Provide a brief description"
+                              {...field} 
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="startDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Start Date*</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="datetime-local"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>End Date*</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="datetime-local"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="isPrivate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Private Election</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Require an access code to view and vote in this election
+                            </p>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {form.watch("isPrivate") && (
+                      <FormField
+                        control={form.control}
+                        name="accessCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Access Code*</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Create a code for voters to access this election"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <p className="text-sm text-muted-foreground">
+                              You will need to share this code with voters.
+                            </p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Date*</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="datetime-local"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="restrictVoting"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Restrict Voting</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Only allow specific users to vote in this election
+                            </p>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </TabsContent>
                 
-                <FormField
-                  control={form.control}
-                  name="isPrivate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Private Election</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                
-                {form.watch("isPrivate") && (
-                  <FormField
-                    control={form.control}
-                    name="accessCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Access Code*</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Create a code for voters to access this election"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <p className="text-sm text-muted-foreground">
-                          You will need to share this code with voters.
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                <TabsContent value="candidates" className="space-y-4">
+                  <CandidateManager
+                    electionId={editingElectionId}
+                    isNewElection={!editingElectionId}
+                    ref={candidateManagerRef}
                   />
-                )}
-              </div>
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={handleDialogClose}>
-                  Cancel
-                </Button>
-                <Button type="submit">Save</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                </TabsContent>
+                
+                <TabsContent value="voters" className="space-y-4">
+                  <EligibleVotersManager
+                    electionId={editingElectionId}
+                    isNewElection={!editingElectionId}
+                    restrictVoting={form.watch("restrictVoting")}
+                    setRestrictVoting={(value) => form.setValue("restrictVoting", value)}
+                    ref={eligibleVotersManagerRef}
+                  />
+                </TabsContent>
+                
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={handleDialogClose}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Save</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </Tabs>
         </DialogContent>
       </Dialog>
       

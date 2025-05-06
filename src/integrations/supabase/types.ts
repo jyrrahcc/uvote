@@ -109,6 +109,7 @@ export type Database = {
           end_date: string
           id: string
           is_private: boolean | null
+          restrict_voting: boolean | null
           start_date: string
           status: string
           title: string
@@ -122,6 +123,7 @@ export type Database = {
           end_date: string
           id?: string
           is_private?: boolean | null
+          restrict_voting?: boolean | null
           start_date: string
           status: string
           title: string
@@ -135,12 +137,45 @@ export type Database = {
           end_date?: string
           id?: string
           is_private?: boolean | null
+          restrict_voting?: boolean | null
           start_date?: string
           status?: string
           title?: string
           updated_at?: string | null
         }
         Relationships: []
+      }
+      eligible_voters: {
+        Row: {
+          added_by: string
+          created_at: string
+          election_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          election_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          election_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eligible_voters_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

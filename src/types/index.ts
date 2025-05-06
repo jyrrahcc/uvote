@@ -14,6 +14,7 @@ export interface Election {
   updatedAt: string;
   isPrivate: boolean;
   accessCode?: string;
+  restrictVoting?: boolean;
 }
 
 /**
@@ -95,7 +96,8 @@ export const mapDbElectionToElection = (dbElection: any): Election => ({
   createdAt: dbElection.created_at,
   updatedAt: dbElection.updated_at,
   isPrivate: dbElection.is_private,
-  accessCode: dbElection.access_code
+  accessCode: dbElection.access_code,
+  restrictVoting: dbElection.restrict_voting
 });
 
 export const mapElectionToDbElection = (election: Election): any => ({
@@ -109,7 +111,8 @@ export const mapElectionToDbElection = (election: Election): any => ({
   created_at: election.createdAt,
   updated_at: election.updatedAt,
   is_private: election.isPrivate,
-  access_code: election.accessCode
+  access_code: election.accessCode,
+  restrict_voting: election.restrictVoting
 });
 
 export const mapDbCandidateToCandidate = (dbCandidate: any): Candidate => ({
