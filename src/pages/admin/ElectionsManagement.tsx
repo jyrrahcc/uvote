@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,29 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import { Election, mapDbElectionToElection, mapElectionToDbElection } from "@/types";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+
+/**
+ * Form validation schema
+ */
+const electionFormSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().optional(),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  isPrivate: z.boolean().default(false),
+  accessCode: z.string().optional()
+    .refine(val => {
+      // Only validate access code if isPrivate is true
+      if (val === undefined) return true;
+      return true;
+    })
+});
+
+type ElectionFormValues = z.infer<typeof electionFormSchema>;
 
 /**
  * Admin page for managing elections
@@ -24,13 +48,21 @@ const ElectionsManagement = () => {
   
   const [elections, setElections] = useState<Election[]>([]);
   const [loading, setLoading] = useState(true);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [accessCode, setAccessCode] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingElectionId, setEditingElectionId] = useState<string | null>(null);
+  
+  // Initialize form
+  const form = useForm<ElectionFormValues>({
+    resolver: zodResolver(electionFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      startDate: "",
+      endDate: "",
+      isPrivate: false,
+      accessCode: "",
+    },
+  });
   
   // Fetch elections on component mount
   useEffect(() => {
@@ -76,52 +108,65 @@ const ElectionsManagement = () => {
   /**
    * Handle form submission for creating or updating an election
    */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title || !startDate || !endDate) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+  const onSubmit = async (values: ElectionFormValues) => {
+    console.log("Form submission values:", values);
     
     try {
+      // Validate form data
+      if (values.isPrivate && (!values.accessCode || values.accessCode.trim() === "")) {
+        toast.error("Access code is required for private elections");
+        return;
+      }
+      
       let electionData: any = {
-        title,
-        description,
-        start_date: startDate,
-        end_date: endDate,
+        title: values.title,
+        description: values.description || "",
+        start_date: values.startDate,
+        end_date: values.endDate,
         created_by: user?.id,
-        is_private: isPrivate,
-        access_code: isPrivate ? accessCode : null,
+        is_private: values.isPrivate,
+        access_code: values.isPrivate ? values.accessCode : null,
       };
+      
+      console.log("Election data to be saved:", electionData);
       
       if (editingElectionId) {
         // Update existing election
+        console.log("Updating election with ID:", editingElectionId);
         const { error } = await supabase
           .from('elections')
           .update(electionData)
           .eq('id', editingElectionId);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error updating election:", error);
+          throw error;
+        }
         
         toast.success("Election updated successfully");
       } else {
         // Create new election
+        console.log("Creating new election");
         const { error } = await supabase
           .from('elections')
           .insert([electionData]);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error creating election:", error);
+          throw error;
+        }
         
         toast.success("Election created successfully");
       }
       
       // Reset form and refresh elections list
       resetForm();
+      setIsDialogOpen(false); // Close dialog only after successful submission
       fetchElections();
     } catch (error) {
       console.error("Error saving election:", error);
       toast.error("Failed to save election");
+      // Don't close the dialog on error
     }
   };
   
@@ -129,13 +174,17 @@ const ElectionsManagement = () => {
    * Load election data into form for editing
    */
   const handleEditElection = (election: Election) => {
-    setTitle(election.title);
-    setDescription(election.description);
-    setStartDate(election.startDate);
-    setEndDate(election.endDate);
-    setIsPrivate(election.isPrivate);
-    setAccessCode(election.accessCode || "");
+    console.log("Loading election for editing:", election);
+    form.reset({
+      title: election.title,
+      description: election.description,
+      startDate: election.startDate,
+      endDate: election.endDate,
+      isPrivate: election.isPrivate,
+      accessCode: election.accessCode || "",
+    });
     setEditingElectionId(election.id);
+    setIsDialogOpen(true);
   };
   
   /**
@@ -143,6 +192,7 @@ const ElectionsManagement = () => {
    */
   const handleDeleteElection = async (electionId: string) => {
     try {
+      console.log("Deleting election with ID:", electionId);
       const { error } = await supabase
         .from('elections')
         .delete()
@@ -165,13 +215,32 @@ const ElectionsManagement = () => {
    * Reset the form to its initial state
    */
   const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setStartDate("");
-    setEndDate("");
-    setIsPrivate(false);
-    setAccessCode("");
+    form.reset({
+      title: "",
+      description: "",
+      startDate: "",
+      endDate: "",
+      isPrivate: false,
+      accessCode: "",
+    });
     setEditingElectionId(null);
+  };
+  
+  /**
+   * Handle dialog close event
+   */
+  const handleDialogClose = () => {
+    resetForm();
+    setIsDialogOpen(false);
+  };
+  
+  /**
+   * Open dialog for creating a new election
+   */
+  const handleNewElection = () => {
+    resetForm();
+    setEditingElectionId(null);
+    setIsDialogOpen(true);
   };
 
   // Add debounced re-fetch on error
@@ -188,15 +257,16 @@ const ElectionsManagement = () => {
 
   console.log("Current elections state:", elections.length, "items"); // Debug current state
   console.log("Loading state:", loading);
+  console.log("Dialog open state:", isDialogOpen);
 
   return (
     <div className="container mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold mb-8">Manage Elections</h1>
       
       {/* Create/Edit Election Dialog */}
-      <Dialog>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-          <Button className="mb-6">
+          <Button className="mb-6" onClick={handleNewElection}>
             <Plus className="mr-2 h-4 w-4" />
             Create New Election
           </Button>
@@ -211,94 +281,134 @@ const ElectionsManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title*</Label>
-                <Input 
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Board Election 2023"
-                  required
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title*</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="e.g., Board Election 2023"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input 
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Provide a brief description"
+                
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Provide a brief description"
+                          {...field} 
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date*</Label>
-                  <Input 
-                    id="startDate"
-                    type="datetime-local"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    required
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Date*</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="datetime-local"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Date*</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="datetime-local"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="endDate">End Date*</Label>
-                  <Input 
-                    id="endDate"
-                    type="datetime-local"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2 pt-2">
-                <Checkbox 
-                  id="isPrivate" 
-                  checked={isPrivate}
-                  onCheckedChange={(checked) => setIsPrivate(checked === true)}
+                <FormField
+                  control={form.control}
+                  name="isPrivate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Private Election</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
                 />
-                <Label htmlFor="isPrivate">Private Election</Label>
+                
+                {form.watch("isPrivate") && (
+                  <FormField
+                    control={form.control}
+                    name="accessCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Access Code*</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Create a code for voters to access this election"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <p className="text-sm text-muted-foreground">
+                          You will need to share this code with voters.
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
               
-              {isPrivate && (
-                <div className="space-y-2">
-                  <Label htmlFor="accessCode">Access Code*</Label>
-                  <Input 
-                    id="accessCode"
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
-                    placeholder="Create a code for voters to access this election"
-                    required={isPrivate}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    You will need to share this code with voters.
-                  </p>
-                </div>
-              )}
-            </div>
-            
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={resetForm}>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={handleDialogClose}>
                   Cancel
                 </Button>
-              </DialogClose>
-              <Button type="submit">Save</Button>
-            </DialogFooter>
-          </form>
+                <Button type="submit">Save</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
       
       {/* Elections Table */}
       {loading ? (
         <div className="text-center py-12">
+          <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-xl mb-2">Loading elections...</p>
           <p className="text-sm text-muted-foreground">Please wait while we fetch election data.</p>
         </div>
@@ -333,110 +443,13 @@ const ElectionsManagement = () => {
                         <Eye className="h-4 w-4" />
                       </Button>
                       
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditElection(election)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[600px]">
-                          <DialogHeader>
-                            <DialogTitle>
-                              {editingElectionId ? "Edit Election" : "Create New Election"}
-                            </DialogTitle>
-                            <DialogDescription>
-                              Fill in the details for your election. Click save when you're done.
-                            </DialogDescription>
-                          </DialogHeader>
-                          
-                          <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                            <div className="grid grid-cols-1 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="edit-title">Title*</Label>
-                                <Input 
-                                  id="edit-title"
-                                  value={title}
-                                  onChange={(e) => setTitle(e.target.value)}
-                                  placeholder="e.g., Board Election 2023"
-                                  required
-                                />
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <Label htmlFor="edit-description">Description</Label>
-                                <Input 
-                                  id="edit-description"
-                                  value={description}
-                                  onChange={(e) => setDescription(e.target.value)}
-                                  placeholder="Provide a brief description"
-                                />
-                              </div>
-                              
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-startDate">Start Date*</Label>
-                                  <Input 
-                                    id="edit-startDate"
-                                    type="datetime-local"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    required
-                                  />
-                                </div>
-                                
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-endDate">End Date*</Label>
-                                  <Input 
-                                    id="edit-endDate"
-                                    type="datetime-local"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    required
-                                  />
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center space-x-2 pt-2">
-                                <Checkbox 
-                                  id="edit-isPrivate" 
-                                  checked={isPrivate}
-                                  onCheckedChange={(checked) => setIsPrivate(checked === true)}
-                                />
-                                <Label htmlFor="edit-isPrivate">Private Election</Label>
-                              </div>
-                              
-                              {isPrivate && (
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-accessCode">Access Code*</Label>
-                                  <Input 
-                                    id="edit-accessCode"
-                                    value={accessCode}
-                                    onChange={(e) => setAccessCode(e.target.value)}
-                                    placeholder="Create a code for voters to access this election"
-                                    required={isPrivate}
-                                  />
-                                  <p className="text-sm text-muted-foreground">
-                                    You will need to share this code with voters.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <DialogFooter>
-                              <DialogClose asChild>
-                                <Button type="button" variant="outline" onClick={resetForm}>
-                                  Cancel
-                                </Button>
-                              </DialogClose>
-                              <Button type="submit">Save</Button>
-                            </DialogFooter>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditElection(election)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -477,105 +490,10 @@ const ElectionsManagement = () => {
       ) : (
         <div className="text-center py-10 border rounded-md">
           <p className="text-muted-foreground mb-4">No elections created yet</p>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First Election
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Create New Election</DialogTitle>
-                <DialogDescription>
-                  Fill in the details for your election. Click save when you're done.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-title">Title*</Label>
-                    <Input 
-                      id="new-title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g., Board Election 2023"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="new-description">Description</Label>
-                    <Input 
-                      id="new-description"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Provide a brief description"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="new-startDate">Start Date*</Label>
-                      <Input 
-                        id="new-startDate"
-                        type="datetime-local"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="new-endDate">End Date*</Label>
-                      <Input 
-                        id="new-endDate"
-                        type="datetime-local"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 pt-2">
-                    <Checkbox 
-                      id="new-isPrivate" 
-                      checked={isPrivate}
-                      onCheckedChange={(checked) => setIsPrivate(checked === true)}
-                    />
-                    <Label htmlFor="new-isPrivate">Private Election</Label>
-                  </div>
-                  
-                  {isPrivate && (
-                    <div className="space-y-2">
-                      <Label htmlFor="new-accessCode">Access Code*</Label>
-                      <Input 
-                        id="new-accessCode"
-                        value={accessCode}
-                        onChange={(e) => setAccessCode(e.target.value)}
-                        placeholder="Create a code for voters to access this election"
-                        required={isPrivate}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        You will need to share this code with voters.
-                      </p>
-                    </div>
-                  )}
-                </div>
-                
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline" onClick={resetForm}>
-                      Cancel
-                    </Button>
-                  </DialogClose>
-                  <Button type="submit">Save</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={handleNewElection}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Your First Election
+          </Button>
         </div>
       )}
     </div>
