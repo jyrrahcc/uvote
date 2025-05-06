@@ -1,4 +1,3 @@
-
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +7,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, Search, Trash2, User, UserPlus } from "lucide-react";
+import { AlertCircle, Search, User, UserPlus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EligibleVotersManagerProps {
@@ -38,16 +36,16 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   const [loading, setLoading] = useState(false);
   const [selectedVoters, setSelectedVoters] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   
-  // Fetch current user ID on mount
+  // Get the current user ID on component load
   useEffect(() => {
-    const fetchCurrentUser = async () => {
+    const fetchUserId = async () => {
       const { data } = await supabase.auth.getSession();
-      setCurrentUserId(data.session?.user?.id || null);
+      setUserId(data.session?.user?.id || null);
     };
     
-    fetchCurrentUser();
+    fetchUserId();
   }, []);
   
   // Expose methods to parent component
@@ -133,7 +131,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   };
   
   const handleSaveEligibleVoters = async () => {
-    if (!electionId || isNewElection) return;
+    if (!electionId || isNewElection || !userId) return;
     
     try {
       setSaving(true);
@@ -147,11 +145,11 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
       if (deleteError) throw deleteError;
       
       if (selectedVoters.length > 0) {
-        // Insert new eligible voters
-        const eligibleVoters = selectedVoters.map(userId => ({
+        // Create an array of eligible voter objects
+        const eligibleVoters = selectedVoters.map(voterId => ({
           election_id: electionId,
-          user_id: userId,
-          added_by: currentUserId
+          user_id: voterId,
+          added_by: userId
         }));
         
         const { error: insertError } = await supabase
@@ -171,23 +169,21 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   };
   
   const filteredVoters = voters.filter(voter => {
-    const searchLower = searchTerm.toLowerCase();
+    const searchTermLower = searchTerm.toLowerCase();
     return (
-      voter.name.toLowerCase().includes(searchLower) ||
-      voter.email.toLowerCase().includes(searchLower)
+      voter.name.toLowerCase().includes(searchTermLower) ||
+      voter.email.toLowerCase().includes(searchTermLower)
     );
   });
-  
-  const handleToggleAllVoters = (isSelected: boolean) => {
-    if (isSelected) {
+
+  const handleToggleAllVoters = (checked: boolean) => {
+    if (checked) {
       // Select all filtered voters
-      const filteredIds = filteredVoters.map(voter => voter.id);
-      const newSelected = [...new Set([...selectedVoters, ...filteredIds])];
-      setSelectedVoters(newSelected);
+      const allFilteredVoterIds = filteredVoters.map(voter => voter.id);
+      setSelectedVoters(allFilteredVoterIds);
     } else {
       // Deselect all filtered voters
-      const filteredIds = new Set(filteredVoters.map(voter => voter.id));
-      setSelectedVoters(selectedVoters.filter(id => !filteredIds.has(id)));
+      setSelectedVoters([]);
     }
   };
   
@@ -214,6 +210,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
       </Card>
     );
   }
+  
   
   return (
     <Card>

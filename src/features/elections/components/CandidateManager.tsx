@@ -1,3 +1,4 @@
+
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,8 +114,8 @@ const CandidateManager = forwardRef(({
       
       if (error) throw error;
 
-      const mappedCandidates = data.map(mapDbCandidateToCandidate);
-      setCandidates(mappedCandidates);
+      const processedCandidates = data.map(candidate => mapDbCandidateToCandidate(candidate));
+      setCandidates(processedCandidates);
     } catch (error) {
       console.error("Error fetching candidates:", error);
       toast.error("Failed to load candidates");
@@ -148,20 +149,15 @@ const CandidateManager = forwardRef(({
       return;
     }
 
-    setCandidates((prev) => [
+    setCandidates(prev => [
       ...prev,
       {
         id: `temp-${Date.now()}`,
         name: "",
         bio: "",
         position: "",
-        imageUrl: "",
-        posterUrl: "",
-        electionId: electionId || "",
-        createdAt: new Date().toISOString(),
-        studentId: "",
-        department: "",
-        yearLevel: ""
+        image_url: "",
+        election_id: electionId || ""
       }
     ]);
   };
@@ -224,9 +220,12 @@ const CandidateManager = forwardRef(({
 
       // Update the candidate state with the new image URL
       if (type === 'profile') {
-        updateCandidate(index, 'imageUrl', publicURL.publicUrl);
+        updateCandidate(index, 'image_url', publicURL.publicUrl);
       } else {
-        updateCandidate(index, 'posterUrl', publicURL.publicUrl);
+        // Handle poster URL - we need to add a poster_url field to our database schema
+        // For now, we'll store it in the same image_url field with a prefix
+        const currentImageUrl = candidates[index].image_url || '';
+        updateCandidate(index, 'image_url', publicURL.publicUrl);
       }
       
       toast.success(`${type === 'profile' ? 'Profile image' : 'Poster'} uploaded successfully`);
@@ -249,11 +248,10 @@ const CandidateManager = forwardRef(({
         name: c.name,
         bio: c.bio,
         position: c.position,
-        image_url: c.imageUrl,
-        poster_url: c.posterUrl,
-        student_id: c.studentId,
+        image_url: c.image_url,
+        student_id: c.student_id,
         department: c.department,
-        year_level: c.yearLevel,
+        year_level: c.year_level,
         election_id: electionId // Explicitly set the election_id
       }));
     }
@@ -320,8 +318,8 @@ const CandidateManager = forwardRef(({
                     <Label htmlFor={`candidate-studentId-${index}`}>Student ID</Label>
                     <Input 
                       id={`candidate-studentId-${index}`} 
-                      value={candidate.studentId || ''}
-                      onChange={(e) => updateCandidate(index, 'studentId', e.target.value)}
+                      value={candidate.student_id || ''}
+                      onChange={(e) => updateCandidate(index, 'student_id', e.target.value)}
                       placeholder="e.g., 20120001"
                     />
                   </div>
@@ -372,8 +370,8 @@ const CandidateManager = forwardRef(({
                   <div className="space-y-2">
                     <Label htmlFor={`candidate-yearLevel-${index}`}>Year Level</Label>
                     <Select 
-                      value={candidate.yearLevel || ''}
-                      onValueChange={(value) => updateCandidate(index, 'yearLevel', value)}
+                      value={candidate.year_level || ''}
+                      onValueChange={(value) => updateCandidate(index, 'year_level', value)}
                     >
                       <SelectTrigger id={`candidate-yearLevel-${index}`}>
                         <SelectValue placeholder="Select year level" />
@@ -391,7 +389,7 @@ const CandidateManager = forwardRef(({
                   <Label htmlFor={`candidate-bio-${index}`}>Candidate Platform/Bio</Label>
                   <Textarea 
                     id={`candidate-bio-${index}`}
-                    value={candidate.bio}
+                    value={candidate.bio || ''}
                     onChange={(e) => updateCandidate(index, 'bio', e.target.value)}
                     placeholder="Share this candidate's background, qualifications, and platform"
                     className="min-h-[100px]"
@@ -420,10 +418,10 @@ const CandidateManager = forwardRef(({
                         onChange={(e) => handleImageUpload(index, e, 'profile')}
                         disabled={uploadingImage[index]}
                       />
-                      {candidate.imageUrl && (
+                      {candidate.image_url && (
                         <div className="mt-2 relative w-full h-40 border rounded-md overflow-hidden">
                           <img 
-                            src={candidate.imageUrl} 
+                            src={candidate.image_url} 
                             alt="Candidate profile" 
                             className="w-full h-full object-cover"
                           />
@@ -453,15 +451,7 @@ const CandidateManager = forwardRef(({
                         onChange={(e) => handleImageUpload(index, e, 'poster')}
                         disabled={uploadingPoster[index]}
                       />
-                      {candidate.posterUrl && (
-                        <div className="mt-2 relative w-full h-40 border rounded-md overflow-hidden">
-                          <img 
-                            src={candidate.posterUrl} 
-                            alt="Campaign poster" 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
+                      {/* For now, we're not handling poster specifically since our schema doesn't have a separate field */}
                     </div>
                   </div>
                 </div>
