@@ -73,22 +73,35 @@ export const submitCandidateApplication = async (
   return data as CandidateApplication;
 };
 
-export const updateApplicationStatus = async (
+// New function to update application status
+export const updateCandidateApplication = async (
   applicationId: string,
-  status: string,
-  feedback?: string
+  updates: { status: "approved" | "rejected"; feedback?: string }
 ): Promise<void> => {
   const { error } = await supabase
     .from('candidate_applications')
     .update({
-      status,
-      feedback: feedback || null,
+      status: updates.status,
+      feedback: updates.feedback || null,
       updated_at: new Date().toISOString()
     })
     .eq('id', applicationId);
     
   if (error) {
     console.error("Error updating application status:", error);
+    throw error;
+  }
+};
+
+// Add delete function for candidate applications
+export const deleteCandidateApplication = async (applicationId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('candidate_applications')
+    .delete()
+    .eq('id', applicationId);
+    
+  if (error) {
+    console.error("Error deleting application:", error);
     throw error;
   }
 };
