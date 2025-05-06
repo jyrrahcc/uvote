@@ -1,98 +1,82 @@
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { fetchElectionDetails } from "../services/electionService";
-import { Election, Candidate, mapDbCandidateToCandidate } from "@/types";
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchElectionDetails, updateElectionStatus } from "../services/electionService";
+import { Election } from "@/types";
 
-interface UseElectionProps {
-  electionId?: string;
-  userId?: string;
-}
-
-interface UseElectionReturn {
-  election: Election | null;
-  candidates: Candidate[];
-  loading: boolean;
-  hasVoted: boolean;
-  selectedCandidate: string | null;
-  setSelectedCandidate: (candidateId: string) => void;
-  setHasVoted: (value: boolean) => void;
-  accessCodeVerified: boolean;
-  setAccessCodeVerified: (value: boolean) => void;
-}
-
-export const useElection = ({ electionId, userId }: UseElectionProps): UseElectionReturn => {
-  const [election, setElection] = useState<Election | null>(null);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasVoted, setHasVoted] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
-  const [accessCodeVerified, setAccessCodeVerified] = useState(false);
+/**
+ * Custom hook for fetching and managing election data
+ */
+export const useElection = (electionId: string | undefined) => {
+  const [isAccessVerified, setIsAccessVerified] = useState(false);
   
+  // Main query for election data
+  const {
+    data: election,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["election", electionId],
+    queryFn: () => (electionId ? fetchElectionDetails(electionId) : Promise.reject("No election ID provided")),
+    enabled: !!electionId,
+    staleTime: 60 * 1000, // 1 minute
+  });
+  
+  // Check if the user has verified access to this election
   useEffect(() => {
-    if (!electionId) return;
-    
-    const fetchElectionData = async () => {
+    if (election?.isPrivate) {
       try {
-        setLoading(true);
-        
-        // Fetch election details
-        const electionData = await fetchElectionDetails(electionId);
-        setElection(electionData);
-        
-        // If election is private, we need to verify access code before showing content
-        if (electionData.isPrivate && !accessCodeVerified) {
-          setLoading(false);
-          return;
-        }
-        
-        // Fetch candidates for this election
-        const { data: candidatesData, error: candidatesError } = await supabase
-          .from('candidates')
-          .select('*')
-          .eq('election_id', electionId);
-        
-        if (candidatesError) throw candidatesError;
-        
-        // Transform the candidates data to match our interface
-        const transformedCandidates = candidatesData.map(mapDbCandidateToCandidate);
-        setCandidates(transformedCandidates);
-        
-        // Check if user has already voted
-        if (userId) {
-          const { data: voteData, error: voteError } = await supabase
-            .from('votes')
-            .select('*')
-            .eq('election_id', electionId)
-            .eq('user_id', userId)
-            .single();
-          
-          if (!voteError && voteData) {
-            setHasVoted(true);
-            setSelectedCandidate(voteData.candidate_id);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching election data:", error);
-        toast.error("Failed to load election data");
-      } finally {
-        setLoading(false);
+        const verifiedElections = JSON.parse(localStorage.getItem('verifiedElections') || '{}');
+        setIsAccessVerified(!!verifiedElections[election.accessCode || '']);
+      } catch {
+        setIsAccessVerified(false);
       }
-    };
+    } else {
+      setIsAccessVerified(true);
+    }
+  }, [election]);
+  
+  // Update election status based on current date if needed
+  useEffect(() => {
+    if (election) {
+      const checkAndUpdateStatus = async () => {
+        await updateElectionStatus(election);
+      };
+      
+      checkAndUpdateStatus();
+    }
+  }, [election]);
+  
+  /**
+   * Verify access code for private elections
+   */
+  const verifyAccessCode = (code: string): boolean => {
+    if (!election || !election.isPrivate) return true;
     
-    fetchElectionData();
-  }, [electionId, userId, accessCodeVerified]);
-
+    const isValid = election.accessCode === code;
+    
+    if (isValid) {
+      try {
+        // Store the verification in local storage
+        const verifiedElections = JSON.parse(localStorage.getItem('verifiedElections') || '{}');
+        verifiedElections[code] = true;
+        localStorage.setItem('verifiedElections', JSON.stringify(verifiedElections));
+        setIsAccessVerified(true);
+      } catch (e) {
+        console.error("Error storing verification:", e);
+      }
+    }
+    
+    return isValid;
+  };
+  
   return {
     election,
-    candidates,
-    loading,
-    hasVoted,
-    selectedCandidate,
-    setSelectedCandidate,
-    setHasVoted,
-    accessCodeVerified,
-    setAccessCodeVerified
+    isLoading,
+    error,
+    refetch,
+    isAccessVerified,
+    verifyAccessCode,
   };
 };

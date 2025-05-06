@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import CandidateManager from "@/features/elections/components/CandidateManager";
 import EligibleVotersManager from "@/features/elections/components/EligibleVotersManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { Election, mapElectionToDbElection } from "@/types";
 
 // College departments for DLSU-D
 const DLSU_DEPARTMENTS = [
@@ -89,6 +90,7 @@ interface ElectionFormProps {
 const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormProps) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("details");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const candidateManagerRef = useRef<any>(null);
   const eligibleVotersManagerRef = useRef<any>(null);
   
@@ -112,15 +114,61 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
   // Extract candidacy dates for the CandidateManager
   const candidacyStartDate = form.watch("candidacyStartDate");
   const candidacyEndDate = form.watch("candidacyEndDate");
+  
+  // Fetch election data if editing
+  useEffect(() => {
+    async function fetchElectionData() {
+      if (!editingElectionId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('elections')
+          .select('*')
+          .eq('id', editingElectionId)
+          .single();
+          
+        if (error) throw error;
+        
+        if (data) {
+          // Convert DB format to form values
+          form.reset({
+            title: data.title,
+            description: data.description || "",
+            department: data.department || "",
+            candidacyStartDate: data.candidacy_start_date || "",
+            candidacyEndDate: data.candidacy_end_date || "",
+            startDate: data.start_date || "",
+            endDate: data.end_date || "",
+            isPrivate: data.is_private || false,
+            accessCode: data.access_code || "",
+            restrictVoting: data.restrict_voting || false,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching election:", error);
+        toast.error("Failed to load election data");
+      }
+    }
+    
+    fetchElectionData();
+  }, [editingElectionId, form]);
 
   /**
    * Handle form submission for creating or updating an election
    */
   const onSubmit = async (values: ElectionFormValues) => {
+    if (!user) {
+      toast.error("You must be logged in to create or edit an election");
+      return;
+    }
+    
     try {
+      setIsSubmitting(true);
+      
       // Validate form data
       if (values.isPrivate && (!values.accessCode || values.accessCode.trim() === "")) {
         toast.error("Access code is required for private elections");
+        setIsSubmitting(false);
         return;
       }
       
@@ -130,7 +178,20 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       
       if (candidacyEnd > votingStart) {
         toast.error("Candidacy period must end before voting period starts");
+        setIsSubmitting(false);
         return;
+      }
+      
+      // Determine initial status based on dates
+      const now = new Date();
+      const startDate = new Date(values.startDate);
+      const endDate = new Date(values.endDate);
+      
+      let status: 'upcoming' | 'active' | 'completed' = 'upcoming';
+      if (now >= endDate) {
+        status = 'completed';
+      } else if (now >= startDate) {
+        status = 'active';
       }
       
       let electionData: any = {
@@ -141,11 +202,14 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         candidacy_end_date: values.candidacyEndDate,
         start_date: values.startDate,
         end_date: values.endDate,
-        created_by: user?.id,
+        created_by: user.id,
         is_private: values.isPrivate,
         access_code: values.isPrivate ? values.accessCode : null,
         restrict_voting: values.restrictVoting,
+        status: status
       };
+      
+      let electionId: string;
       
       if (editingElectionId) {
         // Update existing election
@@ -155,9 +219,11 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
           .eq('id', editingElectionId);
         
         if (error) {
+          console.error("Update error:", error);
           throw error;
         }
         
+        electionId = editingElectionId;
         toast.success("Election updated successfully");
       } else {
         // Create new election
@@ -167,48 +233,57 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
           .select();
         
         if (error) {
+          console.error("Insert error:", error);
           throw error;
         }
         
-        if (newElection && newElection.length > 0) {
-          // If there are candidates to add, add them now
-          if (candidateManagerRef.current && newElection[0].id) {
-            const candidatesData = candidateManagerRef.current.getCandidatesForNewElection?.();
-            if (candidatesData && candidatesData.length > 0) {
-              const candidatesToInsert = candidatesData.map((candidate: any) => ({
-                ...candidate,
-                election_id: newElection[0].id,
-              }));
-              
-              const { error: candidatesError } = await supabase
-                .from('candidates')
-                .insert(candidatesToInsert);
-              
-              if (candidatesError) {
-                console.error("Error adding candidates:", candidatesError);
-                toast.error("Failed to add candidates");
-              }
+        if (!newElection || newElection.length === 0) {
+          throw new Error("Failed to create election: No data returned");
+        }
+        
+        electionId = newElection[0].id;
+        
+        // If there are candidates to add, add them now
+        if (candidateManagerRef.current && electionId) {
+          const candidatesData = candidateManagerRef.current.getCandidatesForNewElection?.();
+          console.log("Candidates to add:", candidatesData);
+          
+          if (candidatesData && candidatesData.length > 0) {
+            const candidatesToInsert = candidatesData.map((candidate: any) => ({
+              ...candidate,
+              election_id: electionId,
+            }));
+            
+            const { error: candidatesError } = await supabase
+              .from('candidates')
+              .insert(candidatesToInsert);
+            
+            if (candidatesError) {
+              console.error("Error adding candidates:", candidatesError);
+              toast.error("Failed to add candidates");
             }
           }
+        }
+        
+        // If we're restricting voting and there are eligible voters, add them
+        if (values.restrictVoting && eligibleVotersManagerRef.current && electionId) {
+          const eligibleVoters = eligibleVotersManagerRef.current.getEligibleVotersForNewElection?.();
+          console.log("Voters to add:", eligibleVoters);
           
-          // If we're restricting voting and there are eligible voters, add them
-          if (values.restrictVoting && eligibleVotersManagerRef.current && newElection[0].id) {
-            const eligibleVoters = eligibleVotersManagerRef.current.getEligibleVotersForNewElection?.();
-            if (eligibleVoters && eligibleVoters.length > 0) {
-              const votersToInsert = eligibleVoters.map((userId: string) => ({
-                election_id: newElection[0].id,
-                user_id: userId,
-                added_by: user?.id,
-              }));
-              
-              const { error: votersError } = await supabase
-                .from('eligible_voters')
-                .insert(votersToInsert);
-              
-              if (votersError) {
-                console.error("Error adding eligible voters:", votersError);
-                toast.error("Failed to add eligible voters");
-              }
+          if (eligibleVoters && eligibleVoters.length > 0) {
+            const votersToInsert = eligibleVoters.map((userId: string) => ({
+              election_id: electionId,
+              user_id: userId,
+              added_by: user.id,
+            }));
+            
+            const { error: votersError } = await supabase
+              .from('eligible_voters')
+              .insert(votersToInsert);
+            
+            if (votersError) {
+              console.error("Error adding eligible voters:", votersError);
+              toast.error("Failed to add eligible voters");
             }
           }
         }
@@ -219,7 +294,9 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       onSuccess();
     } catch (error) {
       console.error("Error saving election:", error);
-      toast.error("Failed to save election");
+      toast.error("Failed to save election: " + (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -468,15 +545,23 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       </ScrollArea>
       
       <div className="p-6 border-t flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
         <Button 
           type="button" 
           className="bg-[#008f50] hover:bg-[#007a45]" 
           onClick={form.handleSubmit(onSubmit)}
+          disabled={isSubmitting}
         >
-          Save
+          {isSubmitting ? (
+            <>
+              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent border-white"></span>
+              Saving...
+            </>
+          ) : (
+            'Save'
+          )}
         </Button>
       </div>
     </div>
