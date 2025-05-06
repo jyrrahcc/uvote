@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,10 +129,11 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
           
         if (error) throw error;
         
+        // Safely handle potentially missing properties with type checking
         if (data) {
-          // Convert DB format to form values, handling potentially missing fields
+          // Convert DB format to form values with safe property access
           form.reset({
-            title: data.title,
+            title: data.title || "",
             description: data.description || "",
             department: data.department || "",
             candidacyStartDate: data.candidacy_start_date || "",
@@ -193,7 +195,8 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         status = 'active';
       }
       
-      let electionData: any = {
+      // Map the form values to the database schema fields
+      let electionData = {
         title: values.title,
         description: values.description || "",
         department: values.department || "",
@@ -219,6 +222,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         
         if (error) {
           console.error("Update error:", error);
+          toast.error(`Failed to update election: ${error.message}`);
           throw error;
         }
         
@@ -233,6 +237,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         
         if (error) {
           console.error("Insert error:", error);
+          toast.error(`Failed to create election: ${error.message}`);
           throw error;
         }
         
@@ -259,7 +264,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             
             if (candidatesError) {
               console.error("Error adding candidates:", candidatesError);
-              toast.error("Failed to add candidates");
+              toast.error(`Failed to add candidates: ${candidatesError.message}`);
             }
           }
         }
@@ -282,7 +287,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             
             if (votersError) {
               console.error("Error adding eligible voters:", votersError);
-              toast.error("Failed to add eligible voters");
+              toast.error(`Failed to add eligible voters: ${votersError.message}`);
             }
           }
         }

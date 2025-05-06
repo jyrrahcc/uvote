@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Election, mapDbElectionToElection } from "@/types";
+import { Election, DbElection, mapDbElectionToElection } from "@/types";
 import { toast } from "sonner";
 
 /**
@@ -21,7 +21,7 @@ export const fetchElectionDetails = async (electionId: string): Promise<Election
     }
     
     // Transform the data to match our Election interface
-    return mapDbElectionToElection(data);
+    return mapDbElectionToElection(data as DbElection);
   } catch (error) {
     console.error("Error fetching election details:", error);
     throw error;
@@ -55,12 +55,41 @@ export const updateElectionStatus = async (election: Election): Promise<Election
       .update({ status })
       .eq('id', election.id);
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error updating election status:", error);
+      throw error;
+    }
     
     return { ...election, status };
   } catch (error) {
     console.error("Error updating election status:", error);
-    toast.error("Failed to update election status");
+    toast.error(`Failed to update election status: ${error instanceof Error ? error.message : "Unknown error"}`);
     return election;
+  }
+};
+
+/**
+ * Creates a new election
+ */
+export const createElection = async (electionData: any, userId: string): Promise<string> => {
+  try {
+    const { data, error } = await supabase
+      .from('elections')
+      .insert([{
+        ...electionData,
+        created_by: userId
+      }])
+      .select();
+    
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      throw new Error("No data returned after creating election");
+    }
+    
+    return data[0].id;
+  } catch (error) {
+    console.error("Error creating election:", error);
+    throw error;
   }
 };
