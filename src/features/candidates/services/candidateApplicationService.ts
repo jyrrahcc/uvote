@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication } from "@/types/candidates";
 
@@ -38,14 +37,16 @@ export const submitCandidateApplication = async (application: {
 // Update an existing candidate application
 export const updateCandidateApplication = async (
   id: string, 
-  status: string, 
-  feedback: string | null
+  updates: {
+    status: string;
+    feedback?: string | null;
+  }
 ): Promise<CandidateApplication> => {
   const { data, error } = await supabase
     .from('candidate_applications')
     .update({
-      status,
-      feedback,
+      status: updates.status,
+      feedback: updates.feedback || null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -90,8 +91,8 @@ export const hasUserAppliedForElection = async (electionId: string, userId: stri
   return !!data;
 };
 
-// Get all applications for an election
-export const getElectionApplications = async (electionId: string): Promise<CandidateApplication[]> => {
+// Get all applications for an election - Export renamed function
+export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
   const { data, error } = await supabase
     .from('candidate_applications')
     .select('*')
@@ -106,8 +107,15 @@ export const getElectionApplications = async (electionId: string): Promise<Candi
   return data as CandidateApplication[];
 };
 
-// Get applications by user
-export const getUserApplications = async (userId: string): Promise<CandidateApplication[]> => {
+// Get applications by user - Export renamed function
+export const fetchCandidateApplicationsByUser = async (): Promise<CandidateApplication[]> => {
+  const { data: userSession } = await supabase.auth.getSession();
+  const userId = userSession.session?.user.id;
+
+  if (!userId) {
+    throw new Error('User not authenticated');
+  }
+
   const { data, error } = await supabase
     .from('candidate_applications')
     .select('*, elections(title, status)')
@@ -121,3 +129,7 @@ export const getUserApplications = async (userId: string): Promise<CandidateAppl
 
   return data as CandidateApplication[];
 };
+
+// Keep legacy named functions for backward compatibility
+export const getElectionApplications = fetchCandidateApplicationsForElection;
+export const getUserApplications = fetchCandidateApplicationsByUser;

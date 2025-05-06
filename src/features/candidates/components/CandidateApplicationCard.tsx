@@ -24,7 +24,7 @@ const CandidateApplicationCard = ({ application, isAdmin, onStatusChange }: Cand
       setLoading(newStatus);
       await updateCandidateApplication(application.id, {
         status: newStatus,
-        feedback: feedback || undefined
+        feedback: feedback || null
       });
 
       toast.success(`Application ${newStatus === "approved" ? "approved" : "rejected"} successfully`);
