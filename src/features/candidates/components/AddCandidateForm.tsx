@@ -60,6 +60,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
   useEffect(() => {
     const fetchPositions = async () => {
       try {
+        console.log("Fetching positions for election ID:", electionId);
         const { data, error } = await supabase
           .from('elections')
           .select('positions')
@@ -70,6 +71,8 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
           console.error("Error fetching positions:", error);
           return;
         }
+        
+        console.log("Positions data:", data);
         
         // If positions is defined and is an array, use it
         if (data && Array.isArray(data.positions)) {
@@ -116,6 +119,10 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
       console.log("Adding candidate to election ID:", electionId);
       console.log("Candidate data:", values);
       
+      if (!user) {
+        throw new Error("User must be logged in to add a candidate");
+      }
+      
       const newCandidate: CandidateInsert = {
         name: values.name,
         bio: values.bio,
@@ -123,7 +130,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
         image_url: values.image_url || null,
         poster_url: values.poster_url || null,
         election_id: electionId,
-        created_by: user?.id || "",
+        created_by: user.id,
         student_id: values.student_id || null,
         department: values.department || null,
         year_level: values.year_level || null
@@ -146,13 +153,14 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
       
       toast.success("Candidate added successfully");
       form.reset();
-      onCancel();
       
       // Update parent component
       if (data) {
         // Type casting to match our Candidate[] type
         onCandidateAdded(data);
       }
+      
+      onCancel();
     } catch (error) {
       console.error("Error adding candidate:", error);
       toast.error("Failed to add candidate");

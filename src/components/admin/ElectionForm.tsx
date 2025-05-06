@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,6 +148,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         
         // Safely handle potentially missing properties with type checking
         if (data) {
+          console.log("Fetched election data:", data);
           // Convert DB format to form values with safe property access
           form.reset({
             title: data.title || "",
@@ -159,7 +161,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             isPrivate: data.is_private || false,
             accessCode: data.access_code || "",
             restrictVoting: data.restrict_voting || false,
-            positions: data.positions && Array.isArray(data.positions) ? data.positions : DEFAULT_POSITIONS,
+            positions: Array.isArray(data.positions) ? data.positions : DEFAULT_POSITIONS,
           });
         }
       } catch (error) {
@@ -246,6 +248,9 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       
       if (editingElectionId) {
         // Update existing election
+        console.log("Updating election with ID:", editingElectionId);
+        console.log("Update data:", electionData);
+        
         const { error } = await supabase
           .from('elections')
           .update(electionData)
@@ -405,6 +410,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                           <Input 
                             placeholder="Provide a brief description"
                             {...field} 
+                            value={field.value || ""}
                           />
                         </FormControl>
                       </FormItem>
@@ -575,6 +581,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                             <Input 
                               placeholder="Create a code for voters to access this election"
                               {...field} 
+                              value={field.value || ""}
                             />
                           </FormControl>
                           <p className="text-sm text-muted-foreground">

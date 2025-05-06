@@ -2,96 +2,55 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export interface CandidateApplication {
-  id: string;
-  electionId: string;
-  userId: string;
-  name: string;
-  position: string;
-  bio: string | null;
-  imageUrl: string | null;
-  status: "pending" | "approved" | "rejected";
-  createdAt: string;
-  updatedAt: string;
-  feedback: string | null;
-}
-
 export interface CandidateApplicationInsert {
   election_id: string;
   user_id: string;
   name: string;
   position: string;
-  bio?: string | null;
-  image_url?: string | null;
+  bio: string;
+  image_url: string | null;
+  student_id?: string | null;
+  department?: string | null;
+  year_level?: string | null;
 }
 
-// Map DB object to our application type
-export const mapDbApplicationToApplication = (dbApp: any): CandidateApplication => ({
-  id: dbApp.id,
-  electionId: dbApp.election_id,
-  userId: dbApp.user_id,
-  name: dbApp.name,
-  position: dbApp.position,
-  bio: dbApp.bio || null,
-  imageUrl: dbApp.image_url || null,
-  status: dbApp.status,
-  createdAt: dbApp.created_at,
-  updatedAt: dbApp.updated_at,
-  feedback: dbApp.feedback || null,
-});
+export interface CandidateApplication {
+  id: string;
+  election_id: string;
+  user_id: string;
+  name: string;
+  position: string;
+  bio: string;
+  image_url: string | null;
+  created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  feedback: string | null;
+  student_id: string | null;
+  department: string | null;
+  year_level: string | null;
+}
 
 /**
- * Fetches all candidate applications for a specific election
- * Note: For admins only
+ * Create a new candidate application
  */
-export const fetchCandidateApplications = async (electionId: string): Promise<CandidateApplication[]> => {
-  try {
-    console.log("Fetching candidate applications for election:", electionId);
-    const { data, error } = await supabase
-      .from('candidate_applications')
-      .select('*')
-      .eq('election_id', electionId)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Error in fetchCandidateApplications:", error);
-      throw error;
-    }
-    
-    return data.map(mapDbApplicationToApplication);
-  } catch (error) {
-    console.error("Error fetching candidate applications:", error);
+export const createCandidateApplication = async (
+  application: CandidateApplicationInsert
+): Promise<void> => {
+  const { error } = await supabase.from('candidate_applications').insert([application]);
+  
+  if (error) {
+    console.error("Error creating candidate application:", error);
     throw error;
   }
 };
 
 /**
- * Fetches candidate applications created by a specific user
+ * Check if a user has already applied for a specific election
  */
-export const fetchUserCandidateApplications = async (userId: string): Promise<CandidateApplication[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('candidate_applications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Error in fetchUserCandidateApplications:", error);
-      throw error;
-    }
-    
-    return data.map(mapDbApplicationToApplication);
-  } catch (error) {
-    console.error("Error fetching user's candidate applications:", error);
-    throw error;
-  }
-};
-
-/**
- * Checks if a user has already applied to be a candidate for a specific election
- */
-export const hasUserAppliedForElection = async (electionId: string, userId: string): Promise<boolean> => {
+export const hasUserAppliedForElection = async (
+  electionId: string,
+  userId: string
+): Promise<boolean> => {
   try {
     const { data, error } = await supabase
       .from('candidate_applications')
@@ -101,9 +60,8 @@ export const hasUserAppliedForElection = async (electionId: string, userId: stri
       .single();
     
     if (error && error.code !== 'PGRST116') {
-      // PGRST116 means no rows returned, which is expected if not registered
-      console.error("Error in hasUserAppliedForElection:", error);
-      throw error;
+      console.error("Error checking candidate application:", error);
+      return false;
     }
     
     return !!data;
@@ -114,80 +72,86 @@ export const hasUserAppliedForElection = async (electionId: string, userId: stri
 };
 
 /**
- * Creates a new candidate application
+ * Get all applications for a specific election
  */
-export const createCandidateApplication = async (application: CandidateApplicationInsert): Promise<CandidateApplication> => {
+export const getElectionApplications = async (
+  electionId: string
+): Promise<CandidateApplication[]> => {
   try {
     const { data, error } = await supabase
       .from('candidate_applications')
-      .insert(application)
-      .select()
-      .single();
+      .select('*')
+      .eq('election_id', electionId)
+      .order('created_at', { ascending: false });
     
     if (error) {
-      console.error("Error in createCandidateApplication:", error);
+      console.error("Error fetching applications:", error);
       throw error;
     }
     
-    return mapDbApplicationToApplication(data);
+    return data as CandidateApplication[];
   } catch (error) {
-    console.error("Error creating candidate application:", error);
-    throw error;
+    console.error("Error getting election applications:", error);
+    toast.error("Failed to fetch candidate applications");
+    return [];
   }
 };
 
 /**
- * Updates the status of a candidate application (for admin use)
+ * Get applications submitted by a specific user
+ */
+export const getUserApplications = async (
+  userId: string
+): Promise<CandidateApplication[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('candidate_applications')
+      .select('*, elections(title, status)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching user applications:", error);
+      throw error;
+    }
+    
+    return data as unknown as CandidateApplication[];
+  } catch (error) {
+    console.error("Error getting user applications:", error);
+    toast.error("Failed to fetch your candidate applications");
+    return [];
+  }
+};
+
+/**
+ * Update application status
  */
 export const updateApplicationStatus = async (
   applicationId: string,
-  status: "approved" | "rejected",
+  status: 'approved' | 'rejected',
   feedback?: string
 ): Promise<void> => {
   try {
-    const updates = {
-      status,
-      updated_at: new Date().toISOString(),
-      feedback: feedback || null
-    };
+    const updateData: { status: string; feedback?: string } = { status };
+    
+    if (feedback) {
+      updateData.feedback = feedback;
+    }
     
     const { error } = await supabase
       .from('candidate_applications')
-      .update(updates)
+      .update(updateData)
       .eq('id', applicationId);
     
     if (error) {
-      console.error("Error in updateApplicationStatus:", error);
+      console.error("Error updating application status:", error);
       throw error;
     }
     
-    toast.success(`Application ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
+    // When approving, the trigger will handle creating the candidate record
   } catch (error) {
     console.error("Error updating application status:", error);
     toast.error("Failed to update application status");
-    throw error;
-  }
-};
-
-/**
- * Deletes a candidate application (only available for pending applications)
- */
-export const deleteCandidateApplication = async (applicationId: string): Promise<void> => {
-  try {
-    const { error } = await supabase
-      .from('candidate_applications')
-      .delete()
-      .eq('id', applicationId);
-    
-    if (error) {
-      console.error("Error in deleteCandidateApplication:", error);
-      throw error;
-    }
-    
-    toast.success("Candidate application withdrawn successfully");
-  } catch (error) {
-    console.error("Error deleting candidate application:", error);
-    toast.error("Failed to withdraw candidate application");
     throw error;
   }
 };

@@ -39,14 +39,22 @@ const CandidateImageUpload = ({
       
       // Check if candidates bucket exists, create if not
       const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.find(bucket => bucket.name === 'candidates')) {
-        await supabase.storage.createBucket('candidates', { public: true });
+      const candidatesBucketExists = buckets?.some(bucket => bucket.name === 'candidates');
+      
+      if (!candidatesBucketExists) {
+        await supabase.storage.createBucket('candidates', { 
+          public: true,
+          fileSizeLimit: 1024 * 1024 * 5 // 5MB limit
+        });
       }
       
       // Upload the file to Supabase storage
       const { error: uploadError, data } = await supabase.storage
         .from('candidates')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
         
       if (uploadError) {
         throw uploadError;
