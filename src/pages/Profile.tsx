@@ -34,7 +34,6 @@ const Profile = () => {
   const [yearLevel, setYearLevel] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,18 +61,14 @@ const Profile = () => {
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile information",
-          variant: "destructive",
-        });
+        toast.error("Failed to load profile information");
       } finally {
         setIsLoading(false);
       }
     };
 
     getProfile();
-  }, [user, toast]);
+  }, [user]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,17 +90,10 @@ const Profile = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Profile updated",
-        description: "Your profile information has been updated successfully",
-      });
+      toast.success("Profile updated successfully");
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile information",
-        variant: "destructive",
-      });
+      toast.error("Failed to update profile information");
     } finally {
       setIsSaving(false);
     }
