@@ -18,6 +18,7 @@ export interface Election {
   accessCode?: string;
   restrictVoting?: boolean;
   department?: string; // Added department field for DLSU-D context
+  positions?: string[]; // Added positions array
 }
 
 /**
@@ -80,6 +81,7 @@ export interface DbElection {
   access_code?: string | null;
   restrict_voting?: boolean | null;
   department?: string | null;
+  positions?: string[] | null; // Added positions array
 }
 
 /**
@@ -106,7 +108,8 @@ export const mapDbElectionToElection = (dbElection: DbElection): Election => {
     isPrivate: dbElection.is_private || false,
     accessCode: dbElection.access_code || undefined,
     restrictVoting: dbElection.restrict_voting || false,
-    department: dbElection.department || undefined
+    department: dbElection.department || undefined,
+    positions: dbElection.positions || undefined
   };
 };
 
@@ -125,5 +128,6 @@ export const mapElectionToDbElection = (election: Election): DbElection => ({
   is_private: election.isPrivate,
   access_code: election.accessCode || null,
   restrict_voting: election.restrictVoting || false,
-  department: election.department || null
+  department: election.department || null,
+  positions: election.positions || []
 });

@@ -64,31 +64,40 @@ export type Database = {
           bio: string | null
           created_at: string | null
           created_by: string | null
+          department: string | null
           election_id: string | null
           id: string
           image_url: string | null
           name: string
           position: string
+          student_id: string | null
+          year_level: string | null
         }
         Insert: {
           bio?: string | null
           created_at?: string | null
           created_by?: string | null
+          department?: string | null
           election_id?: string | null
           id?: string
           image_url?: string | null
           name: string
           position: string
+          student_id?: string | null
+          year_level?: string | null
         }
         Update: {
           bio?: string | null
           created_at?: string | null
           created_by?: string | null
+          department?: string | null
           election_id?: string | null
           id?: string
           image_url?: string | null
           name?: string
           position?: string
+          student_id?: string | null
+          year_level?: string | null
         }
         Relationships: [
           {
@@ -112,6 +121,7 @@ export type Database = {
           end_date: string
           id: string
           is_private: boolean | null
+          positions: string[] | null
           restrict_voting: boolean | null
           start_date: string
           status: string
@@ -129,6 +139,7 @@ export type Database = {
           end_date: string
           id?: string
           is_private?: boolean | null
+          positions?: string[] | null
           restrict_voting?: boolean | null
           start_date: string
           status: string
@@ -146,6 +157,7 @@ export type Database = {
           end_date?: string
           id?: string
           is_private?: boolean | null
+          positions?: string[] | null
           restrict_voting?: boolean | null
           start_date?: string
           status?: string

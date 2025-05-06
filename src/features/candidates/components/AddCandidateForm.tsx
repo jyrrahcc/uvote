@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import CandidateImageUpload from "./CandidateImageUpload";
-import { useEffect } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -73,7 +72,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
         }
         
         // If positions is defined and is an array, use it
-        if (data && data.positions && Array.isArray(data.positions)) {
+        if (data && Array.isArray(data.positions)) {
           setPositions(data.positions);
         } else {
           // Default positions if none are defined
