@@ -103,8 +103,11 @@ export type Database = {
       elections: {
         Row: {
           access_code: string | null
+          candidacy_end_date: string | null
+          candidacy_start_date: string | null
           created_at: string | null
           created_by: string | null
+          department: string | null
           description: string | null
           end_date: string
           id: string
@@ -117,8 +120,11 @@ export type Database = {
         }
         Insert: {
           access_code?: string | null
+          candidacy_end_date?: string | null
+          candidacy_start_date?: string | null
           created_at?: string | null
           created_by?: string | null
+          department?: string | null
           description?: string | null
           end_date: string
           id?: string
@@ -131,8 +137,11 @@ export type Database = {
         }
         Update: {
           access_code?: string | null
+          candidacy_end_date?: string | null
+          candidacy_start_date?: string | null
           created_at?: string | null
           created_by?: string | null
+          department?: string | null
           description?: string | null
           end_date?: string
           id?: string
