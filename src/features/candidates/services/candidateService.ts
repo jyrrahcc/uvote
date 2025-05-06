@@ -37,9 +37,23 @@ export const createCandidate = async (candidateData: Partial<Candidate>): Promis
       throw new Error("Candidate name and position are required");
     }
     
+    // Convert Partial<Candidate> to a compatible type for Supabase insert
+    // by explicitly creating an object with the expected properties
+    const candidateToInsert = {
+      name: candidateData.name,
+      position: candidateData.position,
+      bio: candidateData.bio || null,
+      image_url: candidateData.image_url || null,
+      election_id: candidateData.election_id || null,
+      created_by: candidateData.created_by || null,
+      student_id: candidateData.student_id || null,
+      department: candidateData.department || null,
+      year_level: candidateData.year_level || null
+    };
+    
     const { data, error } = await supabase
       .from('candidates')
-      .insert(candidateData)
+      .insert(candidateToInsert)
       .select()
       .single();
     
