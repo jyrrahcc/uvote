@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import * as z from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { X, Plus } from "lucide-react";
 import CandidateManager from "@/features/elections/components/CandidateManager";
 import EligibleVotersManager from "@/features/elections/components/EligibleVotersManager";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +29,18 @@ const DLSU_DEPARTMENTS = [
   "College of Criminal Justice Education",
   "College of Tourism and Hospitality Management",
   "University-wide"
+];
+
+// Default positions available for elections
+const DEFAULT_POSITIONS = [
+  "President",
+  "Vice President",
+  "Secretary",
+  "Treasurer",
+  "Public Relations Officer",
+  "Senator",
+  "Governor",
+  "Department Representative"
 ];
 
 /**
@@ -48,6 +62,7 @@ const electionFormSchema = z.object({
       return true;
     }),
   restrictVoting: z.boolean().default(false),
+  positions: z.array(z.string()).default([]),
 }).refine((data) => {
   // Candidacy period should come before voting period
   const candidacyStart = new Date(data.candidacyStartDate);
@@ -90,6 +105,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("details");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newPosition, setNewPosition] = useState("");
   const candidateManagerRef = useRef<any>(null);
   const eligibleVotersManagerRef = useRef<any>(null);
   
@@ -107,12 +123,14 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       isPrivate: false,
       accessCode: "",
       restrictVoting: false,
+      positions: DEFAULT_POSITIONS,
     },
   });
 
   // Extract candidacy dates for the CandidateManager
   const candidacyStartDate = form.watch("candidacyStartDate");
   const candidacyEndDate = form.watch("candidacyEndDate");
+  const positions = form.watch("positions");
   
   // Fetch election data if editing
   useEffect(() => {
@@ -142,6 +160,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             isPrivate: data.is_private || false,
             accessCode: data.access_code || "",
             restrictVoting: data.restrict_voting || false,
+            positions: data.positions && Array.isArray(data.positions) ? data.positions : DEFAULT_POSITIONS,
           });
         }
       } catch (error) {
@@ -152,6 +171,19 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
     
     fetchElectionData();
   }, [editingElectionId, form]);
+
+  const addPosition = () => {
+    if (newPosition && newPosition.trim() !== "") {
+      if (!positions.includes(newPosition.trim())) {
+        form.setValue("positions", [...positions, newPosition.trim()]);
+      }
+      setNewPosition("");
+    }
+  };
+
+  const removePosition = (position: string) => {
+    form.setValue("positions", positions.filter(p => p !== position));
+  };
 
   /**
    * Handle form submission for creating or updating an election
@@ -207,7 +239,8 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         is_private: values.isPrivate,
         access_code: values.isPrivate ? values.accessCode : null,
         restrict_voting: values.restrictVoting,
-        status: status
+        status: status,
+        positions: values.positions
       };
       
       let electionId: string;
@@ -379,6 +412,60 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                     )}
                   />
                   
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Election Positions</h3>
+                    <div className="flex items-end gap-2">
+                      <div className="flex-grow">
+                        <Label htmlFor="new-position">Add New Position</Label>
+                        <Input 
+                          id="new-position"
+                          placeholder="Enter position name"
+                          value={newPosition}
+                          onChange={(e) => setNewPosition(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addPosition();
+                            }
+                          }}
+                        />
+                      </div>
+                      <Button 
+                        type="button" 
+                        onClick={addPosition}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add
+                      </Button>
+                    </div>
+                    
+                    <div className="border rounded-md p-3 space-y-2">
+                      {positions.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {positions.map(position => (
+                            <div 
+                              key={position} 
+                              className="flex items-center gap-1 bg-secondary text-secondary-foreground px-3 py-1 rounded-md"
+                            >
+                              <span>{position}</span>
+                              <button
+                                type="button"
+                                onClick={() => removePosition(position)}
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-2">
+                          No positions added. Add at least one position for candidates.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
                   <h3 className="text-lg font-semibold pt-2 flex items-center">
                     Candidacy Period
                   </h3>
@@ -530,6 +617,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                   candidacyStartDate={candidacyStartDate}
                   candidacyEndDate={candidacyEndDate}
                   isAdmin={true} // Admin is always true in this component since it's in the admin section
+                  positions={positions}
                   ref={candidateManagerRef}
                 />
               </TabsContent>

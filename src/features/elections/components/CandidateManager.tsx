@@ -18,6 +18,7 @@ export interface CandidateManagerProps {
   candidacyStartDate?: string;
   candidacyEndDate?: string;
   isAdmin?: boolean;
+  positions?: string[];
 }
 
 const DLSU_DEPARTMENTS = [
@@ -32,7 +33,7 @@ const DLSU_DEPARTMENTS = [
 
 const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
 
-const POSITIONS = [
+const DEFAULT_POSITIONS = [
   "President",
   "Vice President",
   "Secretary",
@@ -48,12 +49,24 @@ const CandidateManager = forwardRef(({
   isNewElection, 
   candidacyStartDate, 
   candidacyEndDate,
-  isAdmin = false
+  isAdmin = false,
+  positions = []
 }: CandidateManagerProps, ref) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<Record<number, boolean>>({});
   const [uploadingPoster, setUploadingPoster] = useState<Record<number, boolean>>({});
+  const [availablePositions, setAvailablePositions] = useState<string[]>([]);
+
+  // Initialize positions
+  useEffect(() => {
+    if (positions && positions.length > 0) {
+      setAvailablePositions(positions);
+    } else {
+      // If no positions provided, use defaults
+      setAvailablePositions(DEFAULT_POSITIONS);
+    }
+  }, [positions]);
 
   // Fetch candidates if editing an existing election
   useEffect(() => {
@@ -61,6 +74,33 @@ const CandidateManager = forwardRef(({
       fetchCandidates();
     }
   }, [electionId, isNewElection]);
+
+  // Also fetch election positions if election ID is provided
+  useEffect(() => {
+    if (electionId && !isNewElection) {
+      fetchElectionPositions();
+    }
+  }, [electionId, isNewElection]);
+
+  const fetchElectionPositions = async () => {
+    if (!electionId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('elections')
+        .select('positions')
+        .eq('id', electionId)
+        .single();
+      
+      if (error) throw error;
+
+      if (data && data.positions && Array.isArray(data.positions) && data.positions.length > 0) {
+        setAvailablePositions(data.positions);
+      }
+    } catch (error) {
+      console.error("Error fetching election positions:", error);
+    }
+  };
 
   const fetchCandidates = async () => {
     if (!electionId) return;
@@ -214,7 +254,8 @@ const CandidateManager = forwardRef(({
         poster_url: c.posterUrl,
         student_id: c.studentId,
         department: c.department,
-        year_level: c.yearLevel
+        year_level: c.yearLevel,
+        election_id: electionId // Explicitly set the election_id
       }));
     }
   }));
@@ -288,19 +329,28 @@ const CandidateManager = forwardRef(({
                   
                   <div className="space-y-2">
                     <Label htmlFor={`candidate-position-${index}`}>Position</Label>
-                    <Select 
-                      value={candidate.position} 
-                      onValueChange={(value) => updateCandidate(index, 'position', value)}
-                    >
-                      <SelectTrigger id={`candidate-position-${index}`}>
-                        <SelectValue placeholder="Select a position" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {POSITIONS.map((pos) => (
-                          <SelectItem key={pos} value={pos}>{pos}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {availablePositions.length > 0 ? (
+                      <Select 
+                        value={candidate.position} 
+                        onValueChange={(value) => updateCandidate(index, 'position', value)}
+                      >
+                        <SelectTrigger id={`candidate-position-${index}`}>
+                          <SelectValue placeholder="Select a position" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availablePositions.map((pos) => (
+                            <SelectItem key={pos} value={pos}>{pos}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input 
+                        id={`candidate-position-${index}`} 
+                        value={candidate.position} 
+                        onChange={(e) => updateCandidate(index, 'position', e.target.value)}
+                        placeholder="Position running for"
+                      />
+                    )}
                   </div>
                   
                   <div className="space-y-2">
