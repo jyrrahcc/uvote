@@ -2,7 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Candidate } from "@/types";
 import { CandidateInsert } from "../components/AddCandidateForm";
-import { toast } from "sonner";
 
 /**
  * Fetches all candidates for a specific election
@@ -33,7 +32,7 @@ export const addCandidate = async (candidateData: CandidateInsert): Promise<Cand
     // Using generic syntax for Supabase to avoid type errors
     const { data, error } = await supabase
       .from('candidates')
-      .insert(candidateData as any)
+      .insert(candidateData)
       .select();
     
     if (error) throw error;
@@ -61,5 +60,29 @@ export const deleteCandidate = async (id: string): Promise<void> => {
   } catch (error) {
     console.error("Error deleting candidate:", error);
     throw error;
+  }
+};
+
+/**
+ * Checks if a user has already registered as a candidate for an election
+ */
+export const hasUserRegisteredAsCandidate = async (electionId: string, userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('candidates')
+      .select('id')
+      .eq('election_id', electionId)
+      .eq('created_by', userId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 means no rows returned, which is expected if not registered
+      throw error;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error("Error checking candidate registration:", error);
+    return false;
   }
 };

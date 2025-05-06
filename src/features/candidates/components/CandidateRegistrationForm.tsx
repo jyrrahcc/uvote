@@ -25,50 +25,47 @@ const formSchema = z.object({
   image_url: z.string().optional(),
 });
 
-// Define typescript-compatible interface that matches the candidate table structure
-export interface CandidateInsert {
-  name: string;
-  bio: string;
-  position: string;
-  image_url: string | null;
-  election_id: string;
-  created_by: string;
-}
-
-interface AddCandidateFormProps {
+interface CandidateRegistrationFormProps {
   electionId: string;
+  userId: string;
   onCandidateAdded: (candidate: any) => void;
   onClose: () => void;
 }
 
-const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidateFormProps) => {
-  const { user } = useAuth();
+const CandidateRegistrationForm = ({ 
+  electionId,
+  userId,
+  onCandidateAdded, 
+  onClose 
+}: CandidateRegistrationFormProps) => {
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      name: user?.user_metadata?.first_name && user?.user_metadata?.last_name 
+        ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+        : "",
       bio: "",
       position: "",
-      image_url: "",
+      image_url: user?.user_metadata?.avatar_url || "",
     },
   });
 
-  const handleAddCandidate = async (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
       
-      const newCandidate: CandidateInsert = {
+      const newCandidate = {
         name: values.name,
         bio: values.bio,
         position: values.position,
         image_url: values.image_url || null,
         election_id: electionId,
-        created_by: user?.id || ""
+        created_by: userId
       };
       
-      // Using generic syntax for Supabase to avoid type errors
       const { data, error } = await supabase
         .from('candidates')
         .insert(newCandidate)
@@ -76,18 +73,16 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
       
       if (error) throw error;
       
-      toast.success("Candidate added successfully");
+      toast.success("Your candidate registration has been submitted successfully");
       form.reset();
       onClose();
       
-      // Update parent component
       if (data) {
-        // Type casting to match our Candidate[] type
         onCandidateAdded(data);
       }
     } catch (error) {
-      console.error("Error adding candidate:", error);
-      toast.error("Failed to add candidate");
+      console.error("Error registering as candidate:", error);
+      toast.error("Failed to register as candidate");
     } finally {
       setLoading(false);
     }
@@ -95,15 +90,15 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleAddCandidate)} className="space-y-4 pt-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-4">
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Candidate name" {...field} />
+                <Input placeholder="Your full name" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -131,7 +126,11 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
             <FormItem>
               <FormLabel>Bio</FormLabel>
               <FormControl>
-                <Textarea placeholder="Candidate biography" {...field} />
+                <Textarea 
+                  placeholder="Tell voters about yourself, your qualifications, and why you're running" 
+                  className="min-h-[120px]"
+                  {...field} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -143,9 +142,9 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
           name="image_url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image URL</FormLabel>
+              <FormLabel>Profile Image URL</FormLabel>
               <FormControl>
-                <Input placeholder="URL to candidate's image" {...field} />
+                <Input placeholder="URL to your profile image (optional)" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -155,7 +154,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={loading}>
-            {loading ? "Adding..." : "Add Candidate"}
+            {loading ? "Submitting..." : "Submit Registration"}
           </Button>
         </div>
       </form>
@@ -163,4 +162,4 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
   );
 };
 
-export default AddCandidateForm;
+export default CandidateRegistrationForm;

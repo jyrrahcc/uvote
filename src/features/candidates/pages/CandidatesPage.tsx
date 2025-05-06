@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Election, Candidate } from "@/types";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { useAuth } from "@/features/auth/context/AuthContext";
 import { Plus } from "lucide-react";
 import {
   Dialog,
@@ -18,6 +19,9 @@ import { fetchElectionDetails } from "@/features/elections/services/electionServ
 import { fetchCandidates, deleteCandidate } from "../services/candidateService";
 import AddCandidateForm from "../components/AddCandidateForm";
 import CandidatesList from "../components/CandidatesList";
+import CandidateRegistrationForm from "../components/CandidateRegistrationForm";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 const CandidatesPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
@@ -25,7 +29,10 @@ const CandidatesPage = () => {
   const [election, setElection] = useState<Election | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isRegistrationDialogOpen, setIsRegistrationDialogOpen] = useState(false);
+  const [userHasRegistered, setUserHasRegistered] = useState(false);
   const { isAdmin } = useRole();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,6 +52,18 @@ const CandidatesPage = () => {
       // Fetch candidates
       const candidatesData = await fetchCandidates(electionId!);
       setCandidates(candidatesData);
+
+      // Check if current user has already registered as a candidate
+      if (user) {
+        const { data } = await supabase
+          .from('candidates')
+          .select('id')
+          .eq('election_id', electionId)
+          .eq('created_by', user.id)
+          .single();
+        
+        setUserHasRegistered(!!data);
+      }
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load election data");
@@ -69,6 +88,14 @@ const CandidatesPage = () => {
   const handleCandidateAdded = (data: any) => {
     // Type casting to match our Candidate[] type
     setCandidates([...candidates, ...(data as unknown as Candidate[])]);
+    
+    if (!isAdmin) {
+      setUserHasRegistered(true);
+    }
+  };
+
+  const canRegisterAsCandidate = () => {
+    return !isAdmin && user && !userHasRegistered && election?.status === 'upcoming';
   };
 
   return (
@@ -85,7 +112,7 @@ const CandidatesPage = () => {
           )}
         </div>
         
-        {isAdmin && (
+        {isAdmin ? (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -110,7 +137,39 @@ const CandidatesPage = () => {
               )}
             </DialogContent>
           </Dialog>
-        )}
+        ) : canRegisterAsCandidate() ? (
+          <Dialog open={isRegistrationDialogOpen} onOpenChange={setIsRegistrationDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Register as Candidate
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Candidate Registration</DialogTitle>
+                <DialogDescription>
+                  Submit this form to register as a candidate for this election.
+                </DialogDescription>
+              </DialogHeader>
+              
+              {electionId && user && (
+                <CandidateRegistrationForm
+                  electionId={electionId}
+                  userId={user.id}
+                  onCandidateAdded={handleCandidateAdded}
+                  onClose={() => setIsRegistrationDialogOpen(false)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+        ) : userHasRegistered ? (
+          <Alert className="max-w-xs">
+            <AlertDescription>
+              You have already registered as a candidate for this election.
+            </AlertDescription>
+          </Alert>
+        ) : null}
       </div>
       
       <CandidatesList

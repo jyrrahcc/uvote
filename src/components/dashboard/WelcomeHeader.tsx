@@ -54,9 +54,9 @@ const WelcomeHeader = ({ userRole }: WelcomeHeaderProps) => {
               <h1 className="text-2xl font-bold">
                 Welcome back, {user?.user_metadata?.first_name || getFullName().split(' ')[0] || 'User'}
               </h1>
-              {isAdmin && (
-                <Badge className="bg-primary/10 text-primary">
-                  Admin
+              {userRole && (
+                <Badge className={`${isAdmin ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
+                  {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
                 </Badge>
               )}
             </div>
