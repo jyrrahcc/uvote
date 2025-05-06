@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Election } from "@/types";
+import { Users } from "lucide-react";
 
 interface ElectionCardProps {
   election: Election;
@@ -61,7 +62,7 @@ const ElectionCard = ({ election }: ElectionCardProps) => {
           </div>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2">
         <Button asChild className="w-full">
           <Link to={`/elections/${election.id}`}>
             {election.status === "active"
@@ -69,6 +70,12 @@ const ElectionCard = ({ election }: ElectionCardProps) => {
               : election.status === "upcoming"
                 ? "View Details"
                 : "View Results"}
+          </Link>
+        </Button>
+        <Button variant="outline" asChild className="w-full">
+          <Link to={`/elections/${election.id}/candidates`}>
+            <Users className="mr-2 h-4 w-4" />
+            View Candidates
           </Link>
         </Button>
       </CardFooter>

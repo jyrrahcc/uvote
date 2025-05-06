@@ -23,29 +23,24 @@ import ElectionCard from "@/features/elections/components/ElectionCard";
  * Elections listing page component
  */
 const Elections = () => {
-  console.log("Elections page rendering"); // Debug render
-  
   const [elections, setElections] = useState<Election[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isAdmin } = useRole();
   const { user } = useAuth();
-  
-  console.log("Elections page - isAdmin:", isAdmin, "user:", user?.id); // Debug user and role
   
   useEffect(() => {
     if (user) {
       fetchElections();
-    } else {
-      console.log("No user, elections will not be fetched");
     }
   }, [user]);
 
   const fetchElections = async () => {
     try {
       setLoading(true);
-      console.log("Fetching public elections...");
+      setError(null);
       
       const { data, error } = await supabase
         .from('elections')
@@ -53,22 +48,22 @@ const Elections = () => {
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error("Error fetching elections:", error);
         throw error;
       }
       
-      console.log("Elections data from public page:", data);
-      
-      // Transform data to match our Election interface
       const transformedElections = data?.map(mapDbElectionToElection) || [];
-      console.log("Transformed elections:", transformedElections.length, "items");
       setElections(transformedElections);
     } catch (error) {
       console.error("Error fetching elections:", error);
+      setError("Failed to load elections. Please try again.");
       toast.error("Failed to fetch elections");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    fetchElections();
   };
 
   const filteredElections = elections.filter((election) => {
@@ -81,8 +76,6 @@ const Elections = () => {
     
     return matchesSearch && matchesStatus;
   });
-  
-  console.log("Filtered elections:", filteredElections.length, "items"); // Debug filtered results
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -131,8 +124,16 @@ const Elections = () => {
 
         {loading ? (
           <div className="text-center py-12">
+            <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
             <div className="text-xl mb-2">Loading elections...</div>
             <p className="text-sm text-muted-foreground">Please wait while we fetch the available elections.</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12 border rounded-md">
+            <p className="text-xl text-destructive font-medium mb-4">{error}</p>
+            <Button onClick={handleRetry}>
+              Retry
+            </Button>
           </div>
         ) : filteredElections.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -141,11 +142,16 @@ const Elections = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-12 border rounded-md">
             <p className="text-xl font-semibold">No elections found</p>
             <p className="text-muted-foreground mt-2">
-              Try adjusting your search or filters
+              {searchTerm || statusFilter ? "Try adjusting your search or filters" : "No elections are available at this time"}
             </p>
+            {(searchTerm || statusFilter) && (
+              <Button variant="outline" className="mt-4" onClick={() => { setSearchTerm(""); setStatusFilter(null); }}>
+                Clear Filters
+              </Button>
+            )}
           </div>
         )}
       </div>

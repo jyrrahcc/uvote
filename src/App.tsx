@@ -26,12 +26,13 @@ import MyVotes from "./pages/MyVotes";
 import UsersManagement from "./pages/admin/UsersManagement";
 import ElectionsManagement from "./pages/admin/ElectionsManagement";
 import Analytics from "./pages/admin/Analytics"; 
-import SystemSettings from "./pages/admin/SystemSettings"; // Import the new page
-import CandidatesPage from "./features/candidates/pages/CandidatesPage";
+import SystemSettings from "./pages/admin/SystemSettings";
 import VotingPage from "./features/elections/pages/VotingPage";
 import ResultsPage from "./features/elections/pages/ResultsPage";
+// Import the new Candidates page
+import Candidates from "./pages/Candidates";
 
-// Import new pages
+// Import other pages
 import Security from "./pages/Security";
 import FAQ from "./pages/FAQ";
 import Blog from "./pages/Blog";
@@ -92,7 +93,8 @@ const App = () => {
                   <Route path="/elections" element={<Elections />} />
                   <Route path="/elections/:electionId" element={<VotingPage />} />
                   <Route path="/elections/:electionId/results" element={<ResultsPage />} />
-                  <Route path="/candidates/:electionId" element={<CandidatesPage />} />
+                  {/* Updated route for the new Candidates page */}
+                  <Route path="/elections/:electionId/candidates" element={<Candidates />} />
                   <Route path="/my-votes" element={<MyVotes />} />
                   <Route path="/profile" element={<Profile />} />
                   
