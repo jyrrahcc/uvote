@@ -27,6 +27,7 @@ const RegisterForm = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting to register with:", { email, firstName, lastName });
       const { error } = await signUp(email, password, firstName, lastName);
       
       if (error) throw error;
@@ -39,9 +40,26 @@ const RegisterForm = () => {
       navigate("/login");
     } catch (error) {
       console.error("Registration error:", error);
+      
+      // Provide more specific error messages
+      let errorMessage = "Something went wrong. Please try again.";
+      
+      if (error instanceof Error) {
+        // Check for specific error types
+        if (error.message.includes("duplicate")) {
+          errorMessage = "This email is already registered. Please try logging in instead.";
+        } else if (error.message.includes("password")) {
+          errorMessage = "Password should be at least 8 characters long.";
+        } else if (error.message.includes("email")) {
+          errorMessage = "Please enter a valid email address.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+        title: "Registration failed",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
