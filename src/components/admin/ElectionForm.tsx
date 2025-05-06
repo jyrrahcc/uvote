@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -530,6 +529,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                   isNewElection={!editingElectionId}
                   candidacyStartDate={candidacyStartDate}
                   candidacyEndDate={candidacyEndDate}
+                  isAdmin={true} // Admin is always true in this component since it's in the admin section
                   ref={candidateManagerRef}
                 />
               </TabsContent>

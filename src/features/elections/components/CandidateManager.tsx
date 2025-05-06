@@ -17,6 +17,7 @@ export interface CandidateManagerProps {
   isNewElection: boolean;
   candidacyStartDate?: string;
   candidacyEndDate?: string;
+  isAdmin?: boolean;
 }
 
 const DLSU_DEPARTMENTS = [
@@ -42,7 +43,13 @@ const POSITIONS = [
   "Department Representative"
 ];
 
-const CandidateManager = forwardRef(({ electionId, isNewElection, candidacyStartDate, candidacyEndDate }: CandidateManagerProps, ref) => {
+const CandidateManager = forwardRef(({ 
+  electionId, 
+  isNewElection, 
+  candidacyStartDate, 
+  candidacyEndDate,
+  isAdmin = false
+}: CandidateManagerProps, ref) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<Record<number, boolean>>({});
@@ -78,10 +85,12 @@ const CandidateManager = forwardRef(({ electionId, isNewElection, candidacyStart
   };
 
   // Check if current date is within candidacy period
+  // Admin can always add candidates regardless of candidacy period
   const isInCandidacyPeriod = () => {
-    // If it's a new election, always allow adding candidates
-    if (isNewElection) return true;
+    // If it's a new election or the user is an admin, always allow adding candidates
+    if (isNewElection || isAdmin) return true;
     
+    // For non-admin users, check if within candidacy period
     // If candidacy dates are not set, we can't determine
     if (!candidacyStartDate || !candidacyEndDate) return false;
     
@@ -94,8 +103,8 @@ const CandidateManager = forwardRef(({ electionId, isNewElection, candidacyStart
 
   // Add a new blank candidate to the list
   const addCandidate = () => {
-    // Check if in candidacy period for existing elections
-    if (!isNewElection && !isInCandidacyPeriod()) {
+    // Check if in candidacy period for existing elections (only for non-admin users)
+    if (!isAdmin && !isNewElection && !isInCandidacyPeriod()) {
       toast.error("Candidates can only be added during the candidacy period");
       return;
     }
@@ -214,7 +223,8 @@ const CandidateManager = forwardRef(({ electionId, isNewElection, candidacyStart
     return <div>Loading candidates...</div>;
   }
 
-  const candidacyMessage = !isNewElection && !isInCandidacyPeriod() ? (
+  // Show a message about candidacy period only for non-admin users
+  const candidacyMessage = !isAdmin && !isNewElection && !isInCandidacyPeriod() ? (
     <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-md mb-4">
       Candidates can only be added during the candidacy period ({candidacyStartDate ? new Date(candidacyStartDate).toLocaleDateString() : "Not set"} - 
       {candidacyEndDate ? new Date(candidacyEndDate).toLocaleDateString() : "Not set"}).
@@ -225,7 +235,7 @@ const CandidateManager = forwardRef(({ electionId, isNewElection, candidacyStart
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Candidates</h3>
-        {(isNewElection || isInCandidacyPeriod()) && (
+        {(isNewElection || isAdmin || isInCandidacyPeriod()) && (
           <Button type="button" variant="outline" size="sm" onClick={addCandidate}>
             <Plus className="mr-2 h-4 w-4" />
             Add Candidate
@@ -414,7 +424,7 @@ const CandidateManager = forwardRef(({ electionId, isNewElection, candidacyStart
         )}
       </div>
       
-      {candidates.length > 0 && (isNewElection || isInCandidacyPeriod()) && (
+      {candidates.length > 0 && (isNewElection || isAdmin || isInCandidacyPeriod()) && (
         <Button type="button" variant="outline" size="sm" onClick={addCandidate} className="w-full">
           <Plus className="mr-2 h-4 w-4" />
           Add Another Candidate
