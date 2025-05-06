@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,8 @@ import { Election, mapDbElectionToElection, mapElectionToDbElection } from "@/ty
  * Admin page for managing elections
  */
 const ElectionsManagement = () => {
+  console.log("ElectionsManagement component rendering"); // Add rendering log
+  
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -33,6 +34,7 @@ const ElectionsManagement = () => {
   
   // Fetch elections on component mount
   useEffect(() => {
+    console.log("ElectionsManagement useEffect triggered, user:", user?.id); // Debug user info
     if (user) {
       fetchElections();
     }
@@ -44,7 +46,7 @@ const ElectionsManagement = () => {
   const fetchElections = async () => {
     try {
       setLoading(true);
-      console.log("Fetching elections...");
+      console.log("Fetching elections for admin...");
       
       const { data, error } = await supabase
         .from('elections')
@@ -56,13 +58,15 @@ const ElectionsManagement = () => {
         throw error;
       }
       
-      console.log("Elections data:", data);
+      console.log("Elections data retrieved:", data);
       
       // Transform the data to match our Election interface
       const transformedElections = data?.map(mapDbElectionToElection) || [];
+      console.log("Transformed elections:", transformedElections);
+      
       setElections(transformedElections);
     } catch (error) {
-      console.error("Error fetching elections:", error);
+      console.error("Error in fetchElections function:", error);
       toast.error("Failed to load elections");
     } finally {
       setLoading(false);
@@ -169,6 +173,21 @@ const ElectionsManagement = () => {
     setAccessCode("");
     setEditingElectionId(null);
   };
+
+  // Add debounced re-fetch on error
+  useEffect(() => {
+    if (elections.length === 0 && !loading) {
+      const timer = setTimeout(() => {
+        console.log("No elections found, retrying fetch...");
+        fetchElections();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [elections, loading]);
+
+  console.log("Current elections state:", elections.length, "items"); // Debug current state
+  console.log("Loading state:", loading);
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -279,7 +298,10 @@ const ElectionsManagement = () => {
       
       {/* Elections Table */}
       {loading ? (
-        <p>Loading elections...</p>
+        <div className="text-center py-12">
+          <p className="text-xl mb-2">Loading elections...</p>
+          <p className="text-sm text-muted-foreground">Please wait while we fetch election data.</p>
+        </div>
       ) : elections.length > 0 ? (
         <div className="rounded-md border">
           <Table>

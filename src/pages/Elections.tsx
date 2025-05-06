@@ -15,6 +15,7 @@ import { Search, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { useAuth } from "@/features/auth/context/AuthContext";
 import { Election, mapDbElectionToElection } from "@/types";
 import ElectionCard from "@/features/elections/components/ElectionCard";
 
@@ -22,15 +23,24 @@ import ElectionCard from "@/features/elections/components/ElectionCard";
  * Elections listing page component
  */
 const Elections = () => {
+  console.log("Elections page rendering"); // Debug render
+  
   const [elections, setElections] = useState<Election[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { isAdmin } = useRole();
-
+  const { user } = useAuth();
+  
+  console.log("Elections page - isAdmin:", isAdmin, "user:", user?.id); // Debug user and role
+  
   useEffect(() => {
-    fetchElections();
-  }, []);
+    if (user) {
+      fetchElections();
+    } else {
+      console.log("No user, elections will not be fetched");
+    }
+  }, [user]);
 
   const fetchElections = async () => {
     try {
@@ -51,6 +61,7 @@ const Elections = () => {
       
       // Transform data to match our Election interface
       const transformedElections = data?.map(mapDbElectionToElection) || [];
+      console.log("Transformed elections:", transformedElections.length, "items");
       setElections(transformedElections);
     } catch (error) {
       console.error("Error fetching elections:", error);
@@ -70,6 +81,8 @@ const Elections = () => {
     
     return matchesSearch && matchesStatus;
   });
+  
+  console.log("Filtered elections:", filteredElections.length, "items"); // Debug filtered results
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -117,7 +130,10 @@ const Elections = () => {
         </div>
 
         {loading ? (
-          <div className="text-center py-12">Loading elections...</div>
+          <div className="text-center py-12">
+            <div className="text-xl mb-2">Loading elections...</div>
+            <p className="text-sm text-muted-foreground">Please wait while we fetch the available elections.</p>
+          </div>
         ) : filteredElections.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredElections.map((election) => (
