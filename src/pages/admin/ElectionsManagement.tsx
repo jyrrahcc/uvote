@@ -5,21 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, University } from "lucide-react";
 import { Election, mapDbElectionToElection, mapElectionToDbElection } from "@/types";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CandidateManager } from "@/features/elections/components/CandidateManager";
-import { EligibleVotersManager } from "@/features/elections/components/EligibleVotersManager";
+import CandidateManager from "@/features/elections/components/CandidateManager";
+import EligibleVotersManager from "@/features/elections/components/EligibleVotersManager";
+
+// College departments for DLSU-D
+const DLSU_DEPARTMENTS = [
+  "College of Business Administration and Accountancy",
+  "College of Education",
+  "College of Engineering, Architecture and Technology",
+  "College of Humanities, Arts and Social Sciences",
+  "College of Science and Computer Studies",
+  "College of Criminal Justice Education",
+  "College of Tourism and Hospitality Management",
+  "University-wide"
+];
 
 /**
  * Form validation schema
@@ -27,6 +40,7 @@ import { EligibleVotersManager } from "@/features/elections/components/EligibleV
 const electionFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
+  department: z.string().optional(),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   isPrivate: z.boolean().default(false),
@@ -45,7 +59,7 @@ type ElectionFormValues = z.infer<typeof electionFormSchema>;
  * Admin page for managing elections
  */
 const ElectionsManagement = () => {
-  console.log("ElectionsManagement component rendering"); // Add rendering log
+  console.log("ElectionsManagement component rendering");
   
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -64,6 +78,7 @@ const ElectionsManagement = () => {
     defaultValues: {
       title: "",
       description: "",
+      department: "",
       startDate: "",
       endDate: "",
       isPrivate: false,
@@ -74,7 +89,7 @@ const ElectionsManagement = () => {
   
   // Fetch elections on component mount
   useEffect(() => {
-    console.log("ElectionsManagement useEffect triggered, user:", user?.id); // Debug user info
+    console.log("ElectionsManagement useEffect triggered, user:", user?.id);
     if (user) {
       fetchElections();
     }
@@ -129,6 +144,7 @@ const ElectionsManagement = () => {
       let electionData: any = {
         title: values.title,
         description: values.description || "",
+        department: values.department || "",
         start_date: values.startDate,
         end_date: values.endDate,
         created_by: user?.id,
@@ -231,6 +247,7 @@ const ElectionsManagement = () => {
     form.reset({
       title: election.title,
       description: election.description,
+      department: election.department || "",
       startDate: election.startDate,
       endDate: election.endDate,
       isPrivate: election.isPrivate,
@@ -273,6 +290,7 @@ const ElectionsManagement = () => {
     form.reset({
       title: "",
       description: "",
+      department: "",
       startDate: "",
       endDate: "",
       isPrivate: false,
@@ -312,13 +330,16 @@ const ElectionsManagement = () => {
     }
   }, [elections, loading]);
 
-  console.log("Current elections state:", elections.length, "items"); // Debug current state
+  console.log("Current elections state:", elections.length, "items");
   console.log("Loading state:", loading);
   console.log("Dialog open state:", isDialogOpen);
 
   return (
     <div className="container mx-auto py-12 px-4">
-      <h1 className="text-3xl font-bold mb-8">Manage Elections</h1>
+      <div className="flex items-center mb-8">
+        <University className="h-8 w-8 mr-3 text-[#008f50]" />
+        <h1 className="text-3xl font-bold">Manage DLSU-D Elections</h1>
+      </div>
       
       {/* Create/Edit Election Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -326,7 +347,7 @@ const ElectionsManagement = () => {
         setIsDialogOpen(open);
       }}>
         <DialogTrigger asChild>
-          <Button className="mb-6" onClick={handleNewElection}>
+          <Button className="mb-6 bg-[#008f50] hover:bg-[#007a45]" onClick={handleNewElection}>
             <Plus className="mr-2 h-4 w-4" />
             Create New Election
           </Button>
@@ -337,7 +358,7 @@ const ElectionsManagement = () => {
               {editingElectionId ? "Edit Election" : "Create New Election"}
             </DialogTitle>
             <DialogDescription>
-              Fill in the details for your election. Click save when you're done.
+              Fill in the details for your DLSU-D election. Click save when you're done.
             </DialogDescription>
           </DialogHeader>
           
@@ -357,14 +378,43 @@ const ElectionsManagement = () => {
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Title*</FormLabel>
+                          <FormLabel>Election Title*</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="e.g., Board Election 2023"
+                              placeholder="e.g., Student Council Election 2023"
                               {...field} 
                             />
                           </FormControl>
                           <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="department"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>College/Department</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select department" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="University-wide">University-wide</SelectItem>
+                              {DLSU_DEPARTMENTS.filter(dept => dept !== "University-wide").map(dept => (
+                                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-sm text-muted-foreground">
+                            Select the department this election belongs to
+                          </p>
                         </FormItem>
                       )}
                     />
@@ -478,7 +528,7 @@ const ElectionsManagement = () => {
                           <div className="space-y-1 leading-none">
                             <FormLabel>Restrict Voting</FormLabel>
                             <p className="text-sm text-muted-foreground">
-                              Only allow specific users to vote in this election
+                              Only allow specific DLSU-D students to vote in this election
                             </p>
                           </div>
                         </FormItem>
@@ -509,7 +559,7 @@ const ElectionsManagement = () => {
                   <Button type="button" variant="outline" onClick={handleDialogClose}>
                     Cancel
                   </Button>
-                  <Button type="submit">Save</Button>
+                  <Button type="submit" className="bg-[#008f50] hover:bg-[#007a45]">Save</Button>
                 </DialogFooter>
               </form>
             </Form>
@@ -520,7 +570,7 @@ const ElectionsManagement = () => {
       {/* Elections Table */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <div className="animate-spin w-10 h-10 border-4 border-[#008f50] border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-xl mb-2">Loading elections...</p>
           <p className="text-sm text-muted-foreground">Please wait while we fetch election data.</p>
         </div>
@@ -530,6 +580,7 @@ const ElectionsManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
+                <TableHead>College/Department</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Start Date</TableHead>
                 <TableHead>End Date</TableHead>
@@ -541,6 +592,7 @@ const ElectionsManagement = () => {
               {elections.map((election) => (
                 <TableRow key={election.id}>
                   <TableCell className="font-medium">{election.title}</TableCell>
+                  <TableCell>{election.department || "University-wide"}</TableCell>
                   <TableCell className="capitalize">{election.status}</TableCell>
                   <TableCell>{new Date(election.startDate).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(election.endDate).toLocaleDateString()}</TableCell>
@@ -602,9 +654,9 @@ const ElectionsManagement = () => {
       ) : (
         <div className="text-center py-10 border rounded-md">
           <p className="text-muted-foreground mb-4">No elections created yet</p>
-          <Button onClick={handleNewElection}>
+          <Button onClick={handleNewElection} className="bg-[#008f50] hover:bg-[#007a45]">
             <Plus className="mr-2 h-4 w-4" />
-            Create Your First Election
+            Create Your First DLSU-D Election
           </Button>
         </div>
       )}

@@ -26,7 +26,7 @@ import {
   Settings, 
   FileText, 
   List, 
-  ShieldCheck, 
+  University, 
   BarChart, 
   LucideIcon 
 } from "lucide-react";
@@ -57,7 +57,6 @@ const DashboardLayout = () => {
     { name: "Elections", path: "/elections", icon: Vote, roles: ["admin", "voter"] },
     { name: "My Votes", path: "/my-votes", icon: FileText, roles: ["voter"] },
     { name: "My Applications", path: "/my-applications", icon: User, roles: ["voter"] },
-    // Remove the standalone Candidates menu item as it needs an election ID to work
     { 
       name: "Manage Elections", 
       path: "/admin/elections", 
@@ -119,10 +118,10 @@ const DashboardLayout = () => {
         <Sidebar className="border-r border-border bg-card">
           <SidebarHeader className="p-4">
             <div className="flex items-center gap-2">
-              <Vote className="h-6 w-6 text-primary" />
-              <span className={cn("font-bold text-xl", collapsed ? "hidden" : "block")}>uVote</span>
+              <University className="h-6 w-6 text-[#008f50]" />
+              <span className={cn("font-bold text-xl", collapsed ? "hidden" : "block")}>DLSU-D Voting</span>
               <span className={cn("text-xs text-muted-foreground ml-auto", collapsed ? "hidden" : "block")}>
-                {isAdmin && <Badge variant="outline" className="bg-primary/10 text-primary">Admin</Badge>}
+                {isAdmin && <Badge variant="outline" className="bg-[#008f50]/10 text-[#008f50]">Admin</Badge>}
               </span>
             </div>
             <div className="flex flex-col gap-1 md:hidden mt-2">
@@ -142,7 +141,7 @@ const DashboardLayout = () => {
                       <SidebarMenuButton 
                         className={cn(
                           "flex w-full justify-between",
-                          location.pathname === item.path && "bg-primary/10 text-primary font-medium"
+                          location.pathname === item.path && "bg-[#008f50]/10 text-[#008f50] font-medium"
                         )}
                         asChild 
                         onClick={() => navigate(item.path)}
@@ -153,7 +152,7 @@ const DashboardLayout = () => {
                             <span className={cn(collapsed ? "hidden" : "block")}>{item.name}</span>
                           </div>
                           {item.badge && !collapsed && (
-                            <Badge variant="outline" className="ml-auto text-xs bg-primary/5 text-primary/80">
+                            <Badge variant="outline" className="ml-auto text-xs bg-[#008f50]/5 text-[#008f50]/80">
                               {item.badge}
                             </Badge>
                           )}
@@ -172,8 +171,8 @@ const DashboardLayout = () => {
                 <Separator className={cn("my-2", collapsed ? "hidden" : "block")} />
                 <div className={cn("flex items-center gap-2 p-2 rounded-md", 
                   collapsed ? "justify-center" : "")}>
-                  <Avatar className="h-8 w-8 border border-primary/20">
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  <Avatar className="h-8 w-8 border border-[#008f50]/20">
+                    <AvatarFallback className="bg-[#008f50]/10 text-[#008f50] text-xs">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>

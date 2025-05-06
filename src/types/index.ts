@@ -15,6 +15,7 @@ export interface Election {
   isPrivate: boolean;
   accessCode?: string;
   restrictVoting?: boolean;
+  department?: string; // Added department field for DLSU-D context
 }
 
 /**
@@ -28,6 +29,9 @@ export interface Candidate {
   imageUrl: string;
   electionId: string;
   createdAt: string;
+  studentId?: string; // Added student ID field for DLSU-D context
+  department?: string; // Added department field for DLSU-D context
+  yearLevel?: string; // Added year level field for DLSU-D context
 }
 
 /**
@@ -80,6 +84,23 @@ export interface User {
   name: string;
   role: 'user' | 'admin';
   createdAt: string;
+  studentId?: string; // Added student ID field for DLSU-D context
+  department?: string; // Added department field for DLSU-D context
+  yearLevel?: string; // Added year level field for DLSU-D context
+}
+
+/**
+ * DLSU-D Voter type definition
+ */
+export interface DlsudVoter {
+  id: string;
+  userId: string;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  department: string;
+  yearLevel: string;
 }
 
 /**
@@ -97,7 +118,8 @@ export const mapDbElectionToElection = (dbElection: any): Election => ({
   updatedAt: dbElection.updated_at,
   isPrivate: dbElection.is_private,
   accessCode: dbElection.access_code,
-  restrictVoting: dbElection.restrict_voting
+  restrictVoting: dbElection.restrict_voting,
+  department: dbElection.department
 });
 
 export const mapElectionToDbElection = (election: Election): any => ({
@@ -112,7 +134,8 @@ export const mapElectionToDbElection = (election: Election): any => ({
   updated_at: election.updatedAt,
   is_private: election.isPrivate,
   access_code: election.accessCode,
-  restrict_voting: election.restrictVoting
+  restrict_voting: election.restrictVoting,
+  department: election.department
 });
 
 export const mapDbCandidateToCandidate = (dbCandidate: any): Candidate => ({
@@ -122,7 +145,10 @@ export const mapDbCandidateToCandidate = (dbCandidate: any): Candidate => ({
   position: dbCandidate.position,
   imageUrl: dbCandidate.image_url || '',
   electionId: dbCandidate.election_id,
-  createdAt: dbCandidate.created_at
+  createdAt: dbCandidate.created_at,
+  studentId: dbCandidate.student_id,
+  department: dbCandidate.department,
+  yearLevel: dbCandidate.year_level
 });
 
 export const mapCandidateToDbCandidate = (candidate: Candidate): any => ({
@@ -132,5 +158,22 @@ export const mapCandidateToDbCandidate = (candidate: Candidate): any => ({
   position: candidate.position,
   image_url: candidate.imageUrl,
   election_id: candidate.electionId,
-  created_at: candidate.createdAt
+  created_at: candidate.createdAt,
+  student_id: candidate.studentId,
+  department: candidate.department,
+  year_level: candidate.yearLevel
+});
+
+/**
+ * Maps database voter data to app voter object
+ */
+export const mapDbVoterToVoter = (dbVoter: any): DlsudVoter => ({
+  id: dbVoter.id,
+  userId: dbVoter.user_id,
+  studentId: dbVoter.student_id,
+  firstName: dbVoter.first_name,
+  lastName: dbVoter.last_name,
+  email: dbVoter.email,
+  department: dbVoter.department,
+  yearLevel: dbVoter.year_level
 });

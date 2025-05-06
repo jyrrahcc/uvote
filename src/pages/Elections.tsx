@@ -11,7 +11,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, University } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRole } from "@/features/auth/context/RoleContext";
@@ -26,8 +26,10 @@ const Elections = () => {
   const [elections, setElections] = useState<Election[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<string[]>([]);
   const { isAdmin } = useRole();
   const { user } = useAuth();
   
@@ -52,6 +54,13 @@ const Elections = () => {
       }
       
       const transformedElections = data?.map(mapDbElectionToElection) || [];
+      
+      // Extract unique departments for filtering
+      const uniqueDepartments = Array.from(
+        new Set(transformedElections.map(e => e.department).filter(Boolean))
+      ) as string[];
+      
+      setDepartments(uniqueDepartments);
       setElections(transformedElections);
     } catch (error) {
       console.error("Error fetching elections:", error);
@@ -69,20 +78,27 @@ const Elections = () => {
   const filteredElections = elections.filter((election) => {
     // Apply search term filter
     const matchesSearch = election.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         election.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         election.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         election.department?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Apply status filter if selected
     const matchesStatus = statusFilter ? election.status === statusFilter : true;
     
-    return matchesSearch && matchesStatus;
+    // Apply department filter if selected
+    const matchesDepartment = departmentFilter ? election.department === departmentFilter : true;
+    
+    return matchesSearch && matchesStatus && matchesDepartment;
   });
 
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Elections</h1>
+        <div className="flex items-center">
+          <University className="h-8 w-8 mr-3 text-[#008f50]" />
+          <h1 className="text-3xl font-bold">DLSU-D Elections</h1>
+        </div>
         {isAdmin && (
-          <Button asChild className="mt-4 md:mt-0">
+          <Button asChild className="mt-4 md:mt-0 bg-[#008f50] hover:bg-[#007a45]">
             <Link to="/admin/elections">
               <Plus className="mr-2 h-4 w-4" />
               Manage Elections
@@ -99,13 +115,14 @@ const Elections = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 id="search"
-                placeholder="Search by title or description..."
+                placeholder="Search by title, description or department..."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
+          
           <div className="w-full md:w-48 space-y-2">
             <Label htmlFor="status-filter">Status</Label>
             <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? null : value)}>
@@ -120,11 +137,26 @@ const Elections = () => {
               </SelectContent>
             </Select>
           </div>
+          
+          <div className="w-full md:w-48 space-y-2">
+            <Label htmlFor="department-filter">College/Department</Label>
+            <Select value={departmentFilter || "all"} onValueChange={(value) => setDepartmentFilter(value === "all" ? null : value)}>
+              <SelectTrigger id="department-filter">
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+            <div className="animate-spin w-10 h-10 border-4 border-[#008f50] border-t-transparent rounded-full mx-auto mb-4"></div>
             <div className="text-xl mb-2">Loading elections...</div>
             <p className="text-sm text-muted-foreground">Please wait while we fetch the available elections.</p>
           </div>
@@ -145,10 +177,10 @@ const Elections = () => {
           <div className="text-center py-12 border rounded-md">
             <p className="text-xl font-semibold">No elections found</p>
             <p className="text-muted-foreground mt-2">
-              {searchTerm || statusFilter ? "Try adjusting your search or filters" : "No elections are available at this time"}
+              {searchTerm || statusFilter || departmentFilter ? "Try adjusting your search or filters" : "No elections are available at this time"}
             </p>
-            {(searchTerm || statusFilter) && (
-              <Button variant="outline" className="mt-4" onClick={() => { setSearchTerm(""); setStatusFilter(null); }}>
+            {(searchTerm || statusFilter || departmentFilter) && (
+              <Button variant="outline" className="mt-4" onClick={() => { setSearchTerm(""); setStatusFilter(null); setDepartmentFilter(null); }}>
                 Clear Filters
               </Button>
             )}

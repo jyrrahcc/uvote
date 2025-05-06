@@ -1,31 +1,50 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Candidate } from "@/types";
+import { Trash2, Plus } from "lucide-react";
+import { Candidate, mapDbCandidateToCandidate } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
-interface CandidateManagerProps {
+export interface CandidateManagerProps {
   electionId: string | null;
   isNewElection: boolean;
 }
 
-const CandidateManager = ({ electionId, isNewElection }: CandidateManagerProps) => {
+const DLSU_DEPARTMENTS = [
+  "College of Business Administration and Accountancy",
+  "College of Education",
+  "College of Engineering, Architecture and Technology",
+  "College of Humanities, Arts and Social Sciences",
+  "College of Science and Computer Studies",
+  "College of Criminal Justice Education",
+  "College of Tourism and Hospitality Management"
+];
+
+const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
+
+const POSITIONS = [
+  "President",
+  "Vice President",
+  "Secretary",
+  "Treasurer",
+  "Public Relations Officer",
+  "Senator",
+  "Governor",
+  "Department Representative"
+];
+
+const CandidateManager = forwardRef(({ electionId, isNewElection }: CandidateManagerProps, ref) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [newCandidate, setNewCandidate] = useState({
-    name: "",
-    position: "",
-    bio: "",
-  });
   const [loading, setLoading] = useState(false);
 
-  // Fetch existing candidates if this is an existing election
+  // Fetch candidates if editing an existing election
   useEffect(() => {
     if (electionId && !isNewElection) {
       fetchCandidates();
@@ -38,13 +57,14 @@ const CandidateManager = ({ electionId, isNewElection }: CandidateManagerProps) 
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("candidates")
-        .select("*")
-        .eq("election_id", electionId);
-
-      if (error) throw error;
+        .from('candidates')
+        .select('*')
+        .eq('election_id', electionId);
       
-      setCandidates(data || []);
+      if (error) throw error;
+
+      const mappedCandidates = data.map(mapDbCandidateToCandidate);
+      setCandidates(mappedCandidates);
     } catch (error) {
       console.error("Error fetching candidates:", error);
       toast.error("Failed to load candidates");
@@ -53,215 +73,201 @@ const CandidateManager = ({ electionId, isNewElection }: CandidateManagerProps) 
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setNewCandidate(prev => ({ ...prev, [name]: value }));
-  };
-
-  const addCandidate = async () => {
-    // For new elections, we just add to the local state since the election doesn't exist yet
-    if (isNewElection || !electionId) {
-      if (!newCandidate.name || !newCandidate.position) {
-        toast.error("Name and position are required");
-        return;
+  // Add a new blank candidate to the list
+  const addCandidate = () => {
+    setCandidates((prev) => [
+      ...prev,
+      {
+        id: `temp-${Date.now()}`,
+        name: "",
+        bio: "",
+        position: "",
+        imageUrl: "",
+        electionId: electionId || "",
+        createdAt: new Date().toISOString(),
+        studentId: "",
+        department: "",
+        yearLevel: ""
       }
-      
-      const tempId = `temp-${Date.now()}`;
-      setCandidates(prev => [
-        ...prev, 
-        { 
-          id: tempId, 
-          name: newCandidate.name, 
-          position: newCandidate.position, 
-          bio: newCandidate.bio,
-          electionId: electionId || "",
-          createdAt: new Date().toISOString(),
-          imageUrl: ""
-        }
-      ]);
-      
-      // Reset form
-      setNewCandidate({ name: "", position: "", bio: "" });
-      return;
-    }
-
-    // For existing elections, add directly to the database
-    try {
-      if (!newCandidate.name || !newCandidate.position) {
-        toast.error("Name and position are required");
-        return;
-      }
-
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("candidates")
-        .insert({
-          name: newCandidate.name,
-          position: newCandidate.position,
-          bio: newCandidate.bio || null,
-          election_id: electionId
-        })
-        .select();
-
-      if (error) throw error;
-      
-      // Add the new candidate to the list
-      if (data && data.length > 0) {
-        setCandidates(prev => [...prev, data[0]]);
-        toast.success("Candidate added successfully");
-      }
-      
-      // Reset form
-      setNewCandidate({ name: "", position: "", bio: "" });
-    } catch (error) {
-      console.error("Error adding candidate:", error);
-      toast.error("Failed to add candidate");
-    } finally {
-      setLoading(false);
-    }
+    ]);
   };
 
-  const removeCandidate = async (candidateId: string) => {
-    // For new elections, just remove from local state
-    if (isNewElection || candidateId.startsWith('temp-')) {
-      setCandidates(prev => prev.filter(c => c.id !== candidateId));
-      toast.success("Candidate removed");
-      return;
-    }
-
-    // For existing elections, remove from database
-    try {
-      setLoading(true);
-      const { error } = await supabase
-        .from("candidates")
-        .delete()
-        .eq("id", candidateId);
-
-      if (error) throw error;
-      
-      setCandidates(prev => prev.filter(c => c.id !== candidateId));
-      toast.success("Candidate removed successfully");
-    } catch (error) {
-      console.error("Error removing candidate:", error);
-      toast.error("Failed to remove candidate");
-    } finally {
-      setLoading(false);
-    }
+  // Remove a candidate from the list
+  const removeCandidate = (index: number) => {
+    setCandidates((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Prepare candidates data to be saved with new election
-  const getCandidatesForNewElection = () => {
-    return candidates.map(c => ({
-      name: c.name,
-      position: c.position,
-      bio: c.bio || null
-    }));
+  // Update a candidate field
+  const updateCandidate = (index: number, field: keyof Candidate, value: string) => {
+    setCandidates((prev) => 
+      prev.map((c, i) => 
+        i === index 
+          ? { ...c, [field]: value } 
+          : c
+      )
+    );
   };
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    getCandidatesForNewElection: () => {
+      return candidates.map(c => ({
+        name: c.name,
+        bio: c.bio,
+        position: c.position,
+        image_url: c.imageUrl,
+        student_id: c.studentId,
+        department: c.department,
+        year_level: c.yearLevel
+      }));
+    }
+  }));
+
+  if (loading) {
+    return <div>Loading candidates...</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-medium">Add Candidates</h3>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <Label htmlFor="name">Name*</Label>
-          <Input
-            id="name"
-            name="name"
-            value={newCandidate.name}
-            onChange={handleInputChange}
-            placeholder="Candidate name"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label htmlFor="position">Position*</Label>
-          <Input
-            id="position"
-            name="position"
-            value={newCandidate.position}
-            onChange={handleInputChange}
-            placeholder="e.g., President, Board Member"
-            className="mt-1"
-          />
-        </div>
-        <div className="md:col-span-2">
-          <Label htmlFor="bio">Bio</Label>
-          <Textarea
-            id="bio"
-            name="bio"
-            value={newCandidate.bio}
-            onChange={handleInputChange}
-            placeholder="Candidate biography"
-            className="mt-1"
-            rows={3}
-          />
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Candidates</h3>
+        <Button type="button" variant="outline" size="sm" onClick={addCandidate}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Candidate
+        </Button>
       </div>
       
-      <Button 
-        type="button" 
-        variant="outline" 
-        onClick={addCandidate} 
-        disabled={loading}
-        className="mt-2"
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Add Candidate
-      </Button>
-
-      {candidates.length > 0 ? (
-        <div className="border rounded-md mt-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Position</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {candidates.map((candidate) => (
-                <TableRow key={candidate.id}>
-                  <TableCell className="font-medium">{candidate.name}</TableCell>
-                  <TableCell>{candidate.position}</TableCell>
-                  <TableCell>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remove Candidate?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to remove {candidate.name} from this election?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => removeCandidate(candidate.id)}
-                          >
-                            Remove
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <div className="text-center py-4 border rounded-md bg-muted/20">
-          <p className="text-muted-foreground">No candidates added yet</p>
-        </div>
+      <div className="space-y-4">
+        {candidates.length === 0 ? (
+          <div className="text-center p-4 border border-dashed rounded-md">
+            <p className="text-muted-foreground">No candidates added yet. Click "Add Candidate" to get started.</p>
+          </div>
+        ) : (
+          candidates.map((candidate, index) => (
+            <Card key={candidate.id} className="relative">
+              <CardContent className="pt-6">
+                <div className="absolute top-2 right-2">
+                  <Button 
+                    type="button"
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => removeCandidate(index)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`candidate-name-${index}`}>Full Name</Label>
+                    <Input 
+                      id={`candidate-name-${index}`} 
+                      value={candidate.name} 
+                      onChange={(e) => updateCandidate(index, 'name', e.target.value)}
+                      placeholder="Full Name"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor={`candidate-studentId-${index}`}>Student ID</Label>
+                    <Input 
+                      id={`candidate-studentId-${index}`} 
+                      value={candidate.studentId || ''}
+                      onChange={(e) => updateCandidate(index, 'studentId', e.target.value)}
+                      placeholder="e.g., 20120001"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor={`candidate-position-${index}`}>Position</Label>
+                    <Select 
+                      value={candidate.position} 
+                      onValueChange={(value) => updateCandidate(index, 'position', value)}
+                    >
+                      <SelectTrigger id={`candidate-position-${index}`}>
+                        <SelectValue placeholder="Select a position" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {POSITIONS.map((pos) => (
+                          <SelectItem key={pos} value={pos}>{pos}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor={`candidate-department-${index}`}>College/Department</Label>
+                    <Select 
+                      value={candidate.department || ''}
+                      onValueChange={(value) => updateCandidate(index, 'department', value)}
+                    >
+                      <SelectTrigger id={`candidate-department-${index}`}>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DLSU_DEPARTMENTS.map((dept) => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor={`candidate-yearLevel-${index}`}>Year Level</Label>
+                    <Select 
+                      value={candidate.yearLevel || ''}
+                      onValueChange={(value) => updateCandidate(index, 'yearLevel', value)}
+                    >
+                      <SelectTrigger id={`candidate-yearLevel-${index}`}>
+                        <SelectValue placeholder="Select year level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {YEAR_LEVELS.map((year) => (
+                          <SelectItem key={year} value={year}>{year}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="mt-4 space-y-2">
+                  <Label htmlFor={`candidate-bio-${index}`}>Candidate Platform/Bio</Label>
+                  <Textarea 
+                    id={`candidate-bio-${index}`}
+                    value={candidate.bio}
+                    onChange={(e) => updateCandidate(index, 'bio', e.target.value)}
+                    placeholder="Share this candidate's background, qualifications, and platform"
+                    className="min-h-[100px]"
+                  />
+                </div>
+                
+                <div className="mt-4 space-y-2">
+                  <Label htmlFor={`candidate-image-${index}`}>Image URL</Label>
+                  <Input 
+                    id={`candidate-image-${index}`}
+                    value={candidate.imageUrl}
+                    onChange={(e) => updateCandidate(index, 'imageUrl', e.target.value)}
+                    placeholder="Enter an image URL for this candidate"
+                  />
+                </div>
+              </CardContent>
+              
+              {index < candidates.length - 1 && <Separator className="mt-4" />}
+            </Card>
+          ))
+        )}
+      </div>
+      
+      {candidates.length > 0 && (
+        <Button type="button" variant="outline" size="sm" onClick={addCandidate} className="w-full">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Another Candidate
+        </Button>
       )}
     </div>
   );
-};
+});
 
-export { CandidateManager, type CandidateManagerProps };
+CandidateManager.displayName = "CandidateManager";
+
+export default CandidateManager;
