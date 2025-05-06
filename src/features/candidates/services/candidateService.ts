@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Candidate } from "@/types";
+import { Candidate, mapDbCandidateToCandidate } from "@/types";
 import { CandidateInsert } from "../components/AddCandidateForm";
 
 /**
@@ -9,7 +9,6 @@ import { CandidateInsert } from "../components/AddCandidateForm";
 export const fetchCandidates = async (electionId: string): Promise<Candidate[]> => {
   try {
     console.log("Fetching candidates for election:", electionId);
-    // Using generic syntax for Supabase to avoid type errors
     const { data, error } = await supabase
       .from('candidates')
       .select('*')
@@ -22,8 +21,8 @@ export const fetchCandidates = async (electionId: string): Promise<Candidate[]> 
     
     console.log("Candidates data:", data);
     
-    // Type casting to match our Candidate[] type
-    return data as unknown as Candidate[];
+    // Map database candidates to our Candidate type
+    return data.map(mapDbCandidateToCandidate);
   } catch (error) {
     console.error("Error fetching candidates:", error);
     throw error;
@@ -36,7 +35,6 @@ export const fetchCandidates = async (electionId: string): Promise<Candidate[]> 
 export const addCandidate = async (candidateData: CandidateInsert): Promise<Candidate[]> => {
   try {
     console.log("Adding candidate with data:", candidateData);
-    // Using generic syntax for Supabase to avoid type errors
     const { data, error } = await supabase
       .from('candidates')
       .insert(candidateData)
@@ -49,8 +47,8 @@ export const addCandidate = async (candidateData: CandidateInsert): Promise<Cand
     
     console.log("Added candidate response:", data);
     
-    // Type casting to match our Candidate[] type
-    return data as unknown as Candidate[];
+    // Map database candidates to our Candidate type
+    return data.map(mapDbCandidateToCandidate);
   } catch (error) {
     console.error("Error adding candidate:", error);
     throw error;
@@ -63,7 +61,6 @@ export const addCandidate = async (candidateData: CandidateInsert): Promise<Cand
 export const deleteCandidate = async (id: string): Promise<void> => {
   try {
     console.log("Deleting candidate with ID:", id);
-    // Using generic syntax for Supabase to avoid type errors
     const { error } = await supabase
       .from('candidates')
       .delete()

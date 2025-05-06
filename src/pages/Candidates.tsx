@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { Election, Candidate, mapDbElectionToElection } from "@/types";
+import { Election, Candidate, mapDbElectionToElection, mapDbCandidateToCandidate } from "@/types";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -70,7 +70,9 @@ const Candidates = () => {
         throw new Error("Failed to load candidates");
       }
       
-      setCandidates(candidatesData as Candidate[]);
+      // Map database candidates to our Candidate type
+      const transformedCandidates = candidatesData.map(mapDbCandidateToCandidate);
+      setCandidates(transformedCandidates);
 
       // Check if current user has already registered as a candidate
       if (user) {
@@ -112,8 +114,17 @@ const Candidates = () => {
     }
   };
 
-  const handleCandidateAdded = (newCandidate: any) => {
-    setCandidates(prev => [...prev, ...(Array.isArray(newCandidate) ? newCandidate : [newCandidate])]);
+  const handleCandidateAdded = (newCandidateData: any) => {
+    // Make sure to transform the new candidate data to match our Candidate type
+    let newCandidate: Candidate[] = [];
+    
+    if (Array.isArray(newCandidateData)) {
+      newCandidate = newCandidateData.map(mapDbCandidateToCandidate);
+    } else {
+      newCandidate = [mapDbCandidateToCandidate(newCandidateData)];
+    }
+    
+    setCandidates(prev => [...prev, ...newCandidate]);
     
     if (!isAdmin) {
       setUserHasRegistered(true);
@@ -164,8 +175,8 @@ const Candidates = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">{election.title} - Candidates</h1>
-          <p className="text-muted-foreground">{election.description}</p>
+          <h1 className="text-3xl font-bold mb-2">{election?.title || 'Candidates'}</h1>
+          <p className="text-muted-foreground">{election?.description || ''}</p>
         </div>
         
         {isAdmin ? (
@@ -239,15 +250,15 @@ const Candidates = () => {
           <div className="flex flex-wrap gap-4">
             <div>
               <p className="text-sm font-medium">Status</p>
-              <p className="capitalize">{election.status}</p>
+              <p className="capitalize">{election?.status}</p>
             </div>
             <div>
               <p className="text-sm font-medium">Start Date</p>
-              <p>{new Date(election.startDate).toLocaleDateString()}</p>
+              <p>{election ? new Date(election.startDate).toLocaleDateString() : '-'}</p>
             </div>
             <div>
               <p className="text-sm font-medium">End Date</p>
-              <p>{new Date(election.endDate).toLocaleDateString()}</p>
+              <p>{election ? new Date(election.endDate).toLocaleDateString() : '-'}</p>
             </div>
           </div>
         </CardContent>
@@ -261,7 +272,7 @@ const Candidates = () => {
         onOpenAddDialog={() => setIsDialogOpen(true)}
       />
 
-      {candidates.length === 0 && (
+      {candidates.length === 0 && !loading && (
         <div className="text-center py-12 border rounded-md mt-8">
           <p className="text-xl font-semibold">No candidates yet</p>
           <p className="text-muted-foreground mt-2">
