@@ -8,7 +8,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, Search, User, UserPlus, Filter } from "lucide-react";
+import { AlertCircle, Search, User, UserPlus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -18,6 +18,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
 interface EligibleVotersManagerProps {
   electionId: string | null;
@@ -60,19 +61,9 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   const [loading, setLoading] = useState(false);
   const [selectedVoters, setSelectedVoters] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<string | null>(null);
-  
-  // Get the current user ID on component load
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUserId(data.session?.user?.id || null);
-    };
-    
-    fetchUserId();
-  }, []);
+  const { user } = useAuth();
   
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -103,13 +94,16 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
         .select('id, email, first_name, last_name, department, year_level, student_id')
         .order('first_name', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profiles:", error);
+        throw error;
+      }
       
       // Transform data to voter entries
       const transformedData = data?.map(user => ({
         id: user.id,
         email: user.email || "",
-        name: `${user.first_name} ${user.last_name}`.trim() || "Unnamed User",
+        name: `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Unnamed User",
         department: user.department,
         year_level: user.year_level,
         student_id: user.student_id,
@@ -137,7 +131,10 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
         .select('user_id')
         .eq('election_id', electionId);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching eligible voters:", error);
+        throw error;
+      }
       
       // Set selected voters
       const eligibleVoterIds = data?.map(v => v.user_id) || [];
@@ -160,7 +157,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   };
   
   const handleSaveEligibleVoters = async () => {
-    if (!electionId || isNewElection || !userId) return;
+    if (!electionId || isNewElection || !user?.id) return;
     
     try {
       setSaving(true);
@@ -171,21 +168,27 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
         .delete()
         .eq('election_id', electionId);
       
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error("Error deleting eligible voters:", deleteError);
+        throw deleteError;
+      }
       
       if (selectedVoters.length > 0) {
         // Create an array of eligible voter objects
         const eligibleVoters = selectedVoters.map(voterId => ({
           election_id: electionId,
           user_id: voterId,
-          added_by: userId
+          added_by: user.id
         }));
         
         const { error: insertError } = await supabase
           .from('eligible_voters')
           .insert(eligibleVoters);
         
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Error inserting eligible voters:", insertError);
+          throw insertError;
+        }
       }
       
       toast.success("Eligible voters saved successfully");
@@ -507,6 +510,6 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   );
 });
 
-EligibleVotersManager.displayName = "EligibleVotersManager"; // Required for forwardRef components
+EligibleVotersManager.displayName = "EligibleVotersManager";
 
 export default EligibleVotersManager;
