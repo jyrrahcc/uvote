@@ -11,7 +11,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, University } from "lucide-react";
+import { Search, Plus, University, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRole } from "@/features/auth/context/RoleContext";
@@ -75,6 +75,17 @@ const Elections = () => {
     fetchElections();
   };
 
+  const isAccessVerified = (election: Election) => {
+    if (!election.isPrivate) return true;
+    
+    try {
+      const verifiedElections = JSON.parse(localStorage.getItem('verifiedElections') || '{}');
+      return !!verifiedElections[election.accessCode || ''];
+    } catch {
+      return false;
+    }
+  };
+
   const filteredElections = elections.filter((election) => {
     // Apply search term filter
     const matchesSearch = election.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,6 +100,17 @@ const Elections = () => {
     
     return matchesSearch && matchesStatus && matchesDepartment;
   });
+
+  // Determine if an election is in candidacy period
+  const isInCandidacyPeriod = (election: Election) => {
+    if (!election.candidacyStartDate || !election.candidacyEndDate) return false;
+    
+    const now = new Date();
+    const candidacyStart = new Date(election.candidacyStartDate);
+    const candidacyEnd = new Date(election.candidacyEndDate);
+    
+    return now >= candidacyStart && now <= candidacyEnd;
+  };
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -168,11 +190,82 @@ const Elections = () => {
             </Button>
           </div>
         ) : filteredElections.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredElections.map((election) => (
-              <ElectionCard key={election.id} election={election} />
-            ))}
-          </div>
+          <>
+            {/* Active Candidacy Period Elections */}
+            {filteredElections.some(e => isInCandidacyPeriod(e)) && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4 flex items-center">
+                  <Calendar className="h-5 w-5 mr-2 text-[#008f50]" />
+                  Open for Candidacy
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredElections
+                    .filter(e => isInCandidacyPeriod(e))
+                    .map((election) => (
+                      <ElectionCard 
+                        key={election.id} 
+                        election={election}
+                        isAccessVerified={isAccessVerified(election)} 
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Active Elections */}
+            {filteredElections.some(e => e.status === 'active') && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4">Active Elections</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredElections
+                    .filter(e => e.status === 'active')
+                    .map((election) => (
+                      <ElectionCard 
+                        key={election.id} 
+                        election={election}
+                        isAccessVerified={isAccessVerified(election)}
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming Elections */}
+            {filteredElections.some(e => e.status === 'upcoming') && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4">Upcoming Elections</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredElections
+                    .filter(e => e.status === 'upcoming')
+                    .map((election) => (
+                      <ElectionCard 
+                        key={election.id} 
+                        election={election}
+                        isAccessVerified={isAccessVerified(election)}
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Completed Elections */}
+            {filteredElections.some(e => e.status === 'completed') && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4">Completed Elections</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredElections
+                    .filter(e => e.status === 'completed')
+                    .map((election) => (
+                      <ElectionCard 
+                        key={election.id} 
+                        election={election}
+                        isAccessVerified={isAccessVerified(election)}
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12 border rounded-md">
             <p className="text-xl font-semibold">No elections found</p>

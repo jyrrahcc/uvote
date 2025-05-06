@@ -1,11 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { toast } from "sonner";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { University } from "lucide-react";
+import { University, Lock } from "lucide-react";
 
 // Import components and hooks
 import { useElection } from "../hooks/useElection";
@@ -13,6 +13,7 @@ import ElectionHeader from "../components/ElectionHeader";
 import AccessCodeInput from "../components/AccessCodeInput";
 import ElectionStatusAlert from "../components/ElectionStatusAlert";
 import VotingForm from "../components/VotingForm";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Voting page component displays election details and allows voting
@@ -23,6 +24,7 @@ const VotingPage = () => {
   const { user } = useAuth();
   
   const [showAccessCodeInput, setShowAccessCodeInput] = useState(false);
+  const [canVoteInElection, setCanVoteInElection] = useState<boolean | null>(null);
   
   const {
     election,
@@ -39,6 +41,55 @@ const VotingPage = () => {
     userId: user?.id 
   });
 
+  // Check if user is eligible to vote in this election
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!user || !election || !election.restrictVoting) {
+        setCanVoteInElection(true);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('eligible_voters')
+          .select('id')
+          .eq('election_id', electionId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        setCanVoteInElection(!!data);
+        
+        if (!data) {
+          toast.error("You are not eligible to vote in this election");
+        }
+      } catch (error) {
+        console.error("Error checking voting eligibility:", error);
+        toast.error("Failed to verify your voting eligibility");
+      }
+    };
+
+    if (election && user && election.restrictVoting) {
+      checkEligibility();
+    }
+  }, [electionId, user, election]);
+
+  // Check if election is in candidacy period
+  const isInCandidacyPeriod = () => {
+    if (!election || !election.candidacyStartDate || !election.candidacyEndDate) {
+      return false;
+    }
+    
+    const now = new Date();
+    const candidacyStart = new Date(election.candidacyStartDate);
+    const candidacyEnd = new Date(election.candidacyEndDate);
+    
+    return now >= candidacyStart && now <= candidacyEnd;
+  };
+
   // Handle the special case for private elections
   if (election?.isPrivate && !accessCodeVerified) {
     return (
@@ -49,9 +100,12 @@ const VotingPage = () => {
         </div>
         
         <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <h2 className="text-xl font-medium text-center">Private Election</h2>
-            <p className="text-center text-muted-foreground">This election requires an access code</p>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <Lock className="h-5 w-5 text-[#008f50]" />
+            <div>
+              <h2 className="text-xl font-medium">Private Election</h2>
+              <p className="text-muted-foreground">This election requires an access code</p>
+            </div>
           </CardHeader>
           <CardContent>
             <AccessCodeInput 
@@ -60,7 +114,9 @@ const VotingPage = () => {
                 if (verified) {
                   setAccessCodeVerified(true);
                   setShowAccessCodeInput(false);
-                  toast.success("Access code verified. You may now vote.");
+                  toast.success("Access code verified. You may now view this election.");
+                } else {
+                  toast.error("Invalid access code. Please try again.");
                 }
               }} 
             />
@@ -87,6 +143,27 @@ const VotingPage = () => {
     return null;
   }
 
+  // Check if user is allowed to vote (if voting is restricted)
+  if (election.restrictVoting && canVoteInElection === false) {
+    return (
+      <div className="container mx-auto py-12 px-4">
+        <div className="flex items-center mb-6">
+          <University className="h-7 w-7 mr-2 text-[#008f50]" />
+          <h1 className="text-2xl font-bold">{election.department || "University-wide"} Election</h1>
+        </div>
+        
+        <ElectionHeader election={election} />
+        
+        <Alert className="mb-6 bg-red-50 border-red-200">
+          <AlertTitle className="text-red-700">Access Restricted</AlertTitle>
+          <AlertDescription className="text-red-600">
+            <p>You are not eligible to vote in this election. Please contact the election administrator if you believe this is an error.</p>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="flex items-center mb-6">
@@ -104,6 +181,16 @@ const VotingPage = () => {
       {election.status === 'upcoming' && (
         <ElectionStatusAlert election={election} status="upcoming" />
       )}
+
+      {/* Candidacy Period Alert */}
+      {isInCandidacyPeriod() && (
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
+          <AlertTitle className="text-blue-800">Candidacy Period is Active</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            <p>The candidacy period for this election is now open. Eligible DLSU-D community members may apply as candidates until {new Date(election.candidacyEndDate!).toLocaleString()}.</p>
+          </AlertDescription>
+        </Alert>
+      )}
       
       {/* Voter instructions */}
       {election.status === 'active' && !hasVoted && (
@@ -113,7 +200,7 @@ const VotingPage = () => {
             <p>Please review all candidates carefully before casting your vote. Once submitted, your vote cannot be changed.</p>
             <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
               <li>Select one candidate for each position</li>
-              <li>You must be a registered DLSU-D student to vote</li>
+              <li>You must be a registered DLSU-D community member to vote</li>
               <li>Your vote is confidential and secure</li>
               <li>Results will be available after the election ends</li>
             </ul>

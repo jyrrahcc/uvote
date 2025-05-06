@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Eye, University } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, University, Calendar } from "lucide-react";
 import { Election, mapDbElectionToElection, mapElectionToDbElection } from "@/types";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,16 +36,16 @@ const DLSU_DEPARTMENTS = [
 ];
 
 /**
- * Form validation schema
+ * Form validation schema with date validations
  */
 const electionFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
   department: z.string().optional(),
-  startDate: z.string().min(1, "Start date is required"),
-  endDate: z.string().min(1, "End date is required"),
   candidacyStartDate: z.string().min(1, "Candidacy start date is required"),
   candidacyEndDate: z.string().min(1, "Candidacy end date is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
   isPrivate: z.boolean().default(false),
   accessCode: z.string().optional()
     .refine(val => {
@@ -54,6 +54,34 @@ const electionFormSchema = z.object({
       return true;
     }),
   restrictVoting: z.boolean().default(false),
+}).refine((data) => {
+  // Candidacy period should come before voting period
+  const candidacyStart = new Date(data.candidacyStartDate);
+  const candidacyEnd = new Date(data.candidacyEndDate); 
+  const votingStart = new Date(data.startDate);
+  
+  return candidacyEnd <= votingStart;
+}, {
+  message: "Candidacy period must end before the voting period starts",
+  path: ["candidacyEndDate"],
+}).refine((data) => {
+  // Candidacy start should be before candidacy end
+  const candidacyStart = new Date(data.candidacyStartDate);
+  const candidacyEnd = new Date(data.candidacyEndDate);
+  
+  return candidacyStart < candidacyEnd;
+}, {
+  message: "Candidacy start date must be before candidacy end date",
+  path: ["candidacyEndDate"],
+}).refine((data) => {
+  // Voting start should be before voting end
+  const votingStart = new Date(data.startDate);
+  const votingEnd = new Date(data.endDate);
+  
+  return votingStart < votingEnd;
+}, {
+  message: "Voting start date must be before voting end date",
+  path: ["endDate"],
 });
 
 type ElectionFormValues = z.infer<typeof electionFormSchema>;
@@ -82,15 +110,19 @@ const ElectionsManagement = () => {
       title: "",
       description: "",
       department: "",
-      startDate: "",
-      endDate: "",
       candidacyStartDate: "",
       candidacyEndDate: "",
+      startDate: "",
+      endDate: "",
       isPrivate: false,
       accessCode: "",
       restrictVoting: false,
     },
   });
+
+  // Extract candidacy dates for the CandidateManager
+  const candidacyStartDate = form.watch("candidacyStartDate");
+  const candidacyEndDate = form.watch("candidacyEndDate");
   
   // Fetch elections on component mount
   useEffect(() => {
@@ -146,14 +178,23 @@ const ElectionsManagement = () => {
         return;
       }
       
+      // Ensure candidacy period ends before voting period starts
+      const candidacyEnd = new Date(values.candidacyEndDate);
+      const votingStart = new Date(values.startDate);
+      
+      if (candidacyEnd > votingStart) {
+        toast.error("Candidacy period must end before voting period starts");
+        return;
+      }
+      
       let electionData: any = {
         title: values.title,
         description: values.description || "",
         department: values.department || "",
-        start_date: values.startDate,
-        end_date: values.endDate,
         candidacy_start_date: values.candidacyStartDate,
         candidacy_end_date: values.candidacyEndDate,
+        start_date: values.startDate,
+        end_date: values.endDate,
         created_by: user?.id,
         is_private: values.isPrivate,
         access_code: values.isPrivate ? values.accessCode : null,
@@ -255,10 +296,10 @@ const ElectionsManagement = () => {
       title: election.title,
       description: election.description,
       department: election.department || "",
-      startDate: election.startDate,
-      endDate: election.endDate,
       candidacyStartDate: election.candidacyStartDate || "",
       candidacyEndDate: election.candidacyEndDate || "",
+      startDate: election.startDate,
+      endDate: election.endDate,
       isPrivate: election.isPrivate,
       accessCode: election.accessCode || "",
       restrictVoting: election.restrictVoting || false,
@@ -300,10 +341,10 @@ const ElectionsManagement = () => {
       title: "",
       description: "",
       department: "",
-      startDate: "",
-      endDate: "",
       candidacyStartDate: "",
       candidacyEndDate: "",
+      startDate: "",
+      endDate: "",
       isPrivate: false,
       accessCode: "",
       restrictVoting: false,
@@ -363,7 +404,7 @@ const ElectionsManagement = () => {
             Create New Election
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0 gap-0">
+        <DialogContent className="sm:max-w-[800px] overflow-hidden max-h-[90vh]">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>
               {editingElectionId ? "Edit Election" : "Create New Election"}
@@ -373,8 +414,8 @@ const ElectionsManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[calc(90vh-180px)] px-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <ScrollArea className="h-[calc(90vh-180px)] px-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="candidates">Candidates</TabsTrigger>
@@ -447,7 +488,10 @@ const ElectionsManagement = () => {
                         )}
                       />
                       
-                      <h3 className="text-lg font-semibold pt-2">Candidacy Period</h3>
+                      <h3 className="text-lg font-semibold pt-2 flex items-center">
+                        <Calendar className="h-5 w-5 mr-2 text-[#008f50]" />
+                        Candidacy Period
+                      </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -484,7 +528,10 @@ const ElectionsManagement = () => {
                         />
                       </div>
                       
-                      <h3 className="text-lg font-semibold pt-2">Voting Period</h3>
+                      <h3 className="text-lg font-semibold pt-2 flex items-center">
+                        <Calendar className="h-5 w-5 mr-2 text-[#008f50]" />
+                        Voting Period
+                      </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -591,6 +638,8 @@ const ElectionsManagement = () => {
                     <CandidateManager
                       electionId={editingElectionId}
                       isNewElection={!editingElectionId}
+                      candidacyStartDate={candidacyStartDate}
+                      candidacyEndDate={candidacyEndDate}
                       ref={candidateManagerRef}
                     />
                   </TabsContent>
@@ -609,7 +658,7 @@ const ElectionsManagement = () => {
             </Tabs>
           </ScrollArea>
           
-          <DialogFooter className="p-6 pt-2">
+          <DialogFooter className="p-6 border-t">
             <Button type="button" variant="outline" onClick={handleDialogClose}>
               Cancel
             </Button>
@@ -632,7 +681,7 @@ const ElectionsManagement = () => {
           <p className="text-sm text-muted-foreground">Please wait while we fetch election data.</p>
         </div>
       ) : elections.length > 0 ? (
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Plus, UserPlus, Users } from "lucide-react";
+import { Search, Plus, UserPlus, Users, Filter, School } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface EligibleVotersManagerProps {
   electionId: string | null;
@@ -55,7 +56,10 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
+    const [yearFilter, setYearFilter] = useState<string | null>(null);
     const [departments, setDepartments] = useState<string[]>([]);
+    const [yearLevels, setYearLevels] = useState<string[]>([]);
+    const [bulkSelectionMode, setBulkSelectionMode] = useState<'individual' | 'department' | 'year'>('individual');
 
     // Add ref methods to be called from parent component
     useImperativeHandle(ref, () => ({
@@ -85,34 +89,45 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
 
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        // First get the eligible voters
+        const { data: eligibleVotersData, error: eligibleVotersError } = await supabase
           .from('eligible_voters')
-          .select(`
-            id,
-            user_id,
-            election_id,
-            added_by,
-            created_at,
-            profiles:user_id (
-              first_name,
-              last_name,
-              email,
-              student_id,
-              department,
-              year_level
-            )
-          `)
+          .select('*')
           .eq('election_id', electionId);
 
-        if (error) throw error;
+        if (eligibleVotersError) throw eligibleVotersError;
 
-        // Format the data
-        const formattedData = data.map(voter => ({
-          ...voter,
-          profile: voter.profiles
-        }));
+        if (eligibleVotersData && eligibleVotersData.length > 0) {
+          // Get the user profiles for all eligible voters
+          const userIds = eligibleVotersData.map(voter => voter.user_id);
+          
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', userIds);
+            
+          if (profilesError) throw profilesError;
 
-        setVoters(formattedData);
+          // Combine the data
+          const formattedData = eligibleVotersData.map(voter => {
+            const userProfile = profilesData?.find(profile => profile.id === voter.user_id);
+            return {
+              ...voter,
+              profile: userProfile ? {
+                first_name: userProfile.first_name,
+                last_name: userProfile.last_name,
+                email: userProfile.email,
+                student_id: userProfile.student_id,
+                department: userProfile.department,
+                year_level: userProfile.year_level
+              } : undefined
+            };
+          });
+
+          setVoters(formattedData);
+        } else {
+          setVoters([]);
+        }
       } catch (error) {
         console.error("Error fetching eligible voters:", error);
         toast.error("Failed to load eligible voters");
@@ -133,12 +148,17 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
 
         const users = data as DlsudUser[];
         
-        // Extract unique departments
+        // Extract unique departments and year levels
         const uniqueDepartments = Array.from(
           new Set(users.filter(user => user.department).map(user => user.department))
         ).filter(Boolean) as string[];
         
+        const uniqueYearLevels = Array.from(
+          new Set(users.filter(user => user.year_level).map(user => user.year_level))
+        ).filter(Boolean) as string[];
+        
         setDepartments(uniqueDepartments);
+        setYearLevels(uniqueYearLevels);
         setAvailableUsers(users);
 
         // If there are already voters for this election, select them
@@ -158,7 +178,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
         }
       } catch (error) {
         console.error("Error fetching available users:", error);
-        toast.error("Failed to load DLSU-D users");
+        toast.error("Failed to load DLSU-D community members");
       } finally {
         setLoading(false);
       }
@@ -172,6 +192,32 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
         newSelectedUserIds.add(userId);
       }
       setSelectedUserIds(newSelectedUserIds);
+    };
+
+    const handleSelectByDepartment = (department: string) => {
+      const newSelectedUserIds = new Set(selectedUserIds);
+      
+      availableUsers.forEach(user => {
+        if (user.department === department) {
+          newSelectedUserIds.add(user.id);
+        }
+      });
+      
+      setSelectedUserIds(newSelectedUserIds);
+      toast.success(`Selected all members from ${department}`);
+    };
+
+    const handleSelectByYearLevel = (yearLevel: string) => {
+      const newSelectedUserIds = new Set(selectedUserIds);
+      
+      availableUsers.forEach(user => {
+        if (user.year_level === yearLevel) {
+          newSelectedUserIds.add(user.id);
+        }
+      });
+      
+      setSelectedUserIds(newSelectedUserIds);
+      toast.success(`Selected all ${yearLevel} students`);
     };
 
     const handleSelectAll = () => {
@@ -277,11 +323,12 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
       return availableUsers.filter(user => {
         const nameMatch = `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           user.student_id?.toLowerCase().includes(searchTerm.toLowerCase());
+                           (user.student_id?.toLowerCase() || "").includes(searchTerm.toLowerCase());
         
         const departmentMatch = !departmentFilter || user.department === departmentFilter;
+        const yearMatch = !yearFilter || user.year_level === yearFilter;
         
-        return nameMatch && departmentMatch;
+        return nameMatch && departmentMatch && yearMatch;
       });
     };
 
@@ -339,18 +386,35 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
                             onChange={(e) => setSearchTerm(e.target.value)}
                           />
                         </div>
-                        
+                      </div>
+
+                      <div className="flex flex-col md:flex-row gap-2">
                         <Select 
                           value={departmentFilter || "all"}
                           onValueChange={(value) => setDepartmentFilter(value === "all" ? null : value)}
                         >
-                          <SelectTrigger className="w-full sm:w-[180px]">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Department" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Departments</SelectItem>
                             {departments.map(dept => (
                               <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Select 
+                          value={yearFilter || "all"}
+                          onValueChange={(value) => setYearFilter(value === "all" ? null : value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Year Level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Year Levels</SelectItem>
+                            {yearLevels.map(year => (
+                              <SelectItem key={year} value={year}>{year}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -369,8 +433,37 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
                           </Button>
                         </div>
                       </div>
+
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">Bulk Selection:</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <Select onValueChange={(value) => handleSelectByDepartment(value)}>
+                            <SelectTrigger>
+                              <School className="h-4 w-4 mr-2" />
+                              <span>Select by College</span>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {departments.map(dept => (
+                                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          <Select onValueChange={(value) => handleSelectByYearLevel(value)}>
+                            <SelectTrigger>
+                              <Filter className="h-4 w-4 mr-2" />
+                              <span>Select by Year</span>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {yearLevels.map(year => (
+                                <SelectItem key={year} value={year}>{year}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                       
-                      <ScrollArea className="h-[calc(100vh-280px)]">
+                      <ScrollArea className="h-[calc(100vh-380px)]">
                         <div className="space-y-1">
                           {filterUsers().map((user) => (
                             <div
@@ -436,7 +529,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
                         </SheetHeader>
                         
                         <div className="py-4 space-y-4">
-                          <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="flex flex-col md:flex-row gap-2">
                             <div className="flex-1 relative">
                               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                               <Input
@@ -446,18 +539,35 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
                                 onChange={(e) => setSearchTerm(e.target.value)}
                               />
                             </div>
-                            
+                          </div>
+
+                          <div className="flex flex-col md:flex-row gap-2">
                             <Select 
                               value={departmentFilter || "all"}
                               onValueChange={(value) => setDepartmentFilter(value === "all" ? null : value)}
                             >
-                              <SelectTrigger className="w-full sm:w-[180px]">
+                              <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Department" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="all">All Departments</SelectItem>
                                 {departments.map(dept => (
                                   <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <Select 
+                              value={yearFilter || "all"}
+                              onValueChange={(value) => setYearFilter(value === "all" ? null : value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Year Level" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Year Levels</SelectItem>
+                                {yearLevels.map(year => (
+                                  <SelectItem key={year} value={year}>{year}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -476,8 +586,37 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(
                               </Button>
                             </div>
                           </div>
+
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Bulk Selection:</div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <Select onValueChange={(value) => handleSelectByDepartment(value)}>
+                                <SelectTrigger>
+                                  <School className="h-4 w-4 mr-2" />
+                                  <span>Select by College</span>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {departments.map(dept => (
+                                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              <Select onValueChange={(value) => handleSelectByYearLevel(value)}>
+                                <SelectTrigger>
+                                  <Filter className="h-4 w-4 mr-2" />
+                                  <span>Select by Year</span>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {yearLevels.map(year => (
+                                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
                           
-                          <ScrollArea className="h-[calc(100vh-280px)]">
+                          <ScrollArea className="h-[calc(100vh-380px)]">
                             <div className="space-y-1">
                               {filterUsers().map((user) => (
                                 <div

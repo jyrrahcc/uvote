@@ -24,6 +24,7 @@ const formSchema = z.object({
   bio: z.string().min(10, { message: "Bio must be at least 10 characters" }),
   position: z.string().min(2, { message: "Position must be at least 2 characters" }),
   image_url: z.string().optional(),
+  poster_url: z.string().optional(),
 });
 
 // Define typescript-compatible interface that matches the candidate table structure
@@ -32,6 +33,7 @@ export interface CandidateInsert {
   bio: string;
   position: string;
   image_url: string | null;
+  poster_url: string | null;
   election_id: string;
   created_by: string;
 }
@@ -57,6 +59,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
       bio: "",
       position: "",
       image_url: "",
+      poster_url: "",
     },
   });
 
@@ -100,7 +103,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
         form.setValue('image_url', publicURL.publicUrl);
         setPreviewImage(publicURL.publicUrl);
       } else {
-        // You could store the poster URL in another field if needed
+        form.setValue('poster_url', publicURL.publicUrl);
         setPreviewPoster(publicURL.publicUrl);
       }
       
@@ -122,6 +125,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
         bio: values.bio,
         position: values.position,
         image_url: values.image_url || null,
+        poster_url: values.poster_url || null,
         election_id: electionId,
         created_by: user?.id || ""
       };

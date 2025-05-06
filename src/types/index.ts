@@ -29,6 +29,7 @@ export interface Candidate {
   bio: string;
   position: string;
   imageUrl: string;
+  posterUrl?: string; // Added poster URL field
   electionId: string;
   createdAt: string;
   studentId?: string; // Added student ID field for DLSU-D context
@@ -165,6 +166,7 @@ export const mapDbCandidateToCandidate = (dbCandidate: any): Candidate => ({
   bio: dbCandidate.bio || '',
   position: dbCandidate.position,
   imageUrl: dbCandidate.image_url || '',
+  posterUrl: dbCandidate.poster_url || '',
   electionId: dbCandidate.election_id,
   createdAt: dbCandidate.created_at,
   studentId: dbCandidate.student_id,
@@ -178,6 +180,7 @@ export const mapCandidateToDbCandidate = (candidate: Candidate): any => ({
   bio: candidate.bio,
   position: candidate.position,
   image_url: candidate.imageUrl,
+  poster_url: candidate.posterUrl,
   election_id: candidate.electionId,
   created_at: candidate.createdAt,
   student_id: candidate.studentId,

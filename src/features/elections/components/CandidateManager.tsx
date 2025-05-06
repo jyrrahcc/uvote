@@ -8,13 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Upload, Image } from "lucide-react";
 import { Candidate, mapDbCandidateToCandidate } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface CandidateManagerProps {
   electionId: string | null;
   isNewElection: boolean;
+  candidacyStartDate?: string;
+  candidacyEndDate?: string;
 }
 
 const DLSU_DEPARTMENTS = [
@@ -40,9 +42,11 @@ const POSITIONS = [
   "Department Representative"
 ];
 
-const CandidateManager = forwardRef(({ electionId, isNewElection }: CandidateManagerProps, ref) => {
+const CandidateManager = forwardRef(({ electionId, isNewElection, candidacyStartDate, candidacyEndDate }: CandidateManagerProps, ref) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState<Record<number, boolean>>({});
+  const [uploadingPoster, setUploadingPoster] = useState<Record<number, boolean>>({});
 
   // Fetch candidates if editing an existing election
   useEffect(() => {
@@ -73,8 +77,29 @@ const CandidateManager = forwardRef(({ electionId, isNewElection }: CandidateMan
     }
   };
 
+  // Check if current date is within candidacy period
+  const isInCandidacyPeriod = () => {
+    // If it's a new election, always allow adding candidates
+    if (isNewElection) return true;
+    
+    // If candidacy dates are not set, we can't determine
+    if (!candidacyStartDate || !candidacyEndDate) return false;
+    
+    const now = new Date();
+    const startDate = new Date(candidacyStartDate);
+    const endDate = new Date(candidacyEndDate);
+    
+    return now >= startDate && now <= endDate;
+  };
+
   // Add a new blank candidate to the list
   const addCandidate = () => {
+    // Check if in candidacy period for existing elections
+    if (!isNewElection && !isInCandidacyPeriod()) {
+      toast.error("Candidates can only be added during the candidacy period");
+      return;
+    }
+
     setCandidates((prev) => [
       ...prev,
       {
@@ -83,6 +108,7 @@ const CandidateManager = forwardRef(({ electionId, isNewElection }: CandidateMan
         bio: "",
         position: "",
         imageUrl: "",
+        posterUrl: "",
         electionId: electionId || "",
         createdAt: new Date().toISOString(),
         studentId: "",
@@ -108,6 +134,66 @@ const CandidateManager = forwardRef(({ electionId, isNewElection }: CandidateMan
     );
   };
 
+  // Handle image upload
+  const handleImageUpload = async (index: number, event: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'poster') => {
+    if (!event.target.files || event.target.files.length === 0 || !electionId) {
+      return;
+    }
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `${electionId}/${type === 'profile' ? 'profiles' : 'posters'}/${fileName}`;
+
+    try {
+      if (type === 'profile') {
+        setUploadingImage(prev => ({ ...prev, [index]: true }));
+      } else {
+        setUploadingPoster(prev => ({ ...prev, [index]: true }));
+      }
+      
+      // Check if candidates bucket exists, create if not
+      const { data: buckets } = await supabase.storage.listBuckets();
+      if (!buckets?.find(bucket => bucket.name === 'candidates')) {
+        await supabase.storage.createBucket('candidates', { public: true });
+      }
+      
+      // Upload the file to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('candidates')
+        .upload(filePath, file);
+        
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data: publicURL } = supabase.storage.from('candidates').getPublicUrl(filePath);
+      
+      if (!publicURL) {
+        throw new Error('Could not generate public URL');
+      }
+
+      // Update the candidate state with the new image URL
+      if (type === 'profile') {
+        updateCandidate(index, 'imageUrl', publicURL.publicUrl);
+      } else {
+        updateCandidate(index, 'posterUrl', publicURL.publicUrl);
+      }
+      
+      toast.success(`${type === 'profile' ? 'Profile image' : 'Poster'} uploaded successfully`);
+    } catch (error) {
+      console.error(`Error uploading ${type}:`, error);
+      toast.error(`Failed to upload ${type === 'profile' ? 'profile image' : 'poster'}`);
+    } finally {
+      if (type === 'profile') {
+        setUploadingImage(prev => ({ ...prev, [index]: false }));
+      } else {
+        setUploadingPoster(prev => ({ ...prev, [index]: false }));
+      }
+    }
+  };
+
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     getCandidatesForNewElection: () => {
@@ -116,6 +202,7 @@ const CandidateManager = forwardRef(({ electionId, isNewElection }: CandidateMan
         bio: c.bio,
         position: c.position,
         image_url: c.imageUrl,
+        poster_url: c.posterUrl,
         student_id: c.studentId,
         department: c.department,
         year_level: c.yearLevel
@@ -127,15 +214,26 @@ const CandidateManager = forwardRef(({ electionId, isNewElection }: CandidateMan
     return <div>Loading candidates...</div>;
   }
 
+  const candidacyMessage = !isNewElection && !isInCandidacyPeriod() ? (
+    <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-md mb-4">
+      Candidates can only be added during the candidacy period ({candidacyStartDate ? new Date(candidacyStartDate).toLocaleDateString() : "Not set"} - 
+      {candidacyEndDate ? new Date(candidacyEndDate).toLocaleDateString() : "Not set"}).
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Candidates</h3>
-        <Button type="button" variant="outline" size="sm" onClick={addCandidate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Candidate
-        </Button>
+        {(isNewElection || isInCandidacyPeriod()) && (
+          <Button type="button" variant="outline" size="sm" onClick={addCandidate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Candidate
+          </Button>
+        )}
       </div>
+      
+      {candidacyMessage}
       
       <div className="space-y-4">
         {candidates.length === 0 ? (
@@ -240,15 +338,73 @@ const CandidateManager = forwardRef(({ electionId, isNewElection }: CandidateMan
                     className="min-h-[100px]"
                   />
                 </div>
-                
-                <div className="mt-4 space-y-2">
-                  <Label htmlFor={`candidate-image-${index}`}>Image URL</Label>
-                  <Input 
-                    id={`candidate-image-${index}`}
-                    value={candidate.imageUrl}
-                    onChange={(e) => updateCandidate(index, 'imageUrl', e.target.value)}
-                    placeholder="Enter an image URL for this candidate"
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Profile Image</Label>
+                    <div className="flex flex-col gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => document.getElementById(`image-upload-${index}`)?.click()}
+                        disabled={uploadingImage[index]}
+                        className="w-full"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {uploadingImage[index] ? "Uploading..." : "Upload Image"}
+                      </Button>
+                      <Input 
+                        id={`image-upload-${index}`}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleImageUpload(index, e, 'profile')}
+                        disabled={uploadingImage[index]}
+                      />
+                      {candidate.imageUrl && (
+                        <div className="mt-2 relative w-full h-40 border rounded-md overflow-hidden">
+                          <img 
+                            src={candidate.imageUrl} 
+                            alt="Candidate profile" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Campaign Poster</Label>
+                    <div className="flex flex-col gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => document.getElementById(`poster-upload-${index}`)?.click()}
+                        disabled={uploadingPoster[index]}
+                        className="w-full"
+                      >
+                        <Image className="mr-2 h-4 w-4" />
+                        {uploadingPoster[index] ? "Uploading..." : "Upload Poster"}
+                      </Button>
+                      <Input 
+                        id={`poster-upload-${index}`}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleImageUpload(index, e, 'poster')}
+                        disabled={uploadingPoster[index]}
+                      />
+                      {candidate.posterUrl && (
+                        <div className="mt-2 relative w-full h-40 border rounded-md overflow-hidden">
+                          <img 
+                            src={candidate.posterUrl} 
+                            alt="Campaign poster" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
               
@@ -258,7 +414,7 @@ const CandidateManager = forwardRef(({ electionId, isNewElection }: CandidateMan
         )}
       </div>
       
-      {candidates.length > 0 && (
+      {candidates.length > 0 && (isNewElection || isInCandidacyPeriod()) && (
         <Button type="button" variant="outline" size="sm" onClick={addCandidate} className="w-full">
           <Plus className="mr-2 h-4 w-4" />
           Add Another Candidate
