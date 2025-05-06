@@ -16,6 +16,11 @@ const AccessCodeInput = ({ accessCode, onVerify }: AccessCodeInputProps) => {
   const [attempts, setAttempts] = useState(0);
 
   const handleVerify = () => {
+    if (!code.trim()) {
+      toast.error("Please enter an access code");
+      return;
+    }
+    
     setIsVerifying(true);
     
     // Short timeout to simulate verification
@@ -66,7 +71,7 @@ const AccessCodeInput = ({ accessCode, onVerify }: AccessCodeInputProps) => {
           value={code}
           onChange={(e) => setCode(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && code.length > 0) {
+            if (e.key === 'Enter' && code.trim().length > 0) {
               handleVerify();
             }
           }}
@@ -83,7 +88,7 @@ const AccessCodeInput = ({ accessCode, onVerify }: AccessCodeInputProps) => {
           <Button 
             className="w-full"
             onClick={handleVerify}
-            disabled={code.length === 0 || isVerifying}
+            disabled={code.trim().length === 0 || isVerifying}
           >
             {isVerifying ? "Verifying..." : "Verify Access Code"}
           </Button>
