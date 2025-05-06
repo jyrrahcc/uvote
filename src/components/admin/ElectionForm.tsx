@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,7 +129,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         if (error) throw error;
         
         if (data) {
-          // Convert DB format to form values
+          // Convert DB format to form values, handling potentially missing fields
           form.reset({
             title: data.title,
             description: data.description || "",

@@ -36,10 +36,7 @@ const VotingPage = () => {
     setHasVoted,
     accessCodeVerified,
     setAccessCodeVerified
-  } = useElection({ 
-    electionId, 
-    userId: user?.id 
-  });
+  } = useElection(electionId);
 
   // Check if user is eligible to vote in this election
   useEffect(() => {

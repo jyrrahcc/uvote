@@ -3,12 +3,19 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchElectionDetails, updateElectionStatus } from "../services/electionService";
 import { Election } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { Candidate, mapDbCandidateToCandidate } from "@/types";
 
 /**
  * Custom hook for fetching and managing election data
  */
 export const useElection = (electionId: string | undefined) => {
   const [isAccessVerified, setIsAccessVerified] = useState(false);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
+  const [accessCodeVerified, setAccessCodeVerified] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // Main query for election data
   const {
@@ -28,12 +35,16 @@ export const useElection = (electionId: string | undefined) => {
     if (election?.isPrivate) {
       try {
         const verifiedElections = JSON.parse(localStorage.getItem('verifiedElections') || '{}');
-        setIsAccessVerified(!!verifiedElections[election.accessCode || '']);
+        const isVerified = !!verifiedElections[election.accessCode || ''];
+        setIsAccessVerified(isVerified);
+        setAccessCodeVerified(isVerified);
       } catch {
         setIsAccessVerified(false);
+        setAccessCodeVerified(false);
       }
     } else {
       setIsAccessVerified(true);
+      setAccessCodeVerified(true);
     }
   }, [election]);
   
@@ -47,6 +58,59 @@ export const useElection = (electionId: string | undefined) => {
       checkAndUpdateStatus();
     }
   }, [election]);
+  
+  // Fetch candidates for the election
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      if (!electionId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('candidates')
+          .select('*')
+          .eq('election_id', electionId);
+          
+        if (error) throw error;
+        
+        setCandidates(data ? data.map(mapDbCandidateToCandidate) : []);
+      } catch (error) {
+        console.error("Error fetching candidates:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCandidates();
+  }, [electionId]);
+  
+  // Check if user has already voted
+  useEffect(() => {
+    const checkIfVoted = async (userId: string) => {
+      if (!electionId || !userId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('votes')
+          .select('*')
+          .eq('election_id', electionId)
+          .eq('user_id', userId)
+          .single();
+          
+        if (!error && data) {
+          setHasVoted(true);
+          setSelectedCandidate(data.candidate_id);
+        }
+      } catch (error) {
+        console.error("Error checking if user voted:", error);
+      }
+    };
+    
+    // If the user is logged in, check if they've already voted
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      checkIfVoted(userId);
+    }
+  }, [electionId]);
   
   /**
    * Verify access code for private elections
@@ -63,6 +127,7 @@ export const useElection = (electionId: string | undefined) => {
         verifiedElections[code] = true;
         localStorage.setItem('verifiedElections', JSON.stringify(verifiedElections));
         setIsAccessVerified(true);
+        setAccessCodeVerified(true);
       } catch (e) {
         console.error("Error storing verification:", e);
       }
@@ -73,10 +138,18 @@ export const useElection = (electionId: string | undefined) => {
   
   return {
     election,
+    candidates,
     isLoading,
+    loading,
     error,
     refetch,
     isAccessVerified,
+    accessCodeVerified,
+    setAccessCodeVerified,
     verifyAccessCode,
+    hasVoted,
+    setHasVoted,
+    selectedCandidate,
+    setSelectedCandidate
   };
 };
