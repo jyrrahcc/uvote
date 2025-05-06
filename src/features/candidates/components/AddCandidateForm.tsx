@@ -18,14 +18,13 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import CandidateImageUpload from "./CandidateImageUpload";
+import { Eye, Image, X } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   bio: z.string().min(10, { message: "Bio must be at least 10 characters" }),
   position: z.string().min(2, { message: "Position must be at least 2 characters" }),
   image_url: z.string().optional(),
-  poster_url: z.string().optional(),
   student_id: z.string().optional(),
   department: z.string().optional(),
   year_level: z.string().optional(),
@@ -37,7 +36,6 @@ export interface CandidateInsert {
   bio: string;
   position: string;
   image_url: string | null;
-  poster_url: string | null;
   election_id: string;
   created_by: string;
   student_id?: string | null;
@@ -51,10 +49,17 @@ interface AddCandidateFormProps {
   onCancel: () => void;
 }
 
-const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandidateFormProps) => {
+const AddCandidateForm = ({ 
+  electionId,
+  onCandidateAdded, 
+  onCancel 
+}: AddCandidateFormProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [positions, setPositions] = useState<string[]>([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   
   // Fetch available positions for this election
   useEffect(() => {
@@ -105,7 +110,6 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
       bio: "",
       position: "",
       image_url: "",
-      poster_url: "",
       student_id: "",
       department: "",
       year_level: "",
@@ -128,7 +132,6 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
         bio: values.bio,
         position: values.position,
         image_url: values.image_url || null,
-        poster_url: values.poster_url || null,
         election_id: electionId,
         created_by: user.id,
         student_id: values.student_id || null,
@@ -167,6 +170,76 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle image upload for campaign poster
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) {
+      return;
+    }
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `${electionId}/posters/${fileName}`;
+
+    try {
+      setUploading(true);
+      
+      // Create a temporary preview URL
+      const objectUrl = URL.createObjectURL(file);
+      form.setValue("image_url", objectUrl);
+      
+      // Check if candidates bucket exists, create if not
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const candidatesBucketExists = buckets?.some(bucket => bucket.name === 'candidates');
+      
+      if (!candidatesBucketExists) {
+        await supabase.storage.createBucket('candidates', { 
+          public: true,
+          fileSizeLimit: 1024 * 1024 * 5 // 5MB limit
+        });
+      }
+      
+      // Upload the file to Supabase storage
+      const { error: uploadError, data } = await supabase.storage
+        .from('candidates')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+        
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data: publicURL } = supabase.storage.from('candidates').getPublicUrl(filePath);
+      
+      if (!publicURL) {
+        throw new Error('Could not generate public URL');
+      }
+
+      // Update form with the URL
+      form.setValue("image_url", publicURL.publicUrl);
+      
+      toast.success("Campaign poster uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading poster:", error);
+      toast.error("Failed to upload campaign poster");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Preview image
+  const handlePreviewImage = (url: string) => {
+    setPreviewImage(url);
+    setShowPreview(true);
+  };
+
+  const handleRemoveImage = () => {
+    form.setValue("image_url", "");
   };
 
   return (
@@ -269,43 +342,68 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
           )}
         />
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="image_url"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Profile Image</FormLabel>
-                <CandidateImageUpload
-                  electionId={electionId}
-                  type="profile"
-                  imageUrl={field.value || null}
-                  onImageUploaded={(url) => form.setValue("image_url", url)}
-                  disabled={loading}
+        <FormField
+          control={form.control}
+          name="image_url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Campaign Poster</FormLabel>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => document.getElementById("poster-upload-input")?.click()}
+                    disabled={uploading}
+                    className="flex-1"
+                  >
+                    <Image className="h-4 w-4 mr-2" />
+                    {uploading ? "Uploading..." : "Upload Campaign Poster"}
+                  </Button>
+
+                  {field.value && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handlePreviewImage(field.value)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                <Input 
+                  id="poster-upload-input"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
                 />
+                
+                {field.value && (
+                  <div className="mt-2 relative w-full h-48 border rounded-md overflow-hidden">
+                    <img 
+                      src={field.value} 
+                      alt="Campaign poster preview" 
+                      className="w-full h-full object-cover"
+                    />
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      className="absolute top-2 right-2 h-7 w-7"
+                      onClick={handleRemoveImage}
+                      type="button"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
                 <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="poster_url"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Campaign Poster</FormLabel>
-                <CandidateImageUpload
-                  electionId={electionId}
-                  type="poster"
-                  imageUrl={field.value || null}
-                  onImageUploaded={(url) => form.setValue("poster_url", url)}
-                  disabled={loading}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+              </div>
+            </FormItem>
+          )}
+        />
         
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
@@ -316,6 +414,28 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
             {loading ? "Adding..." : "Add Candidate"}
           </Button>
         </div>
+
+        {/* Image Preview Modal */}
+        {showPreview && previewImage && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPreview(false)}>
+            <div className="bg-white p-2 rounded-lg max-w-3xl max-h-[90vh] relative" onClick={(e) => e.stopPropagation()}>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm" 
+                className="absolute top-2 right-2 z-10"
+                onClick={() => setShowPreview(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <img 
+                src={previewImage} 
+                alt="Preview" 
+                className="max-w-full max-h-[85vh] object-contain"
+              />
+            </div>
+          </div>
+        )}
       </form>
     </Form>
   );

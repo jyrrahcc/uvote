@@ -54,8 +54,7 @@ const CandidateManager = forwardRef(({
 }: CandidateManagerProps, ref) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState<Record<number, boolean>>({});
-  const [uploadingPoster, setUploadingPoster] = useState<Record<number, boolean>>({});
+  const [uploading, setUploading] = useState<Record<number, boolean>>({});
   const [availablePositions, setAvailablePositions] = useState<string[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -186,8 +185,8 @@ const CandidateManager = forwardRef(({
     setShowPreview(true);
   };
 
-  // Handle image upload
-  const handleImageUpload = async (index: number, event: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'poster') => {
+  // Handle campaign poster upload
+  const handleImageUpload = async (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0 || !electionId) {
       return;
     }
@@ -195,31 +194,31 @@ const CandidateManager = forwardRef(({
     const file = event.target.files[0];
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `${electionId || 'new'}/${type === 'profile' ? 'profiles' : 'posters'}/${fileName}`;
+    const filePath = `${electionId || 'new'}/posters/${fileName}`;
 
     try {
-      if (type === 'profile') {
-        setUploadingImage(prev => ({ ...prev, [index]: true }));
-      } else {
-        setUploadingPoster(prev => ({ ...prev, [index]: true }));
-      }
+      setUploading(prev => ({ ...prev, [index]: true }));
       
       // Create a temporary preview URL
       const objectUrl = URL.createObjectURL(file);
-      if (type === 'profile') {
-        updateCandidate(index, 'image_url', objectUrl);
-      }
+      updateCandidate(index, 'image_url', objectUrl);
       
       // Check if candidates bucket exists, create if not
       const { data: buckets } = await supabase.storage.listBuckets();
       if (!buckets?.find(bucket => bucket.name === 'candidates')) {
-        await supabase.storage.createBucket('candidates', { public: true });
+        await supabase.storage.createBucket('candidates', { 
+          public: true,
+          fileSizeLimit: 1024 * 1024 * 5 // 5MB limit
+        });
       }
       
       // Upload the file to Supabase storage
       const { error: uploadError, data } = await supabase.storage
         .from('candidates')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
         
       if (uploadError) {
         throw uploadError;
@@ -233,25 +232,14 @@ const CandidateManager = forwardRef(({
       }
 
       // Update the candidate state with the new image URL
-      if (type === 'profile') {
-        updateCandidate(index, 'image_url', publicURL.publicUrl);
-      } else {
-        // Handle poster URL - we need to add a poster_url field to our database schema
-        // For now, we'll store it in the same image_url field with a prefix
-        const currentImageUrl = candidates[index].image_url || '';
-        updateCandidate(index, 'image_url', publicURL.publicUrl);
-      }
+      updateCandidate(index, 'image_url', publicURL.publicUrl);
       
-      toast.success(`${type === 'profile' ? 'Profile image' : 'Poster'} uploaded successfully`);
+      toast.success("Campaign poster uploaded successfully");
     } catch (error) {
-      console.error(`Error uploading ${type}:`, error);
-      toast.error(`Failed to upload ${type === 'profile' ? 'profile image' : 'poster'}`);
+      console.error("Error uploading poster:", error);
+      toast.error("Failed to upload campaign poster");
     } finally {
-      if (type === 'profile') {
-        setUploadingImage(prev => ({ ...prev, [index]: false }));
-      } else {
-        setUploadingPoster(prev => ({ ...prev, [index]: false }));
-      }
+      setUploading(prev => ({ ...prev, [index]: false }));
     }
   };
 
@@ -410,20 +398,20 @@ const CandidateManager = forwardRef(({
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="mt-4">
                   <div className="space-y-2">
-                    <Label>Profile Image</Label>
+                    <Label>Campaign Poster</Label>
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
                         <Button 
                           type="button" 
                           variant="outline" 
-                          onClick={() => document.getElementById(`image-upload-${index}`)?.click()}
-                          disabled={uploadingImage[index]}
+                          onClick={() => document.getElementById(`poster-upload-${index}`)?.click()}
+                          disabled={uploading[index]}
                           className="flex-1"
                         >
-                          <Upload className="mr-2 h-4 w-4" />
-                          {uploadingImage[index] ? "Uploading..." : "Upload Image"}
+                          <Image className="mr-2 h-4 w-4" />
+                          {uploading[index] ? "Uploading..." : "Upload Poster"}
                         </Button>
                         
                         {candidate.image_url && (
@@ -438,50 +426,31 @@ const CandidateManager = forwardRef(({
                       </div>
                       
                       <Input 
-                        id={`image-upload-${index}`}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleImageUpload(index, e, 'profile')}
-                        disabled={uploadingImage[index]}
-                      />
-                      
-                      {candidate.image_url && (
-                        <div className="mt-2 relative w-full h-40 border rounded-md overflow-hidden">
-                          <img 
-                            src={candidate.image_url} 
-                            alt="Candidate profile" 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Campaign Poster</Label>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex gap-2">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => document.getElementById(`poster-upload-${index}`)?.click()}
-                          disabled={uploadingPoster[index]}
-                          className="flex-1"
-                        >
-                          <Image className="mr-2 h-4 w-4" />
-                          {uploadingPoster[index] ? "Uploading..." : "Upload Poster"}
-                        </Button>
-                      </div>
-                      
-                      <Input 
                         id={`poster-upload-${index}`}
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => handleImageUpload(index, e, 'poster')}
-                        disabled={uploadingPoster[index]}
+                        onChange={(e) => handleImageUpload(index, e)}
+                        disabled={uploading[index]}
                       />
+                      
+                      {candidate.image_url && (
+                        <div className="mt-2 relative w-full h-48 border rounded-md overflow-hidden">
+                          <img 
+                            src={candidate.image_url} 
+                            alt="Campaign poster preview" 
+                            className="w-full h-full object-cover"
+                          />
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            className="absolute top-2 right-2 h-7 w-7"
+                            onClick={() => updateCandidate(index, 'image_url', '')}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

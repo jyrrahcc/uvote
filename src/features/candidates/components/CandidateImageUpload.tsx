@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Image, X } from "lucide-react";
+import { Upload, Image, X, Eye } from "lucide-react";
 
 interface CandidateImageUploadProps {
   electionId: string;
@@ -23,6 +23,7 @@ const CandidateImageUpload = ({
 }: CandidateImageUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(imageUrl);
+  const [showPreview, setShowPreview] = useState(false);
   
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) {
@@ -36,6 +37,10 @@ const CandidateImageUpload = ({
 
     try {
       setUploading(true);
+      
+      // Create a temporary preview URL
+      const objectUrl = URL.createObjectURL(file);
+      setPreview(objectUrl);
       
       // Check if candidates bucket exists, create if not
       const { data: buckets } = await supabase.storage.listBuckets();
@@ -85,6 +90,12 @@ const CandidateImageUpload = ({
     onImageUploaded("");
   };
 
+  const handlePreviewImage = () => {
+    if (preview) {
+      setShowPreview(true);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
@@ -102,6 +113,18 @@ const CandidateImageUpload = ({
           )}
           {uploading ? "Uploading..." : `Upload ${type === 'profile' ? 'Image' : 'Poster'}`}
         </Button>
+        
+        {preview && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePreviewImage}
+            disabled={disabled}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        )}
+        
         <Input 
           id={`${type}-upload-${electionId}`}
           type="file"
@@ -129,6 +152,28 @@ const CandidateImageUpload = ({
               <X className="h-3 w-3" />
             </Button>
           )}
+        </div>
+      )}
+      
+      {/* Image Preview Modal */}
+      {showPreview && preview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPreview(false)}>
+          <div className="bg-white p-2 rounded-lg max-w-3xl max-h-[90vh] relative" onClick={(e) => e.stopPropagation()}>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              className="absolute top-2 right-2 z-10"
+              onClick={() => setShowPreview(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <img 
+              src={preview} 
+              alt="Preview" 
+              className="max-w-full max-h-[85vh] object-contain"
+            />
+          </div>
         </div>
       )}
     </div>
