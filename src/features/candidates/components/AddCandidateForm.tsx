@@ -41,10 +41,10 @@ export interface CandidateInsert {
 interface AddCandidateFormProps {
   electionId: string;
   onCandidateAdded: (candidate: any) => void;
-  onClose: () => void;
+  onCancel: () => void;
 }
 
-const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidateFormProps) => {
+const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandidateFormProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   
@@ -83,7 +83,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
       
       toast.success("Candidate added successfully");
       form.reset();
-      onClose();
+      onCancel();
       
       // Update parent component
       if (data) {
@@ -182,7 +182,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onClose }: AddCandidat
         </div>
         
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
           <Button 
             type="submit" 
             disabled={loading}
