@@ -8,6 +8,8 @@ export interface Election {
   description: string;
   startDate: string;
   endDate: string;
+  candidacyStartDate?: string;
+  candidacyEndDate?: string;
   status: 'upcoming' | 'active' | 'completed';
   createdBy: string;
   createdAt: string;
@@ -127,6 +129,8 @@ export const mapDbElectionToElection = (dbElection: any): Election => ({
   description: dbElection.description,
   startDate: dbElection.start_date,
   endDate: dbElection.end_date,
+  candidacyStartDate: dbElection.candidacy_start_date,
+  candidacyEndDate: dbElection.candidacy_end_date,
   status: dbElection.status,
   createdBy: dbElection.created_by,
   createdAt: dbElection.created_at,
@@ -143,6 +147,8 @@ export const mapElectionToDbElection = (election: Election): any => ({
   description: election.description,
   start_date: election.startDate,
   end_date: election.endDate,
+  candidacy_start_date: election.candidacyStartDate,
+  candidacy_end_date: election.candidacyEndDate,
   status: election.status,
   created_by: election.createdBy,
   created_at: election.createdAt,

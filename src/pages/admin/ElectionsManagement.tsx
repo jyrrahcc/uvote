@@ -21,6 +21,7 @@ import * as z from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CandidateManager from "@/features/elections/components/CandidateManager";
 import EligibleVotersManager from "@/features/elections/components/EligibleVotersManager";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // College departments for DLSU-D
 const DLSU_DEPARTMENTS = [
@@ -43,6 +44,8 @@ const electionFormSchema = z.object({
   department: z.string().optional(),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
+  candidacyStartDate: z.string().min(1, "Candidacy start date is required"),
+  candidacyEndDate: z.string().min(1, "Candidacy end date is required"),
   isPrivate: z.boolean().default(false),
   accessCode: z.string().optional()
     .refine(val => {
@@ -81,6 +84,8 @@ const ElectionsManagement = () => {
       department: "",
       startDate: "",
       endDate: "",
+      candidacyStartDate: "",
+      candidacyEndDate: "",
       isPrivate: false,
       accessCode: "",
       restrictVoting: false,
@@ -147,6 +152,8 @@ const ElectionsManagement = () => {
         department: values.department || "",
         start_date: values.startDate,
         end_date: values.endDate,
+        candidacy_start_date: values.candidacyStartDate,
+        candidacy_end_date: values.candidacyEndDate,
         created_by: user?.id,
         is_private: values.isPrivate,
         access_code: values.isPrivate ? values.accessCode : null,
@@ -250,6 +257,8 @@ const ElectionsManagement = () => {
       department: election.department || "",
       startDate: election.startDate,
       endDate: election.endDate,
+      candidacyStartDate: election.candidacyStartDate || "",
+      candidacyEndDate: election.candidacyEndDate || "",
       isPrivate: election.isPrivate,
       accessCode: election.accessCode || "",
       restrictVoting: election.restrictVoting || false,
@@ -293,6 +302,8 @@ const ElectionsManagement = () => {
       department: "",
       startDate: "",
       endDate: "",
+      candidacyStartDate: "",
+      candidacyEndDate: "",
       isPrivate: false,
       accessCode: "",
       restrictVoting: false,
@@ -352,8 +363,8 @@ const ElectionsManagement = () => {
             Create New Election
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0 gap-0">
+          <DialogHeader className="p-6 pb-2">
             <DialogTitle>
               {editingElectionId ? "Edit Election" : "Create New Election"}
             </DialogTitle>
@@ -362,89 +373,27 @@ const ElectionsManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="candidates">Candidates</TabsTrigger>
-              <TabsTrigger value="voters">Eligible Voters</TabsTrigger>
-            </TabsList>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                <TabsContent value="details" className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Election Title*</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="e.g., Student Council Election 2023"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="department"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>College/Department</FormLabel>
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select department" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="University-wide">University-wide</SelectItem>
-                              {DLSU_DEPARTMENTS.filter(dept => dept !== "University-wide").map(dept => (
-                                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-sm text-muted-foreground">
-                            Select the department this election belongs to
-                          </p>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Provide a brief description"
-                              {...field} 
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ScrollArea className="max-h-[calc(90vh-180px)] px-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="candidates">Candidates</TabsTrigger>
+                <TabsTrigger value="voters">Eligible Voters</TabsTrigger>
+              </TabsList>
+              
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                  <TabsContent value="details" className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <FormField
                         control={form.control}
-                        name="startDate"
+                        name="title"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Start Date*</FormLabel>
+                            <FormLabel>Election Title*</FormLabel>
                             <FormControl>
                               <Input 
-                                type="datetime-local"
+                                placeholder="e.g., Student Council Election 2023"
                                 {...field} 
                               />
                             </FormControl>
@@ -455,115 +404,223 @@ const ElectionsManagement = () => {
                       
                       <FormField
                         control={form.control}
-                        name="endDate"
+                        name="department"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>End Date*</FormLabel>
+                            <FormLabel>College/Department</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select department" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="University-wide">University-wide</SelectItem>
+                                {DLSU_DEPARTMENTS.filter(dept => dept !== "University-wide").map(dept => (
+                                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-sm text-muted-foreground">
+                              Select the department this election belongs to
+                            </p>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
                             <FormControl>
                               <Input 
-                                type="datetime-local"
+                                placeholder="Provide a brief description"
                                 {...field} 
                               />
                             </FormControl>
-                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <h3 className="text-lg font-semibold pt-2">Candidacy Period</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="candidacyStartDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Candidacy Start Date*</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="datetime-local"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="candidacyEndDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Candidacy End Date*</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="datetime-local"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <h3 className="text-lg font-semibold pt-2">Voting Period</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="startDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Voting Start Date*</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="datetime-local"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="endDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Voting End Date*</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="datetime-local"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <FormField
+                        control={form.control}
+                        name="isPrivate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Private Election</FormLabel>
+                              <p className="text-sm text-muted-foreground">
+                                Require an access code to view and vote in this election
+                              </p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {form.watch("isPrivate") && (
+                        <FormField
+                          control={form.control}
+                          name="accessCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Access Code*</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Create a code for voters to access this election"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <p className="text-sm text-muted-foreground">
+                                You will need to share this code with voters.
+                              </p>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                      
+                      <FormField
+                        control={form.control}
+                        name="restrictVoting"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Restrict Voting</FormLabel>
+                              <p className="text-sm text-muted-foreground">
+                                Only allow specific DLSU-D community members to vote in this election
+                              </p>
+                            </div>
                           </FormItem>
                         )}
                       />
                     </div>
-                    
-                    <FormField
-                      control={form.control}
-                      name="isPrivate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Private Election</FormLabel>
-                            <p className="text-sm text-muted-foreground">
-                              Require an access code to view and vote in this election
-                            </p>
-                          </div>
-                        </FormItem>
-                      )}
+                  </TabsContent>
+                  
+                  <TabsContent value="candidates" className="space-y-4">
+                    <CandidateManager
+                      electionId={editingElectionId}
+                      isNewElection={!editingElectionId}
+                      ref={candidateManagerRef}
                     />
-                    
-                    {form.watch("isPrivate") && (
-                      <FormField
-                        control={form.control}
-                        name="accessCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Access Code*</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Create a code for voters to access this election"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <p className="text-sm text-muted-foreground">
-                              You will need to share this code with voters.
-                            </p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-                    
-                    <FormField
-                      control={form.control}
-                      name="restrictVoting"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Restrict Voting</FormLabel>
-                            <p className="text-sm text-muted-foreground">
-                              Only allow specific DLSU-D students to vote in this election
-                            </p>
-                          </div>
-                        </FormItem>
-                      )}
+                  </TabsContent>
+                  
+                  <TabsContent value="voters" className="space-y-4">
+                    <EligibleVotersManager
+                      electionId={editingElectionId}
+                      isNewElection={!editingElectionId}
+                      restrictVoting={form.watch("restrictVoting")}
+                      setRestrictVoting={(value) => form.setValue("restrictVoting", value)}
+                      ref={eligibleVotersManagerRef}
                     />
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="candidates" className="space-y-4">
-                  <CandidateManager
-                    electionId={editingElectionId}
-                    isNewElection={!editingElectionId}
-                    ref={candidateManagerRef}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="voters" className="space-y-4">
-                  <EligibleVotersManager
-                    electionId={editingElectionId}
-                    isNewElection={!editingElectionId}
-                    restrictVoting={form.watch("restrictVoting")}
-                    setRestrictVoting={(value) => form.setValue("restrictVoting", value)}
-                    ref={eligibleVotersManagerRef}
-                  />
-                </TabsContent>
-                
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={handleDialogClose}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="bg-[#008f50] hover:bg-[#007a45]">Save</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </Tabs>
+                  </TabsContent>
+                </form>
+              </Form>
+            </Tabs>
+          </ScrollArea>
+          
+          <DialogFooter className="p-6 pt-2">
+            <Button type="button" variant="outline" onClick={handleDialogClose}>
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              className="bg-[#008f50] hover:bg-[#007a45]" 
+              onClick={form.handleSubmit(onSubmit)}
+            >
+              Save
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
@@ -582,8 +639,8 @@ const ElectionsManagement = () => {
                 <TableHead>Title</TableHead>
                 <TableHead>College/Department</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
+                <TableHead>Candidacy Period</TableHead>
+                <TableHead>Voting Period</TableHead>
                 <TableHead>Privacy</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -594,8 +651,12 @@ const ElectionsManagement = () => {
                   <TableCell className="font-medium">{election.title}</TableCell>
                   <TableCell>{election.department || "University-wide"}</TableCell>
                   <TableCell className="capitalize">{election.status}</TableCell>
-                  <TableCell>{new Date(election.startDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(election.endDate).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {election.candidacyStartDate && election.candidacyEndDate
+                      ? `${new Date(election.candidacyStartDate).toLocaleDateString()} - ${new Date(election.candidacyEndDate).toLocaleDateString()}`
+                      : "Not specified"}
+                  </TableCell>
+                  <TableCell>{`${new Date(election.startDate).toLocaleDateString()} - ${new Date(election.endDate).toLocaleDateString()}`}</TableCell>
                   <TableCell>{election.isPrivate ? "Private" : "Public"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
