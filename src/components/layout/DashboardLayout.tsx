@@ -83,8 +83,10 @@ const DashboardLayout = () => {
   
   // Filter menu items based on user roles
   const filteredMenuItems = menuItems.filter(item => {
-    if (item.roles.includes("admin") && isAdmin) return true;
-    if (item.roles.includes("voter") && isVoter) return true;
+    if (isAdmin && item.roles.includes("admin")) return true;
+    if (isVoter && item.roles.includes("voter")) return true;
+    // If no specific role is detected, show general menu items for authenticated users
+    if (!isAdmin && !isVoter && !item.badge) return true;
     return false;
   });
 
@@ -112,6 +114,16 @@ const DashboardLayout = () => {
     return user?.email || "User";
   };
 
+  // Debug user role detection
+  useEffect(() => {
+    console.log("User role detection:", { 
+      isAdmin, 
+      isVoter, 
+      userRole,
+      filteredMenuItems: filteredMenuItems.map(item => item.name)
+    });
+  }, [isAdmin, isVoter, userRole, filteredMenuItems]);
+
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen w-full bg-muted/10">
@@ -136,30 +148,87 @@ const DashboardLayout = () => {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {filteredMenuItems.map((item) => (
-                    <SidebarMenuItem key={item.name}>
-                      <SidebarMenuButton 
-                        className={cn(
-                          "flex w-full justify-between",
-                          location.pathname === item.path && "bg-[#008f50]/10 text-[#008f50] font-medium"
-                        )}
-                        asChild 
-                        onClick={() => navigate(item.path)}
-                      >
-                        <button className="w-full">
-                          <div className="flex items-center">
-                            <item.icon className="h-4 w-4 mr-2" />
-                            <span className={cn(collapsed ? "hidden" : "block")}>{item.name}</span>
-                          </div>
-                          {item.badge && !collapsed && (
-                            <Badge variant="outline" className="ml-auto text-xs bg-[#008f50]/5 text-[#008f50]/80">
-                              {item.badge}
-                            </Badge>
+                  {filteredMenuItems.length > 0 ? (
+                    filteredMenuItems.map((item) => (
+                      <SidebarMenuItem key={item.name}>
+                        <SidebarMenuButton 
+                          className={cn(
+                            "flex w-full justify-between",
+                            location.pathname === item.path && "bg-[#008f50]/10 text-[#008f50] font-medium"
                           )}
-                        </button>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                          asChild 
+                          onClick={() => navigate(item.path)}
+                        >
+                          <button className="w-full">
+                            <div className="flex items-center">
+                              <item.icon className="h-4 w-4 mr-2" />
+                              <span className={cn(collapsed ? "hidden" : "block")}>{item.name}</span>
+                            </div>
+                            {item.badge && !collapsed && (
+                              <Badge variant="outline" className="ml-auto text-xs bg-[#008f50]/5 text-[#008f50]/80">
+                                {item.badge}
+                              </Badge>
+                            )}
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))
+                  ) : (
+                    // Fallback navigation items if role-based filtering returns empty
+                    <>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton 
+                          className={cn(
+                            "flex w-full justify-between",
+                            location.pathname === "/dashboard" && "bg-[#008f50]/10 text-[#008f50] font-medium"
+                          )}
+                          asChild 
+                          onClick={() => navigate("/dashboard")}
+                        >
+                          <button className="w-full">
+                            <div className="flex items-center">
+                              <Home className="h-4 w-4 mr-2" />
+                              <span className={cn(collapsed ? "hidden" : "block")}>Dashboard</span>
+                            </div>
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton 
+                          className={cn(
+                            "flex w-full justify-between",
+                            location.pathname === "/elections" && "bg-[#008f50]/10 text-[#008f50] font-medium"
+                          )}
+                          asChild 
+                          onClick={() => navigate("/elections")}
+                        >
+                          <button className="w-full">
+                            <div className="flex items-center">
+                              <Vote className="h-4 w-4 mr-2" />
+                              <span className={cn(collapsed ? "hidden" : "block")}>Elections</span>
+                            </div>
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton 
+                          className={cn(
+                            "flex w-full justify-between",
+                            location.pathname === "/profile" && "bg-[#008f50]/10 text-[#008f50] font-medium"
+                          )}
+                          asChild 
+                          onClick={() => navigate("/profile")}
+                        >
+                          <button className="w-full">
+                            <div className="flex items-center">
+                              <Settings className="h-4 w-4 mr-2" />
+                              <span className={cn(collapsed ? "hidden" : "block")}>Settings</span>
+                            </div>
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </>
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
