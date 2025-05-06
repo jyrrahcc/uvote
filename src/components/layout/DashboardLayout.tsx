@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { 
@@ -55,6 +56,7 @@ const DashboardLayout = () => {
     { name: "Dashboard", path: "/dashboard", icon: Home, roles: ["admin", "voter"] },
     { name: "Elections", path: "/elections", icon: Vote, roles: ["admin", "voter"] },
     { name: "My Votes", path: "/my-votes", icon: FileText, roles: ["voter"] },
+    { name: "My Applications", path: "/my-applications", icon: User, roles: ["voter"] },
     // Remove the standalone Candidates menu item as it needs an election ID to work
     { 
       name: "Manage Elections", 

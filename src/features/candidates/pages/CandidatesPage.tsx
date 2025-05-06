@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Users } from "lucide-react";
 import { Election, Candidate } from "@/types";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,9 @@ import CandidatesList from "../components/CandidatesList";
 import CandidateRegistrationForm from "../components/CandidateRegistrationForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import ApplyAsCandidateDialog from "../components/ApplyAsCandidateDialog";
+import CandidateApplicationsList from "../components/CandidateApplicationsList";
+import { hasUserAppliedForElection } from "../services/candidateApplicationService";
 
 const CandidatesPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
@@ -29,8 +33,9 @@ const CandidatesPage = () => {
   const [election, setElection] = useState<Election | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isRegistrationDialogOpen, setIsRegistrationDialogOpen] = useState(false);
   const [userHasRegistered, setUserHasRegistered] = useState(false);
+  const [userHasApplied, setUserHasApplied] = useState(false);
+  const [activeTab, setActiveTab] = useState("candidates");
   const { isAdmin } = useRole();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -63,6 +68,10 @@ const CandidatesPage = () => {
           .single();
         
         setUserHasRegistered(!!data);
+        
+        // Check if user has applied to be a candidate
+        const hasApplied = await hasUserAppliedForElection(electionId!, user.id);
+        setUserHasApplied(hasApplied);
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -94,8 +103,12 @@ const CandidatesPage = () => {
     }
   };
 
-  const canRegisterAsCandidate = () => {
-    return !isAdmin && user && !userHasRegistered && election?.status === 'upcoming';
+  const handleApplicationSubmitted = () => {
+    setUserHasApplied(true);
+  };
+
+  const isElectionActiveOrUpcoming = () => {
+    return election?.status === 'active' || election?.status === 'upcoming';
   };
 
   return (
@@ -137,48 +150,56 @@ const CandidatesPage = () => {
               )}
             </DialogContent>
           </Dialog>
-        ) : canRegisterAsCandidate() ? (
-          <Dialog open={isRegistrationDialogOpen} onOpenChange={setIsRegistrationDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Register as Candidate
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Candidate Registration</DialogTitle>
-                <DialogDescription>
-                  Submit this form to register as a candidate for this election.
-                </DialogDescription>
-              </DialogHeader>
-              
-              {electionId && user && (
-                <CandidateRegistrationForm
-                  electionId={electionId}
-                  userId={user.id}
-                  onCandidateAdded={handleCandidateAdded}
-                  onClose={() => setIsRegistrationDialogOpen(false)}
-                />
-              )}
-            </DialogContent>
-          </Dialog>
-        ) : userHasRegistered ? (
-          <Alert className="max-w-xs">
-            <AlertDescription>
-              You have already registered as a candidate for this election.
-            </AlertDescription>
-          </Alert>
-        ) : null}
+        ) : (
+          electionId && user && !userHasRegistered && !userHasApplied && (
+            <ApplyAsCandidateDialog 
+              electionId={electionId}
+              userId={user.id}
+              electionActive={isElectionActiveOrUpcoming()}
+              onApplicationSubmitted={handleApplicationSubmitted}
+            />
+          )
+        )}
       </div>
       
-      <CandidatesList
-        candidates={candidates}
-        loading={loading}
-        isAdmin={isAdmin}
-        onDeleteCandidate={handleDeleteCandidate}
-        onOpenAddDialog={() => setIsDialogOpen(true)}
-      />
+      {isAdmin ? (
+        <Tabs defaultValue="candidates" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="candidates">
+              <Users className="h-4 w-4 mr-2" />
+              Candidates
+            </TabsTrigger>
+            <TabsTrigger value="applications">
+              <FileText className="h-4 w-4 mr-2" />
+              Applications
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="candidates" className="pt-4">
+            <CandidatesList
+              candidates={candidates}
+              loading={loading}
+              isAdmin={isAdmin}
+              onDeleteCandidate={handleDeleteCandidate}
+              onOpenAddDialog={() => setIsDialogOpen(true)}
+            />
+          </TabsContent>
+          
+          <TabsContent value="applications" className="pt-4">
+            {electionId && (
+              <CandidateApplicationsList electionId={electionId} />
+            )}
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <CandidatesList
+          candidates={candidates}
+          loading={loading}
+          isAdmin={isAdmin}
+          onDeleteCandidate={handleDeleteCandidate}
+          onOpenAddDialog={() => setIsDialogOpen(true)}
+        />
+      )}
     </div>
   );
 };
