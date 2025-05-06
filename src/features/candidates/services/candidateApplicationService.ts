@@ -1,107 +1,123 @@
 
-import { CandidateApplication } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import { CandidateApplication } from "@/types/candidates";
 
-export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
+// Submit a new candidate application
+export const submitCandidateApplication = async (application: {
+  name: string;
+  position: string;
+  bio: string | null;
+  image_url: string | null;
+  election_id: string;
+  user_id: string;
+  feedback?: string | null;
+}): Promise<CandidateApplication> => {
   const { data, error } = await supabase
     .from('candidate_applications')
+    .insert({
+      name: application.name,
+      position: application.position,
+      bio: application.bio,
+      image_url: application.image_url,
+      election_id: application.election_id,
+      user_id: application.user_id,
+      status: 'pending',
+      feedback: application.feedback || null,
+    })
     .select('*')
-    .eq('election_id', electionId);
-    
+    .single();
+
   if (error) {
-    console.error("Error fetching applications:", error);
+    console.error('Error submitting application:', error);
     throw error;
   }
-  
-  return data as CandidateApplication[];
+
+  return data as CandidateApplication;
 };
 
-export const fetchCandidateApplicationsByUser = async (): Promise<CandidateApplication[]> => {
-  const { data: session } = await supabase.auth.getSession();
-  if (!session.session?.user?.id) {
-    throw new Error("User not authenticated");
-  }
-  
-  const userId = session.session.user.id;
+// Update an existing candidate application
+export const updateCandidateApplication = async (
+  id: string, 
+  status: string, 
+  feedback: string | null
+): Promise<CandidateApplication> => {
   const { data, error } = await supabase
     .from('candidate_applications')
+    .update({
+      status,
+      feedback,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
     .select('*')
-    .eq('user_id', userId);
-    
+    .single();
+
   if (error) {
-    console.error("Error fetching user applications:", error);
+    console.error('Error updating application:', error);
     throw error;
   }
-  
-  return data as CandidateApplication[];
+
+  return data as CandidateApplication;
 };
 
+// Delete a candidate application
+export const deleteCandidateApplication = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('candidate_applications')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting application:', error);
+    throw error;
+  }
+};
+
+// Check if a user has an application for a specific election
 export const hasUserAppliedForElection = async (electionId: string, userId: string): Promise<boolean> => {
   const { data, error } = await supabase
     .from('candidate_applications')
     .select('id')
     .eq('election_id', electionId)
     .eq('user_id', userId)
-    .single();
-    
-  if (error && error.code !== 'PGRST116') {
-    // PGRST116 is the error code for no rows returned
-    console.error("Error checking if user applied:", error);
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking application status:', error);
     throw error;
   }
-  
+
   return !!data;
 };
 
-export const submitCandidateApplication = async (
-  application: Omit<CandidateApplication, 'id' | 'created_at' | 'updated_at' | 'status'>
-): Promise<CandidateApplication> => {
+// Get all applications for an election
+export const getElectionApplications = async (electionId: string): Promise<CandidateApplication[]> => {
   const { data, error } = await supabase
     .from('candidate_applications')
-    .insert({
-      ...application,
-      status: 'pending'
-    })
-    .select()
-    .single();
-    
+    .select('*')
+    .eq('election_id', electionId)
+    .order('created_at', { ascending: false });
+
   if (error) {
-    console.error("Error submitting application:", error);
+    console.error('Error fetching applications:', error);
     throw error;
   }
-  
-  return data as CandidateApplication;
+
+  return data as CandidateApplication[];
 };
 
-// New function to update application status
-export const updateCandidateApplication = async (
-  applicationId: string,
-  updates: { status: "approved" | "rejected"; feedback?: string }
-): Promise<void> => {
-  const { error } = await supabase
+// Get applications by user
+export const getUserApplications = async (userId: string): Promise<CandidateApplication[]> => {
+  const { data, error } = await supabase
     .from('candidate_applications')
-    .update({
-      status: updates.status,
-      feedback: updates.feedback || null,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', applicationId);
-    
-  if (error) {
-    console.error("Error updating application status:", error);
-    throw error;
-  }
-};
+    .select('*, elections(title, status)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
 
-// Add delete function for candidate applications
-export const deleteCandidateApplication = async (applicationId: string): Promise<void> => {
-  const { error } = await supabase
-    .from('candidate_applications')
-    .delete()
-    .eq('id', applicationId);
-    
   if (error) {
-    console.error("Error deleting application:", error);
+    console.error('Error fetching user applications:', error);
     throw error;
   }
+
+  return data as CandidateApplication[];
 };

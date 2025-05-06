@@ -14,19 +14,27 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { FileImage } from "lucide-react";
 import { uploadImage } from "@/utils/imageUpload";
-import { 
-  submitCandidateApplication
-} from "../services/candidateApplicationService";
+import { submitCandidateApplication } from "../services/candidateApplicationService";
 
 interface CandidateApplicationFormProps {
   electionId: string;
-  userId: string;
-  open: boolean;
-  onClose: () => void;
+  userId?: string;
+  open?: boolean;
+  onClose?: () => void;
   onSuccess?: () => void;
+  onApplicationSubmitted?: () => void;
+  onCancel?: () => void;
 }
 
-const CandidateApplicationForm = ({ electionId, userId, open, onClose, onSuccess }: CandidateApplicationFormProps) => {
+const CandidateApplicationForm = ({ 
+  electionId, 
+  userId = '', 
+  open, 
+  onClose, 
+  onSuccess,
+  onApplicationSubmitted,
+  onCancel
+}: CandidateApplicationFormProps) => {
   const [name, setName] = useState("");
   const [position, setPosition] = useState("");
   const [bio, setBio] = useState("");
@@ -72,8 +80,14 @@ const CandidateApplicationForm = ({ electionId, userId, open, onClose, onSuccess
       });
       
       toast.success("Application submitted successfully");
-      onSuccess?.();
-      onClose?.();
+      
+      // Call all success callbacks
+      if (onSuccess) onSuccess();
+      if (onApplicationSubmitted) onApplicationSubmitted();
+      
+      // Handle closing
+      if (onClose) onClose();
+      if (onCancel) onCancel();
     } catch (error) {
       console.error("Error submitting application:", error);
       toast.error("Failed to submit application");
@@ -83,7 +97,7 @@ const CandidateApplicationForm = ({ electionId, userId, open, onClose, onSuccess
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose || onCancel}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Candidate Application</DialogTitle>
