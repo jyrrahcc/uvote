@@ -1,24 +1,18 @@
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, Search, User, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem,
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { useAuth } from "@/features/auth/context/AuthContext";
+
+// Import our new components
+import VoterSearch from "./voters/VoterSearch";
+import VoterBulkActions from "./voters/VoterBulkActions";
+import VoterTable, { VoterEntry } from "./voters/VoterTable";
+import EmptyVotersState from "./voters/EmptyVotersState";
+import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "./voters/VoterSearch";
 
 interface EligibleVotersManagerProps {
   electionId: string | null;
@@ -26,29 +20,6 @@ interface EligibleVotersManagerProps {
   restrictVoting: boolean;
   setRestrictVoting: (value: boolean) => void;
 }
-
-interface VoterEntry {
-  id: string;
-  email: string;
-  name: string;
-  department?: string;
-  year_level?: string;
-  student_id?: string;
-  isSelected?: boolean;
-}
-
-// DLSU-D Departments for filtering
-const DLSU_DEPARTMENTS = [
-  "College of Business Administration and Accountancy",
-  "College of Education",
-  "College of Engineering, Architecture and Technology",
-  "College of Humanities, Arts and Social Sciences",
-  "College of Science and Computer Studies",
-  "College of Criminal Justice Education",
-  "College of Tourism and Hospitality Management"
-];
-
-const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
 
 const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   electionId,
@@ -335,6 +306,13 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
     
     toast.success(`Added ${addedCount} users from ${year}`);
   };
+
+  const handleClearSelection = () => {
+    setSelectedVoters([]);
+    // Update all voters to not be selected
+    setVoters(prev => prev.map(voter => ({ ...voter, isSelected: false })));
+    toast.success("Selection cleared");
+  };
   
   // If voting is not restricted, don't show any eligible voters UI
   if (!restrictVoting) {
@@ -347,22 +325,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <User className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Open to All Voters</h3>
-            <p className="text-muted-foreground max-w-md">
-              Anyone with access to this election will be able to vote. To restrict voting to specific users, 
-              enable the "Restrict Voting" option above.
-            </p>
-            
-            <Button 
-              onClick={() => setRestrictVoting(true)} 
-              variant="outline" 
-              className="mt-4"
-            >
-              Enable Voter Restriction
-            </Button>
-          </div>
+          <EmptyVotersState setRestrictVoting={setRestrictVoting} />
         </CardContent>
       </Card>
     );
@@ -379,173 +342,31 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
       
       <CardContent>
         <div className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <label htmlFor="search-voters" className="text-sm font-medium mb-2 block">
-                Search Users
-              </label>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="search-voters"
-                  placeholder="Search by name, email or student ID"
-                  className="pl-8" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="w-full md:w-48">
-              <label htmlFor="dept-filter" className="text-sm font-medium mb-2 block">
-                Filter by College/Department
-              </label>
-              <Select 
-                value={departmentFilter || ""} 
-                onValueChange={(value) => setDepartmentFilter(value || null)}
-              >
-                <SelectTrigger id="dept-filter">
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
-                  {DLSU_DEPARTMENTS.map(dept => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="w-full md:w-32">
-              <label htmlFor="year-filter" className="text-sm font-medium mb-2 block">
-                Filter by Year Level
-              </label>
-              <Select 
-                value={yearFilter || ""} 
-                onValueChange={(value) => setYearFilter(value || null)}
-              >
-                <SelectTrigger id="year-filter">
-                  <SelectValue placeholder="All Years" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Years</SelectItem>
-                  {YEAR_LEVELS.map(year => (
-                    <SelectItem key={year} value={year}>{year}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <VoterSearch
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            departmentFilter={departmentFilter}
+            setDepartmentFilter={setDepartmentFilter}
+            yearFilter={yearFilter}
+            setYearFilter={setYearFilter}
+          />
           
-          <div className="flex flex-col md:flex-row gap-2 items-center">
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="w-full md:w-auto"
-              onClick={() => {
-                if (departmentFilter) {
-                  handleSelectByDepartment(departmentFilter);
-                } else {
-                  toast.error("Please select a department first");
-                }
-              }}
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              Select All in Department
-            </Button>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="w-full md:w-auto"
-              onClick={() => {
-                if (yearFilter) {
-                  handleSelectByYear(yearFilter);
-                } else {
-                  toast.error("Please select a year level first");
-                }
-              }}
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              Select All in Year Level
-            </Button>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="w-full md:w-auto"
-              onClick={() => {
-                setSelectedVoters([]);
-                // Update all voters to not be selected
-                setVoters(prev => prev.map(voter => ({ ...voter, isSelected: false })));
-                toast.success("Selection cleared");
-              }}
-            >
-              Clear All
-            </Button>
-          </div>
+          <VoterBulkActions
+            departmentFilter={departmentFilter}
+            yearFilter={yearFilter}
+            handleSelectByDepartment={handleSelectByDepartment}
+            handleSelectByYear={handleSelectByYear}
+            clearSelection={handleClearSelection}
+          />
           
           <div className="border rounded-md">
-            {loading ? (
-              <div className="py-8 text-center">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-sm text-muted-foreground">Loading users...</p>
-              </div>
-            ) : voters.length === 0 ? (
-              <div className="py-8 text-center">
-                <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No users found</p>
-              </div>
-            ) : (
-              <ScrollArea className="h-[400px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox 
-                          checked={
-                            filteredVoters.length > 0 && 
-                            filteredVoters.every(voter => selectedVoters.includes(voter.id))
-                          } 
-                          onCheckedChange={handleToggleAllVoters}
-                        />
-                      </TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Year</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredVoters.map(voter => (
-                      <TableRow key={voter.id}>
-                        <TableCell>
-                          <Checkbox 
-                            checked={selectedVoters.includes(voter.id)}
-                            onCheckedChange={(checked) => handleSelectVoter(voter.id, !!checked)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{voter.name}</TableCell>
-                        <TableCell>{voter.email}</TableCell>
-                        <TableCell>{voter.department || "—"}</TableCell>
-                        <TableCell>{voter.year_level || "—"}</TableCell>
-                      </TableRow>
-                    ))}
-                    
-                    {filteredVoters.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8">
-                          <p className="text-muted-foreground">No matching users found</p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            )}
+            <VoterTable
+              loading={loading}
+              filteredVoters={filteredVoters}
+              selectedVoters={selectedVoters}
+              handleToggleAllVoters={handleToggleAllVoters}
+              handleSelectVoter={handleSelectVoter}
+            />
           </div>
 
           <div className="flex items-center justify-between">
