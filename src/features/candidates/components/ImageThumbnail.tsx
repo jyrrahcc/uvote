@@ -15,6 +15,11 @@ const ImageThumbnail = ({ imageUrl, disabled = false, onRemove }: ImageThumbnail
         src={imageUrl} 
         alt="Campaign poster preview" 
         className="w-full h-full object-cover"
+        onError={(e) => {
+          // If image fails to load, set a placeholder
+          e.currentTarget.src = "/placeholder.svg";
+          e.currentTarget.classList.add("p-4");
+        }}
       />
       {!disabled && (
         <Button 

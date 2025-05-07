@@ -27,7 +27,10 @@ const UploadButton = ({
       <Button 
         type="button" 
         variant="outline" 
-        onClick={() => document.getElementById(id)?.click()}
+        onClick={() => {
+          const fileInput = document.getElementById(id) as HTMLInputElement;
+          if (fileInput) fileInput.click();
+        }}
         disabled={uploading || disabled}
         className="w-full"
       >

@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { useEffect } from "react";
 
 interface ImagePreviewModalProps {
   imageUrl: string;
@@ -9,6 +10,29 @@ interface ImagePreviewModalProps {
 }
 
 const ImagePreviewModal = ({ imageUrl, isOpen, onClose }: ImagePreviewModalProps) => {
+  // Close on escape key
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    
+    window.addEventListener('keydown', handleEsc);
+    
+    // Prevent body scroll when modal is open
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'auto';
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen || !imageUrl) return null;
 
   return (
@@ -33,6 +57,11 @@ const ImagePreviewModal = ({ imageUrl, isOpen, onClose }: ImagePreviewModalProps
           src={imageUrl} 
           alt="Preview" 
           className="max-w-full max-h-[85vh] object-contain"
+          onError={(e) => {
+            // If image fails to load, set a placeholder
+            e.currentTarget.src = "/placeholder.svg";
+            e.currentTarget.classList.add("p-4");
+          }}
         />
       </div>
     </div>

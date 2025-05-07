@@ -91,16 +91,19 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
       // Fetch users from profiles table
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, department, year_level, student_id')
-        .order('first_name', { ascending: true });
+        .select('id, email, first_name, last_name, department, year_level, student_id');
       
       if (error) {
         console.error("Error fetching profiles:", error);
         throw error;
       }
       
+      if (!data) {
+        throw new Error("No data returned from profiles query");
+      }
+      
       // Transform data to voter entries
-      const transformedData = data?.map(user => ({
+      const transformedData = data.map(user => ({
         id: user.id,
         email: user.email || "",
         name: `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Unnamed User",
@@ -108,7 +111,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
         year_level: user.year_level,
         student_id: user.student_id,
         isSelected: selectedVoters.includes(user.id)
-      })) || [];
+      }));
       
       setVoters(transformedData);
     } catch (error) {
@@ -137,8 +140,10 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
       }
       
       // Set selected voters
-      const eligibleVoterIds = data?.map(v => v.user_id) || [];
-      setSelectedVoters(eligibleVoterIds);
+      if (data) {
+        const eligibleVoterIds = data.map(v => v.user_id);
+        setSelectedVoters(eligibleVoterIds);
+      }
       
     } catch (error) {
       console.error("Error fetching eligible voters:", error);
@@ -154,6 +159,15 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
     } else {
       setSelectedVoters(prev => prev.filter(id => id !== voterId));
     }
+    
+    // Update the isSelected property in the voters array for visual feedback
+    setVoters(prev => 
+      prev.map(voter => 
+        voter.id === voterId 
+          ? { ...voter, isSelected }
+          : voter
+      )
+    );
   };
   
   const handleSaveEligibleVoters = async () => {
@@ -173,20 +187,29 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
         throw deleteError;
       }
       
-      if (selectedVoters.length > 0) {
-        // Create an array of eligible voter objects
-        const eligibleVoters = selectedVoters.map(voterId => ({
-          election_id: electionId,
-          user_id: voterId,
-          added_by: user.id
-        }));
-        
+      if (selectedVoters.length === 0) {
+        toast.success("Eligible voters cleared successfully");
+        setSaving(false);
+        return;
+      }
+      
+      // Create an array of eligible voter objects
+      const eligibleVoters = selectedVoters.map(voterId => ({
+        election_id: electionId,
+        user_id: voterId,
+        added_by: user.id
+      }));
+      
+      // Insert in batches to avoid request size limits
+      const batchSize = 100;
+      for (let i = 0; i < eligibleVoters.length; i += batchSize) {
+        const batch = eligibleVoters.slice(i, i + batchSize);
         const { error: insertError } = await supabase
           .from('eligible_voters')
-          .insert(eligibleVoters);
+          .insert(batch);
         
         if (insertError) {
-          console.error("Error inserting eligible voters:", insertError);
+          console.error("Error inserting eligible voters batch:", insertError);
           throw insertError;
         }
       }
@@ -222,51 +245,95 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
       // Combine with existing selections that aren't in the current filter
       const otherSelectedIds = selectedVoters.filter(id => !filteredVoters.some(v => v.id === id));
       setSelectedVoters([...otherSelectedIds, ...filteredIds]);
+      
+      // Update the isSelected property for visual feedback
+      setVoters(prev => 
+        prev.map(voter => 
+          filteredVoters.some(v => v.id === voter.id)
+            ? { ...voter, isSelected: true }
+            : voter
+        )
+      );
     } else {
       // Remove all filtered voters from selection
       const filteredIds = filteredVoters.map(voter => voter.id);
       setSelectedVoters(selectedVoters.filter(id => !filteredIds.includes(id)));
+      
+      // Update the isSelected property for visual feedback
+      setVoters(prev => 
+        prev.map(voter => 
+          filteredVoters.some(v => v.id === voter.id)
+            ? { ...voter, isSelected: false }
+            : voter
+        )
+      );
     }
   };
   
   // Select all users in a department
   const handleSelectByDepartment = (department: string) => {
+    if (!department) return;
+    
     const departmentUserIds = voters
       .filter(voter => voter.department === department)
       .map(voter => voter.id);
     
     // Add the IDs to selected voters if not already there
-    setSelectedVoters(prev => {
-      const newSelection = [...prev];
-      departmentUserIds.forEach(id => {
-        if (!newSelection.includes(id)) {
-          newSelection.push(id);
-        }
-      });
-      return newSelection;
+    const newSelection = [...selectedVoters];
+    let addedCount = 0;
+    
+    departmentUserIds.forEach(id => {
+      if (!newSelection.includes(id)) {
+        newSelection.push(id);
+        addedCount++;
+      }
     });
     
-    toast.success(`Added all users from ${department}`);
+    setSelectedVoters(newSelection);
+    
+    // Update the isSelected property for visual feedback
+    setVoters(prev => 
+      prev.map(voter => 
+        voter.department === department
+          ? { ...voter, isSelected: true }
+          : voter
+      )
+    );
+    
+    toast.success(`Added ${addedCount} users from ${department}`);
   };
   
   // Select all users in a year level
   const handleSelectByYear = (year: string) => {
+    if (!year) return;
+    
     const yearUserIds = voters
       .filter(voter => voter.year_level === year)
       .map(voter => voter.id);
     
     // Add the IDs to selected voters if not already there
-    setSelectedVoters(prev => {
-      const newSelection = [...prev];
-      yearUserIds.forEach(id => {
-        if (!newSelection.includes(id)) {
-          newSelection.push(id);
-        }
-      });
-      return newSelection;
+    const newSelection = [...selectedVoters];
+    let addedCount = 0;
+    
+    yearUserIds.forEach(id => {
+      if (!newSelection.includes(id)) {
+        newSelection.push(id);
+        addedCount++;
+      }
     });
     
-    toast.success(`Added all users from ${year}`);
+    setSelectedVoters(newSelection);
+    
+    // Update the isSelected property for visual feedback
+    setVoters(prev => 
+      prev.map(voter => 
+        voter.year_level === year
+          ? { ...voter, isSelected: true }
+          : voter
+      )
+    );
+    
+    toast.success(`Added ${addedCount} users from ${year}`);
   };
   
   // If voting is not restricted, don't show any eligible voters UI
@@ -412,6 +479,8 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
               className="w-full md:w-auto"
               onClick={() => {
                 setSelectedVoters([]);
+                // Update all voters to not be selected
+                setVoters(prev => prev.map(voter => ({ ...voter, isSelected: false })));
                 toast.success("Selection cleared");
               }}
             >
