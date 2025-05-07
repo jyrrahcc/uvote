@@ -1,11 +1,11 @@
 
 import { useState, ChangeEvent, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { Upload, Image, X, Eye } from "lucide-react";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { uploadFile } from "@/utils/imageUploadUtils";
+import UploadButton from "./UploadButton";
+import ImageThumbnail from "./ImageThumbnail";
+import ImagePreviewModal from "@/components/ui/image-preview-modal";
 
 interface CandidateImageUploadProps {
   electionId: string;
@@ -33,37 +33,6 @@ const CandidateImageUpload = ({
       setPreview(imageUrl);
     }
   }, [imageUrl]);
-  
-  const ensureCandidatesBucket = async () => {
-    try {
-      // First check if bucket exists
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-      
-      if (listError) {
-        console.error("Error listing buckets:", listError);
-        return false;
-      }
-      
-      const bucketExists = buckets?.some(bucket => bucket.name === 'candidates');
-      
-      if (!bucketExists) {
-        const { error: createError } = await supabase.storage.createBucket('candidates', {
-          public: true,
-          fileSizeLimit: 5 * 1024 * 1024 // 5MB
-        });
-        
-        if (createError) {
-          console.error("Error creating bucket:", createError);
-          return false;
-        }
-      }
-      
-      return true;
-    } catch (e) {
-      console.error("Error in ensureCandidatesBucket:", e);
-      return false;
-    }
-  };
 
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) {
@@ -85,37 +54,17 @@ const CandidateImageUpload = ({
       // Set the preview immediately to improve user experience
       onImageUploaded(objectUrl);
       
-      // Ensure the bucket exists
-      const bucketReady = await ensureCandidatesBucket();
+      // Upload file to Supabase storage
+      const { url, error } = await uploadFile('candidates', filePath, file);
       
-      if (!bucketReady) {
-        toast.warning("Storage setup incomplete, using preview mode");
-        return; // Still continue with the preview
-      }
-      
-      // Upload the file
-      const { error: uploadError, data } = await supabase.storage
-        .from('candidates')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-        
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        toast.warning(`Using preview mode - ${uploadError.message}`);
-      } else {
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('candidates')
-          .getPublicUrl(filePath);
-        
-        if (urlData && urlData.publicUrl) {
-          // Replace the object URL with the permanent one
-          setPreview(urlData.publicUrl);
-          onImageUploaded(urlData.publicUrl);
-          toast.success(`Campaign poster uploaded successfully`);
-        }
+      if (error) {
+        console.error("Upload error:", error);
+        toast.warning(`Using preview mode - ${error.message}`);
+      } else if (url) {
+        // Replace the object URL with the permanent one
+        setPreview(url);
+        onImageUploaded(url);
+        toast.success(`Campaign poster uploaded successfully`);
       }
     } catch (error) {
       console.error("Error in handleImageUpload:", error);
@@ -136,86 +85,33 @@ const CandidateImageUpload = ({
     }
   };
 
+  const uploadButtonId = `${type}-upload-${electionId}`;
+
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => document.getElementById(`${type}-upload-${electionId}`)?.click()}
-          disabled={uploading || disabled}
-          className="w-full"
-        >
-          {type === 'profile' ? (
-            <Upload className="h-4 w-4 mr-2" />
-          ) : (
-            <Image className="h-4 w-4 mr-2" />
-          )}
-          {uploading ? "Uploading..." : `Upload Campaign Poster`}
-        </Button>
-        
-        {preview && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handlePreviewImage}
-            disabled={disabled}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-        )}
-        
-        <Input 
-          id={`${type}-upload-${electionId}`}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleImageUpload}
-          disabled={uploading || disabled}
-        />
-      </div>
+      <UploadButton
+        id={uploadButtonId}
+        type={type}
+        uploading={uploading}
+        disabled={disabled}
+        hasPreview={!!preview}
+        onUpload={handleImageUpload}
+        onPreview={handlePreviewImage}
+      />
       
       {preview && (
-        <div className="mt-2 relative w-full h-48 border rounded-md overflow-hidden">
-          <img 
-            src={preview} 
-            alt="Campaign poster preview" 
-            className="w-full h-full object-cover"
-          />
-          {!disabled && (
-            <Button 
-              variant="destructive" 
-              size="icon" 
-              className="absolute top-2 right-2 h-7 w-7"
-              onClick={handleRemoveImage}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
+        <ImageThumbnail 
+          imageUrl={preview}
+          disabled={disabled}
+          onRemove={handleRemoveImage}
+        />
       )}
       
-      {/* Image Preview Modal */}
-      {showPreview && preview && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPreview(false)}>
-          <div className="bg-white p-2 rounded-lg max-w-3xl max-h-[90vh] relative" onClick={(e) => e.stopPropagation()}>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="sm" 
-              className="absolute top-2 right-2 z-10"
-              onClick={() => setShowPreview(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <img 
-              src={preview} 
-              alt="Preview" 
-              className="max-w-full max-h-[85vh] object-contain"
-            />
-          </div>
-        </div>
-      )}
+      <ImagePreviewModal
+        imageUrl={preview || ''}
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+      />
     </div>
   );
 };
