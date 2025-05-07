@@ -1,11 +1,11 @@
+
 import { useState, ChangeEvent, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { uploadFile } from "@/utils/imageUploadUtils";
+import { supabase } from "@/integrations/supabase/client";
 import UploadButton from "./UploadButton";
 import ImageThumbnail from "./ImageThumbnail";
 import ImagePreviewModal from "@/components/ui/image-preview-modal";
-import { supabase } from "@/integrations/supabase/client";
 
 interface CandidateImageUploadProps {
   electionId: string;
@@ -70,9 +70,8 @@ const CandidateImageUpload = ({
       
       if (error) {
         console.error("Upload error:", error);
-        toast.warning(`Using preview image - ${error.message}`);
-        // Keep the preview but notify user of upload issue
-        onImageUploaded(objectUrl);
+        toast.error("Failed to upload image: " + error.message);
+        setPreview(null);
       } else {
         // Get the public URL
         const { data: publicUrlData } = supabase.storage
@@ -82,19 +81,17 @@ const CandidateImageUpload = ({
         if (publicUrlData?.publicUrl) {
           setPreview(publicUrlData.publicUrl);
           onImageUploaded(publicUrlData.publicUrl);
-          toast.success(`Campaign poster uploaded successfully`);
+          toast.success(`${type === 'profile' ? 'Profile photo' : 'Campaign poster'} uploaded successfully`);
         } else {
           console.error("Failed to get public URL");
-          // Keep the preview but notify user
-          onImageUploaded(objectUrl);
-          toast.warning("Using preview image - Unable to get permanent URL");
+          toast.error("Unable to get image URL");
+          setPreview(null);
         }
       }
     } catch (error) {
       console.error("Error in handleImageUpload:", error);
-      // Keep local preview mode even if upload fails
-      onImageUploaded(preview || "");
-      toast.warning("Using preview image - Upload issue occurred");
+      toast.error("An error occurred during upload");
+      setPreview(null);
     } finally {
       setUploading(false);
     }

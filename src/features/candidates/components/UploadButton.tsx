@@ -34,12 +34,14 @@ const UploadButton = ({
         disabled={uploading || disabled}
         className="w-full"
       >
-        {type === 'profile' ? (
+        {uploading ? (
+          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent border-current"></span>
+        ) : type === 'profile' ? (
           <Upload className="h-4 w-4 mr-2" />
         ) : (
           <Image className="h-4 w-4 mr-2" />
         )}
-        {uploading ? "Uploading..." : `Upload Campaign Poster`}
+        {uploading ? "Uploading..." : `Upload ${type === 'profile' ? 'Profile Photo' : 'Campaign Poster'}`}
       </Button>
       
       {hasPreview && (

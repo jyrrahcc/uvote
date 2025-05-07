@@ -77,6 +77,14 @@ const VotingForm = ({
   
   // Check if there are any selections
   const hasSelections = Object.keys(form.getValues()).length > 0;
+
+  // Add an abstain option for the current position
+  const handleAbstain = () => {
+    form.setValue(currentPosition, "abstain");
+    if (currentPositionIndex < positions.length - 1) {
+      goToNextPosition();
+    }
+  };
   
   const handleVote = async (data: VotingSelections) => {
     if (!userId) {
@@ -93,31 +101,48 @@ const VotingForm = ({
         .select('*')
         .eq('election_id', electionId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       
       if (!checkError && existingVote) {
         toast.error("You have already voted in this election");
         return;
       }
       
-      // Prepare votes data
-      const votes = Object.entries(data).map(([position, candidateId]) => ({
-        election_id: electionId,
-        candidate_id: candidateId,
-        user_id: userId
-      }));
+      // Prepare votes data - filter out "abstain" values
+      const votes = Object.entries(data)
+        .filter(([position, candidateId]) => candidateId !== "abstain") // Skip abstained positions
+        .map(([position, candidateId]) => ({
+          election_id: electionId,
+          candidate_id: candidateId,
+          user_id: userId
+        }));
       
-      // Insert all votes
-      const { error: voteError } = await supabase
+      if (votes.length > 0) {
+        // Insert all votes
+        const { error: voteError } = await supabase
+          .from('votes')
+          .insert(votes);
+        
+        if (voteError) throw voteError;
+      }
+      
+      // Even if no candidates were selected (all abstained), mark the user as having voted
+      const { error: userVoteStatusError } = await supabase
         .from('votes')
-        .insert(votes);
+        .insert([{
+          election_id: electionId,
+          user_id: userId,
+          candidate_id: null // null candidate_id indicates an abstention for all positions or a marker that user has voted
+        }]);
       
-      if (voteError) throw voteError;
+      if (userVoteStatusError) throw userVoteStatusError;
       
       toast.success("Your votes have been recorded");
-      // Update parent component
+      // Update parent component that user has voted
       if (votes.length > 0) {
         onSelect(votes[0].candidate_id);
+      } else {
+        onSelect("abstained");
       }
     } catch (error) {
       console.error("Error submitting votes:", error);
@@ -232,10 +257,18 @@ const VotingForm = ({
                     <ChevronLeft className="mr-2 h-4 w-4" /> Previous
                   </Button>
                   
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleAbstain}
+                  >
+                    Abstain for this position
+                  </Button>
+                  
                   {currentPositionIndex === positions.length - 1 ? (
                     <Button
                       type="submit"
-                      disabled={voteLoading || !form.getValues()[currentPosition]}
+                      disabled={voteLoading}
                     >
                       {voteLoading ? "Submitting..." : "Submit All Votes"}
                     </Button>
@@ -243,7 +276,6 @@ const VotingForm = ({
                     <Button
                       type="button"
                       onClick={goToNextPosition}
-                      disabled={!form.getValues()[currentPosition]}
                     >
                       Next <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
