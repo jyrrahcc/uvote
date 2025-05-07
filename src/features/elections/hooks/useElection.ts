@@ -14,6 +14,7 @@ export const useElection = (electionId: string | undefined) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
+  const [userVotes, setUserVotes] = useState<{[position: string]: string}>({});
   const [accessCodeVerified, setAccessCodeVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   
@@ -93,12 +94,26 @@ export const useElection = (electionId: string | undefined) => {
           .from('votes')
           .select('*')
           .eq('election_id', electionId)
-          .eq('user_id', userId)
-          .single();
+          .eq('user_id', userId);
           
-        if (!error && data) {
+        if (!error && data && data.length > 0) {
           setHasVoted(true);
-          setSelectedCandidate(data.candidate_id);
+          
+          // Set the first candidate as selected (for backward compatibility)
+          if (data.length > 0) {
+            setSelectedCandidate(data[0].candidate_id);
+          }
+          
+          // Create a map of position to candidate ID using the full candidate data
+          const userVoteMap: {[position: string]: string} = {};
+          data.forEach(vote => {
+            const candidate = candidates.find(c => c.id === vote.candidate_id);
+            if (candidate) {
+              userVoteMap[candidate.position] = candidate.id;
+            }
+          });
+          
+          setUserVotes(userVoteMap);
         }
       } catch (error) {
         console.error("Error checking if user voted:", error);
@@ -107,10 +122,10 @@ export const useElection = (electionId: string | undefined) => {
     
     // If the user is logged in, check if they've already voted
     const userId = localStorage.getItem('userId');
-    if (userId) {
+    if (userId && candidates.length > 0) {
       checkIfVoted(userId);
     }
-  }, [electionId]);
+  }, [electionId, candidates]);
   
   /**
    * Verify access code for private elections
@@ -150,6 +165,7 @@ export const useElection = (electionId: string | undefined) => {
     hasVoted,
     setHasVoted,
     selectedCandidate,
-    setSelectedCandidate
+    setSelectedCandidate,
+    userVotes
   };
 };

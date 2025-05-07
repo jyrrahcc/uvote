@@ -1,12 +1,15 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Candidate } from "@/types";
-import CandidatesList from "@/features/candidates/components/CandidatesList";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 
 interface VotingFormProps {
   electionId: string;
@@ -15,6 +18,10 @@ interface VotingFormProps {
   hasVoted: boolean;
   selectedCandidateId: string | null;
   onSelect: (candidateId: string) => void;
+}
+
+interface VotingSelections {
+  [position: string]: string;
 }
 
 const VotingForm = ({ 
@@ -26,9 +33,56 @@ const VotingForm = ({
   onSelect 
 }: VotingFormProps) => {
   const [voteLoading, setVoteLoading] = useState(false);
+  const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
   
-  const handleVote = async () => {
-    if (!userId || !selectedCandidateId) return;
+  // Group candidates by position
+  const positionGroups = useMemo(() => {
+    const groups: { [key: string]: Candidate[] } = {};
+    
+    candidates.forEach((candidate) => {
+      if (!groups[candidate.position]) {
+        groups[candidate.position] = [];
+      }
+      groups[candidate.position].push(candidate);
+    });
+    
+    return groups;
+  }, [candidates]);
+  
+  // Get unique positions
+  const positions = useMemo(() => 
+    Object.keys(positionGroups),
+  [positionGroups]);
+  
+  // Initialize form
+  const form = useForm<VotingSelections>({
+    defaultValues: {},
+  });
+  
+  const currentPosition = positions[currentPositionIndex];
+  const currentCandidates = currentPosition ? positionGroups[currentPosition] : [];
+  
+  // Navigation functions
+  const goToNextPosition = () => {
+    if (currentPositionIndex < positions.length - 1) {
+      setCurrentPositionIndex(prev => prev + 1);
+    }
+  };
+  
+  const goToPreviousPosition = () => {
+    if (currentPositionIndex > 0) {
+      setCurrentPositionIndex(prev => prev - 1);
+    }
+  };
+  
+  // Check if there are any selections
+  const hasSelections = Object.keys(form.getValues()).length > 0;
+  
+  const handleVote = async (data: VotingSelections) => {
+    if (!userId) {
+      toast.error("You need to be logged in to vote");
+      return;
+    }
     
     try {
       setVoteLoading(true);
@@ -46,54 +100,49 @@ const VotingForm = ({
         return;
       }
       
-      // Insert new vote
+      // Prepare votes data
+      const votes = Object.entries(data).map(([position, candidateId]) => ({
+        election_id: electionId,
+        candidate_id: candidateId,
+        user_id: userId
+      }));
+      
+      // Insert all votes
       const { error: voteError } = await supabase
         .from('votes')
-        .insert({
-          election_id: electionId,
-          candidate_id: selectedCandidateId,
-          user_id: userId
-        });
+        .insert(votes);
       
       if (voteError) throw voteError;
       
-      toast.success("Your vote has been recorded");
-      // We'll handle hasVoted in the parent component
+      toast.success("Your votes have been recorded");
+      // Update parent component
+      if (votes.length > 0) {
+        onSelect(votes[0].candidate_id);
+      }
     } catch (error) {
-      console.error("Error submitting vote:", error);
-      toast.error("Failed to submit your vote");
+      console.error("Error submitting votes:", error);
+      toast.error("Failed to submit your votes");
     } finally {
       setVoteLoading(false);
     }
   };
 
-  return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Cast Your Vote</CardTitle>
-        <CardDescription>
-          Select a candidate below and submit your vote.
-          {hasVoted && " You have already voted in this election."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <CandidatesList 
-          candidates={candidates} 
-          selectedCandidateId={selectedCandidateId}
-          onSelectCandidate={onSelect}
-          readOnly={hasVoted}
-        />
-      </CardContent>
-      <CardFooter>
-        {!hasVoted ? (
-          <Button 
-            onClick={handleVote} 
-            disabled={!selectedCandidateId || voteLoading}
-            className="w-full"
-          >
-            {voteLoading ? "Submitting..." : "Submit Vote"}
-          </Button>
-        ) : (
+  // If the user has already voted, show the results button
+  if (hasVoted) {
+    return (
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Thank You for Voting</CardTitle>
+          <CardDescription>
+            You have already cast your vote in this election.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="rounded-full bg-green-100 p-3">
+            <Check className="h-8 w-8 text-green-600" />
+          </div>
+        </CardContent>
+        <CardFooter>
           <Button 
             asChild 
             variant="outline"
@@ -101,7 +150,124 @@ const VotingForm = ({
           >
             <Link to={`/elections/${electionId}/results`}>View Results</Link>
           </Button>
-        )}
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>Cast Your Vote</CardTitle>
+        <CardDescription>
+          Select your preferred candidate for each position
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleVote)} className="space-y-6">
+            {positions.length > 0 ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">
+                    Position {currentPositionIndex + 1} of {positions.length}: {currentPosition}
+                  </h3>
+                  <div className="text-sm text-muted-foreground">
+                    {currentPositionIndex + 1}/{positions.length}
+                  </div>
+                </div>
+                
+                <div className="border rounded-md p-4 bg-slate-50">
+                  <FormField
+                    control={form.control}
+                    name={currentPosition}
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-base">Select a candidate:</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-3 mt-4"
+                          >
+                            {currentCandidates.map((candidate) => (
+                              <FormItem key={candidate.id} className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value={candidate.id} />
+                                </FormControl>
+                                <FormLabel className="font-normal cursor-pointer flex items-center">
+                                  {candidate.imageUrl && (
+                                    <img 
+                                      src={candidate.imageUrl} 
+                                      alt={candidate.name} 
+                                      className="w-10 h-10 rounded-full object-cover mr-3" 
+                                    />
+                                  )}
+                                  <div>
+                                    <div className="font-medium">{candidate.name}</div>
+                                    {candidate.bio && (
+                                      <div className="text-sm text-muted-foreground line-clamp-1">
+                                        {candidate.bio}
+                                      </div>
+                                    )}
+                                  </div>
+                                </FormLabel>
+                              </FormItem>
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="flex justify-between pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={goToPreviousPosition}
+                    disabled={currentPositionIndex === 0}
+                  >
+                    <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+                  </Button>
+                  
+                  {currentPositionIndex === positions.length - 1 ? (
+                    <Button
+                      type="submit"
+                      disabled={voteLoading || !form.getValues()[currentPosition]}
+                    >
+                      {voteLoading ? "Submitting..." : "Submit All Votes"}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={goToNextPosition}
+                      disabled={!form.getValues()[currentPosition]}
+                    >
+                      Next <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p>No positions available for voting.</p>
+              </div>
+            )}
+          </form>
+        </Form>
+      </CardContent>
+      <CardFooter className="flex flex-col">
+        <div className="w-full bg-gray-200 h-2 rounded-full mt-2">
+          <div 
+            className="bg-[#008f50] h-2 rounded-full transition-all" 
+            style={{ width: `${(currentPositionIndex + 1) / positions.length * 100}%` }}
+          />
+        </div>
+        <div className="text-xs text-muted-foreground text-center w-full mt-1">
+          {currentPositionIndex + 1} of {positions.length} positions
+        </div>
       </CardFooter>
     </Card>
   );
