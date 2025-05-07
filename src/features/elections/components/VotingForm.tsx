@@ -196,9 +196,9 @@ const VotingForm = ({
                                   <RadioGroupItem value={candidate.id} />
                                 </FormControl>
                                 <FormLabel className="font-normal cursor-pointer flex items-center">
-                                  {candidate.imageUrl && (
+                                  {candidate.image_url && (
                                     <img 
-                                      src={candidate.imageUrl} 
+                                      src={candidate.image_url} 
                                       alt={candidate.name} 
                                       className="w-10 h-10 rounded-full object-cover mr-3" 
                                     />
