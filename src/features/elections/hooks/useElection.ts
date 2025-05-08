@@ -13,6 +13,8 @@ export const useElection = (electionId: string | undefined) => {
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
   const [accessCodeVerified, setAccessCodeVerified] = useState(false);
+  const [votedPositions, setVotedPositions] = useState<Record<string, string>>({});
+  const [abstainedPositions, setAbstainedPositions] = useState<string[]>([]);
 
   useEffect(() => {
     if (!electionId) return;
@@ -65,24 +67,60 @@ export const useElection = (electionId: string | undefined) => {
   // Check if the current user has voted in this election
   useEffect(() => {
     const checkVoteStatus = async () => {
-      if (!electionId || !supabase.auth.getUser()) return;
+      if (!electionId) return;
       
       try {
-        const { user } = await supabase.auth.getUser();
-        if (!user) return;
+        // Fix here: Use data property to access the user
+        const { data } = await supabase.auth.getUser();
+        if (!data || !data.user) return;
         
-        const { data, error } = await supabase
+        const { data: votes, error } = await supabase
           .from('votes')
-          .select('*')
+          .select('candidate_id, election_id')
           .eq('election_id', electionId)
-          .eq('user_id', user.id)
-          .maybeSingle();
+          .eq('user_id', data.user.id);
         
         if (error) throw error;
         
-        setHasVoted(!!data);
-        if (data?.candidate_id) {
-          setSelectedCandidate(data.candidate_id);
+        // Process votes to track which positions have been voted for
+        if (votes && votes.length > 0) {
+          setHasVoted(true);
+          
+          // Get candidate details to map votes to positions
+          const votedCandidateIds = votes.map(vote => vote.candidate_id).filter(Boolean) as string[];
+          
+          if (votedCandidateIds.length > 0) {
+            const { data: votedCandidates, error: candidateError } = await supabase
+              .from('candidates')
+              .select('id, position')
+              .in('id', votedCandidateIds);
+            
+            if (candidateError) throw candidateError;
+            
+            // Create a map of position -> candidateId
+            const positionVotes: Record<string, string> = {};
+            votedCandidates?.forEach(candidate => {
+              if (candidate.position) {
+                positionVotes[candidate.position] = candidate.id;
+              }
+            });
+            
+            setVotedPositions(positionVotes);
+          }
+          
+          // Check for abstained positions
+          const { data: abstainVotes, error: abstainError } = await supabase
+            .from('votes')
+            .select('position')
+            .eq('election_id', electionId)
+            .eq('user_id', data.user.id)
+            .is('candidate_id', null);
+          
+          if (abstainError) throw abstainError;
+          
+          if (abstainVotes && abstainVotes.length > 0) {
+            setAbstainedPositions(abstainVotes.map(vote => vote.position).filter(Boolean) as string[]);
+          }
         }
         
       } catch (error) {
@@ -103,6 +141,10 @@ export const useElection = (electionId: string | undefined) => {
     selectedCandidate,
     setSelectedCandidate,
     accessCodeVerified,
-    setAccessCodeVerified
+    setAccessCodeVerified,
+    votedPositions,
+    setVotedPositions,
+    abstainedPositions,
+    setAbstainedPositions
   };
 };
