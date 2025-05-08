@@ -1,81 +1,92 @@
 
-import { useEffect, useState } from "react";
-import { useAuth } from "@/features/auth/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import StatsCard from "./StatsCard";
+import { useState, useEffect } from 'react';
+import StatsCard from './StatsCard';
+import { supabase } from '@/integrations/supabase/client';
+import { Vote, LineUpVertical, BarChart, Award } from 'lucide-react';
 
 const DashboardStats = () => {
-  const { user } = useAuth();
-  const [activeElections, setActiveElections] = useState<number>(0);
-  const [upcomingElections, setUpcomingElections] = useState<number>(0);
-  const [completedElections, setCompletedElections] = useState<number>(0);
-  const [myVotes, setMyVotes] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [stats, setStats] = useState({
+    activeElections: 0,
+    totalVotes: 0,
+    totalElections: 0,
+    completedElections: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!user) return;
-      
+    const fetchStats = async () => {
       try {
-        setLoading(true);
-        
-        // Count elections by status
-        const { data: activeData } = await supabase
+        // Active elections
+        const { count: activeCount, error: activeError } = await supabase
           .from('elections')
-          .select('id', { count: 'exact' })
+          .select('*', { count: 'exact' })
           .eq('status', 'active');
-        
-        const { data: upcomingData } = await supabase
+
+        // Total elections
+        const { count: totalCount, error: totalError } = await supabase
           .from('elections')
-          .select('id', { count: 'exact' })
-          .eq('status', 'upcoming');
-        
-        const { data: completedData } = await supabase
+          .select('*', { count: 'exact' });
+
+        // Completed elections
+        const { count: completedCount, error: completedError } = await supabase
           .from('elections')
-          .select('id', { count: 'exact' })
+          .select('*', { count: 'exact' })
           .eq('status', 'completed');
 
-        // Count user's votes
-        const { count: votesCount } = await supabase
+        // Total votes cast
+        const { count: votesCount, error: votesError } = await supabase
           .from('votes')
-          .select('id', { count: 'exact' })
-          .eq('user_id', user.id);
+          .select('*', { count: 'exact' });
 
-        setActiveElections(activeData?.length || 0);
-        setUpcomingElections(upcomingData?.length || 0);
-        setCompletedElections(completedData?.length || 0);
-        setMyVotes(votesCount || 0);
+        setStats({
+          activeElections: activeCount || 0,
+          totalElections: totalCount || 0,
+          completedElections: completedCount || 0,
+          totalVotes: votesCount || 0,
+        });
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        console.error('Error fetching dashboard stats:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, [user]);
+    fetchStats();
+  }, []);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatsCard 
-        title="Active Elections" 
-        value={activeElections} 
-        loading={loading} 
+        title="Active Elections"
+        value={stats.activeElections}
+        icon={<Vote className="h-5 w-5" />}
+        loading={loading}
+        description="Elections currently in progress"
+        color="bg-blue-500"
       />
       <StatsCard 
-        title="Upcoming Elections" 
-        value={upcomingElections} 
-        loading={loading} 
+        title="Total Votes"
+        value={stats.totalVotes}
+        icon={<LineUpVertical className="h-5 w-5" />}
+        loading={loading}
+        description="Total votes cast across all elections"
+        color="bg-green-500"
       />
       <StatsCard 
-        title="Completed Elections" 
-        value={completedElections} 
-        loading={loading} 
+        title="All Elections"
+        value={stats.totalElections}
+        icon={<BarChart className="h-5 w-5" />}
+        loading={loading}
+        description="Total number of elections"
+        color="bg-purple-500"
       />
       <StatsCard 
-        title="My Votes" 
-        value={myVotes} 
-        loading={loading} 
+        title="Completed Elections"
+        value={stats.completedElections}
+        icon={<Award className="h-5 w-5" />}
+        loading={loading}
+        description="Elections that have concluded"
+        color="bg-amber-500"
       />
     </div>
   );

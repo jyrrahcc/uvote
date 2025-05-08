@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Election } from "@/types";
+import { Election, mapDbElectionToElection } from "@/types";
 import { toast } from "sonner";
 
 interface ElectionState {
@@ -46,40 +46,25 @@ export const useElection = (electionId: string | undefined) => {
 
     const fetchElection = async () => {
       try {
+        setLoading(true);
+        
         // Fetch election details
-        const { data: election, error } = await supabase
+        const { data: electionData, error: electionError } = await supabase
           .from("elections")
           .select("*")
           .eq("id", electionId)
           .single();
 
-        if (error) {
-          throw error;
+        if (electionError) {
+          throw electionError;
         }
 
-        if (!election) {
+        if (!electionData) {
           throw new Error("Election not found");
         }
 
-        // Transform dates for easier display and map DB fields to our Election type
-        const transformedElection: Election = {
-          id: election.id,
-          title: election.title,
-          description: election.description || '',
-          startDate: election.start_date,
-          endDate: election.end_date,
-          candidacyStartDate: election.candidacy_start_date || undefined,
-          candidacyEndDate: election.candidacy_end_date || undefined,
-          status: election.status === 'active' ? 'active' : 
-                 election.status === 'completed' ? 'completed' : 'upcoming',
-          department: election.department || '',
-          isPrivate: !!election.is_private,
-          accessCode: election.access_code || undefined,
-          restrictVoting: !!election.restrict_voting,
-          createdBy: election.created_by || '',
-          createdAt: election.created_at || '',
-          updatedAt: election.updated_at || ''
-        };
+        // Transform to our Election type
+        const transformedElection = mapDbElectionToElection(electionData);
 
         // Fetch candidates for this election
         const { data: candidatesData, error: candidatesError } = await supabase
@@ -130,7 +115,7 @@ export const useElection = (electionId: string | undefined) => {
   const calculateVotingStats = (election: Election, votes: any[]): VotingStats => {
     // Default stats
     const stats: VotingStats = {
-      totalEligibleVoters: 0, // Will be updated if available
+      totalEligibleVoters: election.totalEligibleVoters || 0,
       totalVotesCast: 0,
       votingPercentage: 0,
       positionVoteCounts: {},

@@ -45,12 +45,13 @@ import React from "react";
  * Main App component that sets up providers and routing
  */
 const App = () => {
-  // Initialize React Query client
+  // Initialize React Query client with better defaults
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
         staleTime: 60 * 1000, // 1 minute
         retry: 1,
+        refetchOnWindowFocus: false, // Prevent unnecessary refetches
       },
     },
   });

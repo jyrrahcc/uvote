@@ -1,86 +1,65 @@
 
-import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { ElectionResult } from "@/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 interface ResultsChartProps {
   result: ElectionResult;
 }
 
-interface CustomizedTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
+const COLORS = ['#008f50', '#34b379', '#5ed4a0', '#86f0c8', '#b0ffe6'];
 
-/**
- * Custom tooltip component for the chart
- */
-const CustomizedTooltip = ({ active, payload, label }: CustomizedTooltipProps) => {
-  if (active && payload && payload.length) {
+const ResultsChart = ({ result }: ResultsChartProps) => {
+  // Check if there's valid data to display
+  if (!result.candidates || result.candidates.length === 0 || result.totalVotes === 0) {
     return (
-      <div className="bg-white p-4 border border-border rounded-md shadow-sm">
-        <p className="font-medium">{`${label}`}</p>
-        <p className="text-primary">{`${payload[0].value} votes`}</p>
-        <p className="text-sm text-muted-foreground">{`${payload[0].payload.percentage}% of total`}</p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Election Results</CardTitle>
+        </CardHeader>
+        <CardContent className="h-80 flex items-center justify-center">
+          <p className="text-muted-foreground">No votes have been cast yet.</p>
+        </CardContent>
+      </Card>
     );
   }
-  return null;
-};
 
-/**
- * Chart component to display election results
- */
-const ResultsChart = ({ result }: ResultsChartProps) => {
-  const [chartData, setChartData] = useState<any[]>([]);
-  
-  useEffect(() => {
-    // Format data for the chart
-    const formattedData = result.candidates.map(candidate => ({
-      name: candidate.name,
-      votes: candidate.votes,
-      percentage: candidate.percentage
-    }));
-    
-    setChartData(formattedData);
-  }, [result]);
+  // Format data for the chart
+  const data = result.candidates.map((candidate, index) => ({
+    name: candidate.name,
+    value: candidate.votes,
+    percentage: candidate.percentage
+  }));
 
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-medium mb-4">Vote Distribution</h3>
-      <div className="w-full h-72">
+    <Card>
+      <CardHeader>
+        <CardTitle>Election Results</CardTitle>
+      </CardHeader>
+      <CardContent className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 25 }}
-          >
-            <XAxis 
-              dataKey="name" 
-              tick={{ fontSize: 12 }}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis />
-            <Tooltip content={<CustomizedTooltip />} />
-            <Bar dataKey="votes" name="Votes">
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={entry.name === result.winner?.name ? "#059669" : "#10b981"} 
-                  opacity={entry.name === result.winner?.name ? 1 : 0.7}
-                />
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, percentage }) => `${name}: ${percentage}%`}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
-            </Bar>
-          </BarChart>
+            </Pie>
+            <Tooltip 
+              formatter={(value, name, props) => [`${value} votes (${props.payload.percentage}%)`, name]}
+            />
+            <Legend />
+          </PieChart>
         </ResponsiveContainer>
-      </div>
-      
-      <div className="mt-4 text-sm text-muted-foreground text-center">
-        Total votes: {result.totalVotes}
-      </div>
+      </CardContent>
     </Card>
   );
 };

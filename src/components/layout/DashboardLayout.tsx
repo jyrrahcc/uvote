@@ -78,13 +78,20 @@ const DashboardLayout = () => {
       roles: ["admin"],
       badge: "Admin"
     },
-    { name: "Settings", path: "/profile", icon: Settings, roles: ["admin", "voter"] },
+    { 
+      name: "System Settings", 
+      path: "/admin/settings", 
+      icon: Settings, 
+      roles: ["admin"],
+      badge: "Admin"
+    },
+    { name: "Profile", path: "/profile", icon: User, roles: ["admin", "voter"] },
   ];
   
   // Filter menu items based on user roles
   const filteredMenuItems = menuItems.filter(item => {
     if (isAdmin && item.roles.includes("admin")) return true;
-    if (isVoter && item.roles.includes("voter")) return true;
+    if (isVoter && item.roles.includes("voter") && item.path !== "/profile") return true;
     // If no specific role is detected, show general menu items for authenticated users
     if (!isAdmin && !isVoter && !item.badge) return true;
     return false;

@@ -43,7 +43,7 @@ export const fetchElectionResults = async (electionId: string): Promise<Election
     
     // Find winner
     let winner = null;
-    if (totalVotes > 0) {
+    if (totalVotes > 0 && candidatesWithPercentages.length > 0) {
       winner = candidatesWithPercentages.reduce((prev, current) => {
         return prev.votes > current.votes ? prev : current;
       });
