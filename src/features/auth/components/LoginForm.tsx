@@ -150,14 +150,7 @@ const LoginForm = () => {
             </Button>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <div className="text-center text-sm">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-primary hover:underline">
-              Sign Up
-            </Link>
-          </div>
-        </CardFooter>
+        {/* Removed the duplicate footer with "Don't have an account?" as it's already in the Login.tsx page */}
       </form>
     </Card>
   );

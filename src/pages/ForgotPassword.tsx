@@ -9,35 +9,36 @@ import { useToast } from "@/hooks/use-toast";
 import PageLayout from "@/components/layout/PageLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, KeyRound, MailCheck } from "lucide-react";
+import { toast } from "sonner";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error, data } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       
       if (error) throw error;
       
       setIsSubmitted(true);
-      toast({
-        title: "Password reset email sent",
+      toast.success("Password reset email sent", {
         description: "Please check your email for the password reset link.",
+        duration: 5000,
       });
+      
+      console.log("Password reset email sent successfully:", data);
     } catch (error) {
       console.error("Password reset error:", error);
-      toast({
-        title: "Error",
+      toast.error("Failed to send password reset email", {
         description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
