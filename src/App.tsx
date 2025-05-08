@@ -39,12 +39,13 @@ import Blog from "./pages/Blog";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Contact from "./pages/Contact";
+import React from "react";
 
 /**
  * Main App component that sets up providers and routing
  */
 const App = () => {
-  // Initialize React Query client inside the component
+  // Initialize React Query client
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -55,65 +56,67 @@ const App = () => {
   });
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <RoleProvider>
-            {/* Toast notifications */}
-            <Toaster />
-            <Sonner />
-            
-            {/* Application routes */}
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/how-it-works" element={<HowItWorks />} />
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <RoleProvider>
+              {/* Toast notifications */}
+              <Toaster />
+              <Sonner />
               
-              {/* New public routes */}
-              <Route path="/security" element={<Security />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/contact" element={<Contact />} />
-              
-              {/* Public routes (only when logged out) */}
-              <Route element={<PublicOnlyRoute />}>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-              </Route>
-              
-              {/* Protected routes (require authentication) */}
-              <Route element={<ProtectedRoute />}>
-                {/* Dashboard layout for authenticated routes */}
-                <Route element={<DashboardLayout />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/elections" element={<Elections />} />
-                  <Route path="/elections/:electionId" element={<VotingPage />} />
-                  <Route path="/elections/:electionId/results" element={<ResultsPage />} />
-                  <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
-                  <Route path="/my-votes" element={<MyVotes />} />
-                  <Route path="/my-applications" element={<MyApplicationsPage />} />
-                  <Route path="/profile" element={<Profile />} />
-                  
-                  {/* Admin routes */}
-                  <Route element={<RoleProtectedRoute requiredRole="admin" />}>
-                    <Route path="/admin/users" element={<UsersManagement />} />
-                    <Route path="/admin/elections" element={<ElectionsManagement />} />
-                    <Route path="/admin/analytics" element={<Analytics />} />
-                    <Route path="/admin/settings" element={<SystemSettings />} />
+              {/* Application routes */}
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/how-it-works" element={<HowItWorks />} />
+                
+                {/* New public routes */}
+                <Route path="/security" element={<Security />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/contact" element={<Contact />} />
+                
+                {/* Public routes (only when logged out) */}
+                <Route element={<PublicOnlyRoute />}>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                </Route>
+                
+                {/* Protected routes (require authentication) */}
+                <Route element={<ProtectedRoute />}>
+                  {/* Dashboard layout for authenticated routes */}
+                  <Route element={<DashboardLayout />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/elections" element={<Elections />} />
+                    <Route path="/elections/:electionId" element={<VotingPage />} />
+                    <Route path="/elections/:electionId/results" element={<ResultsPage />} />
+                    <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
+                    <Route path="/my-votes" element={<MyVotes />} />
+                    <Route path="/my-applications" element={<MyApplicationsPage />} />
+                    <Route path="/profile" element={<Profile />} />
+                    
+                    {/* Admin routes */}
+                    <Route element={<RoleProtectedRoute requiredRole="admin" />}>
+                      <Route path="/admin/users" element={<UsersManagement />} />
+                      <Route path="/admin/elections" element={<ElectionsManagement />} />
+                      <Route path="/admin/analytics" element={<Analytics />} />
+                      <Route path="/admin/settings" element={<SystemSettings />} />
+                    </Route>
                   </Route>
                 </Route>
-              </Route>
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </RoleProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </RoleProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 };
 

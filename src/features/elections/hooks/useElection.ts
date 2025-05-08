@@ -86,7 +86,9 @@ export const useElection = (electionId: string | undefined) => {
           setHasVoted(true);
           
           // Get candidate details to map votes to positions
-          const votedCandidateIds = votes.map(vote => vote.candidate_id).filter(Boolean) as string[];
+          const votedCandidateIds = votes
+            .map(vote => vote?.candidate_id)
+            .filter(Boolean) as string[];
           
           if (votedCandidateIds.length > 0) {
             const { data: votedCandidates, error: candidateError } = await supabase
@@ -129,16 +131,10 @@ export const useElection = (electionId: string | undefined) => {
               // Extract position field from each abstained vote record if available
               const abstainedPositionsData = abstainedData
                 // Fix: Use type guard to ensure position property exists and is not null
-                .filter((vote) => {
+                .filter((vote): vote is { position: string } => {
                   return vote !== null && typeof vote === 'object' && 'position' in vote && vote.position !== null;
                 })
-                .map((vote) => {
-                  // Add explicit null check and type assertion
-                  if (vote !== null && typeof vote === 'object' && 'position' in vote) {
-                    return vote.position as string;
-                  }
-                  return '';
-                })
+                .map(vote => vote.position)
                 .filter(position => position !== ''); // Filter out any empty strings
               
               setAbstainedPositions(abstainedPositionsData);
