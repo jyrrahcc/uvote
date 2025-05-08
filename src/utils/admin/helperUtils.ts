@@ -42,7 +42,12 @@ export const checkColumnExists = async (tableName: string, columnName: string): 
   try {
     // Attempt to query the table with the column
     const query = `select ${columnName} from ${tableName} limit 1`;
-    const { error } = await supabase.rpc('execute_sql', { query_text: query });
+    
+    // Just try to run a query directly without using an RPC function that doesn't exist
+    const { error } = await supabase
+      .from(tableName)
+      .select(columnName)
+      .limit(1);
     
     // If no error, the column exists
     if (!error) return true;

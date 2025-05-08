@@ -42,7 +42,7 @@ export interface CandidateInsert {
   year_level?: string | null;
 }
 
-interface CandidateApplicationFormProps {
+interface CandidateFormProps {
   electionId: string;
   onCandidateAdded: (candidate: any) => void;
   onCancel: () => void;
@@ -52,7 +52,7 @@ const AddCandidateForm = ({
   electionId,
   onCandidateAdded, 
   onCancel 
-}: AddCandidateFormProps) => {
+}: CandidateFormProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);

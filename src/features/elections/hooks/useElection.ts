@@ -120,7 +120,7 @@ export const useElection = (electionId: string | undefined) => {
             if (abstainError) {
               console.error("Error fetching abstained positions:", abstainError);
               // If error is due to column not existing, just set empty array
-              if (abstainError.message.includes("column 'position' does not exist")) {
+              if (abstainError.message && abstainError.message.includes("column 'position' does not exist")) {
                 setAbstainedPositions([]);
               } else {
                 throw abstainError;
@@ -128,7 +128,7 @@ export const useElection = (electionId: string | undefined) => {
             } else if (abstainedData) {
               // Extract position field from each abstained vote record if available
               const abstainedPositionsData = abstainedData
-                .filter(vote => vote.position !== null && vote.position !== undefined)
+                .filter(vote => vote && typeof vote === 'object' && 'position' in vote && vote.position !== null)
                 .map(vote => vote.position as string);
               
               setAbstainedPositions(abstainedPositionsData);
