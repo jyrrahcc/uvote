@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Eye, Image, X } from "lucide-react";
+import { uploadFile } from "@/utils/imageUploadUtils";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -56,6 +58,7 @@ const AddCandidateForm = ({
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [positions, setPositions] = useState<string[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -184,50 +187,42 @@ const AddCandidateForm = ({
 
     try {
       setUploading(true);
+      setUploadProgress(10);
       
       // Create a temporary preview URL
       const objectUrl = URL.createObjectURL(file);
-      form.setValue("image_url", objectUrl);
+      setPreviewImage(objectUrl);
       
-      // Check if candidates bucket exists, create if not
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const candidatesBucketExists = buckets?.some(bucket => bucket.name === 'candidates');
+      setUploadProgress(25);
       
-      if (!candidatesBucketExists) {
-        await supabase.storage.createBucket('candidates', { 
-          public: true,
-          fileSizeLimit: 1024 * 1024 * 5 // 5MB limit
-        });
+      // Upload the file using our utility function
+      const { url, error } = await uploadFile('candidates', filePath, file, (progress) => {
+        setUploadProgress(25 + Math.floor(progress * 0.75)); // 25-100% based on upload progress
+      });
+      
+      if (error) {
+        throw error;
       }
       
-      // Upload the file to Supabase storage
-      const { error: uploadError, data } = await supabase.storage
-        .from('candidates')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-        
-      if (uploadError) {
-        throw uploadError;
+      if (!url) {
+        throw new Error('Failed to get URL for uploaded file');
       }
-
-      // Get the public URL
-      const { data: publicURL } = supabase.storage.from('candidates').getPublicUrl(filePath);
       
-      if (!publicURL) {
-        throw new Error('Could not generate public URL');
-      }
-
       // Update form with the URL
-      form.setValue("image_url", publicURL.publicUrl);
+      form.setValue("image_url", url);
+      setUploadProgress(100);
       
       toast.success("Campaign poster uploaded successfully");
     } catch (error) {
       console.error("Error uploading poster:", error);
-      toast.error("Failed to upload campaign poster");
+      toast.error(error instanceof Error ? error.message : "Failed to upload campaign poster");
+      // Clean up in case of error
+      form.setValue("image_url", "");
+      setPreviewImage(null);
     } finally {
       setUploading(false);
+      // Reset progress after a short delay
+      setTimeout(() => setUploadProgress(0), 1000);
     }
   };
 
@@ -239,6 +234,7 @@ const AddCandidateForm = ({
 
   const handleRemoveImage = () => {
     form.setValue("image_url", "");
+    setPreviewImage(null);
   };
 
   return (
@@ -360,11 +356,12 @@ const AddCandidateForm = ({
                     {uploading ? "Uploading..." : "Upload Campaign Poster"}
                   </Button>
 
-                  {field.value && (
+                  {(field.value || previewImage) && (
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => handlePreviewImage(field.value)}
+                      onClick={() => handlePreviewImage(field.value || previewImage || "")}
+                      disabled={uploading}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -380,10 +377,16 @@ const AddCandidateForm = ({
                   disabled={uploading}
                 />
                 
-                {field.value && (
+                {uploadProgress > 0 && uploading && (
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
+                    <div className="bg-primary h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                  </div>
+                )}
+                
+                {(field.value || previewImage) && (
                   <div className="mt-2 relative w-full h-48 border rounded-md overflow-hidden">
                     <img 
-                      src={field.value} 
+                      src={field.value || previewImage || ""} 
                       alt="Campaign poster preview" 
                       className="w-full h-full object-cover"
                     />

@@ -129,7 +129,7 @@ export const useElection = (electionId: string | undefined) => {
               // Extract position field from each abstained vote record if available
               const abstainedPositionsData = abstainedData
                 .filter(vote => vote && typeof vote === 'object' && 'position' in vote && vote.position !== null)
-                .map(vote => vote.position as string);
+                .map(vote => (vote as any).position as string);
               
               setAbstainedPositions(abstainedPositionsData);
             }

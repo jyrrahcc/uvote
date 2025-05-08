@@ -45,7 +45,7 @@ export const checkColumnExists = async (tableName: string, columnName: string): 
     
     // Just try to run a query directly without using an RPC function that doesn't exist
     const { error } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select(columnName)
       .limit(1);
     
