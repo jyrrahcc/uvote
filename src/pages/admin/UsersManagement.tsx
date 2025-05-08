@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -82,6 +83,7 @@ const UsersManagement = () => {
     role: "",
     action: "add"
   });
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const { assignRole, removeRole } = useRole();
   const { user: currentUser } = useAuth();
@@ -125,7 +127,11 @@ const UsersManagement = () => {
   };
 
   const handleToggleRole = async (userId: string, role: "admin" | "voter", hasRole: boolean) => {
+    if (isProcessing) return; // Prevent multiple clicks
+    
     try {
+      setIsProcessing(true);
+      
       setConfirmDialog({
         open: false,
         userId: "",
@@ -162,6 +168,11 @@ const UsersManagement = () => {
     } catch (error) {
       console.error(`Error toggling ${role} role:`, error);
       toast.error(`Failed to update user role`);
+    } finally {
+      // Add a small delay before enabling interactions again
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 500);
     }
   };
 
@@ -357,7 +368,11 @@ const UsersManagement = () => {
                           {user.id !== currentUser?.id ? (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  disabled={isProcessing}
+                                >
                                   <UserCog className="h-4 w-4" />
                                   <span className="sr-only">Open menu</span>
                                 </Button>
@@ -374,6 +389,7 @@ const UsersManagement = () => {
                                       role: "admin",
                                       action: "remove"
                                     })}
+                                    disabled={isProcessing}
                                   >
                                     <ShieldX className="mr-2 h-4 w-4" />
                                     Remove Admin Role
@@ -386,6 +402,7 @@ const UsersManagement = () => {
                                       role: "admin",
                                       action: "add"
                                     })}
+                                    disabled={isProcessing}
                                   >
                                     <ShieldCheck className="mr-2 h-4 w-4" />
                                     Make Admin
@@ -400,6 +417,7 @@ const UsersManagement = () => {
                                       role: "voter",
                                       action: "remove"
                                     })}
+                                    disabled={isProcessing}
                                   >
                                     <UserX className="mr-2 h-4 w-4" />
                                     Remove Voter Role
@@ -412,6 +430,7 @@ const UsersManagement = () => {
                                       role: "voter",
                                       action: "add"
                                     })}
+                                    disabled={isProcessing}
                                   >
                                     <UserCheck className="mr-2 h-4 w-4" />
                                     Make Voter
@@ -485,6 +504,7 @@ const UsersManagement = () => {
             <Button
               variant="ghost"
               onClick={() => setConfirmDialog(prev => ({...prev, open: false}))}
+              disabled={isProcessing}
             >
               Cancel
             </Button>
@@ -495,8 +515,16 @@ const UsersManagement = () => {
                 confirmDialog.role as "admin" | "voter", 
                 confirmDialog.action === 'remove'
               )}
+              disabled={isProcessing}
             >
-              {confirmDialog.action === 'add' ? 'Assign Role' : 'Remove Role'}
+              {isProcessing ? (
+                <>
+                  <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
+                  Processing...
+                </>
+              ) : (
+                confirmDialog.action === 'add' ? 'Assign Role' : 'Remove Role'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -108,20 +108,36 @@ export const useElection = (electionId: string | undefined) => {
           }
           
           // Check for abstained positions
-          const { data: abstainedData, error: abstainError } = await supabase
-            .from('votes')
-            .select('position')
-            .eq('election_id', electionId)
-            .eq('user_id', data.user.id)
-            .is('candidate_id', null);
+          // First check if the votes table has a position column
+          const { data: tableInfo } = await supabase
+            .rpc('get_column_info', { 
+              table_name: 'votes', 
+              column_name: 'position' 
+            });
           
-          if (abstainError) throw abstainError;
-          
-          if (abstainedData && abstainedData.length > 0) {
-            // Extract position field from each abstained vote record
-            setAbstainedPositions(abstainedData
-              .filter(vote => vote.position !== null)
-              .map(vote => vote.position));
+          // If position column exists in votes table, fetch abstained positions
+          if (tableInfo && tableInfo.length > 0) {
+            const { data: abstainedData, error: abstainError } = await supabase
+              .from('votes')
+              .select('position')
+              .eq('election_id', electionId)
+              .eq('user_id', data.user.id)
+              .is('candidate_id', null);
+            
+            if (abstainError) throw abstainError;
+            
+            if (abstainedData && abstainedData.length > 0) {
+              // Extract position field from each abstained vote record
+              const abstainedPositionsData = abstainedData
+                .filter(vote => vote.position !== null)
+                .map(vote => vote.position);
+              
+              setAbstainedPositions(abstainedPositionsData);
+            }
+          } else {
+            // Fallback if position column doesn't exist in votes table
+            console.log("Position column not found in votes table");
+            setAbstainedPositions([]);
           }
         }
         
