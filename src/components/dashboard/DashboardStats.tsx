@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import StatsCard from './StatsCard';
 import { supabase } from '@/integrations/supabase/client';
-import { Vote, LineVertical, BarChart, Award } from 'lucide-react';
+import { Vote, BarChart3, BarChart, Award } from 'lucide-react';
 
 const DashboardStats = () => {
   const [stats, setStats] = useState({
@@ -67,7 +67,7 @@ const DashboardStats = () => {
       <StatsCard 
         title="Total Votes"
         value={stats.totalVotes}
-        iconComponent={<LineVertical className="h-5 w-5" />}
+        iconComponent={<BarChart3 className="h-5 w-5" />}
         loading={loading}
         description="Total votes cast across all elections"
         color="bg-green-500"
