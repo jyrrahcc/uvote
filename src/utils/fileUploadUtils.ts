@@ -30,16 +30,13 @@ export const uploadFileToStorage = async (
 ): Promise<UploadResult> => {
   try {
     // Generate a unique file name to prevent collisions
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name.split('.').pop() || '';
     const fileName = `${uuidv4()}.${fileExt}`;
     
     // Create the full file path
     const filePath = folderPath 
       ? `${folderPath}/${fileName}`.replace(/\/+/g, '/') // Normalize path with single forward slashes
       : fileName;
-    
-    // Track upload progress
-    let prevProgress = 0;
     
     // Upload the file with progress tracking
     const { data, error } = await supabase.storage

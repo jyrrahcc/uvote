@@ -1,172 +1,154 @@
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Election, Candidate } from "@/types";
-import { fetchElectionDetails, updateElectionStatus } from "../services/electionService";
+import { Election } from "@/types";
 import { toast } from "sonner";
 
+interface ElectionState {
+  election: Election | null;
+  loading: boolean;
+  error: string | null;
+  votes: any[] | null;
+  votingStats: VotingStats | null;
+}
+
+interface VotingStats {
+  totalEligibleVoters: number;
+  totalVotesCast: number;
+  votingPercentage: number;
+  positionVoteCounts: Record<string, number>;
+}
+
 export const useElection = (electionId: string | undefined) => {
-  const [election, setElection] = useState<Election | null>(null);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasVoted, setHasVoted] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
-  const [accessCodeVerified, setAccessCodeVerified] = useState(false);
-  const [votedPositions, setVotedPositions] = useState<Record<string, string>>({});
-  const [abstainedPositions, setAbstainedPositions] = useState<string[]>([]);
+  const [state, setState] = useState<ElectionState>({
+    election: null,
+    loading: true,
+    error: null,
+    votes: null,
+    votingStats: null,
+  });
 
+  // Fetch election details
   useEffect(() => {
-    if (!electionId) return;
-
-    // Check for verified elections in localStorage
-    try {
-      const verifiedElections = JSON.parse(localStorage.getItem('verifiedElections') || '{}');
-      if (verifiedElections[electionId]) {
-        setAccessCodeVerified(true);
-      }
-    } catch (error) {
-      console.error("Error checking verified elections:", error);
+    if (!electionId) {
+      setState((prev) => ({ ...prev, loading: false }));
+      return;
     }
 
-    const fetchData = async () => {
+    const fetchElection = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        
         // Fetch election details
-        const electionData = await fetchElectionDetails(electionId);
-        
-        // Update election status if needed
-        const updatedElection = await updateElectionStatus(electionData);
-        setElection(updatedElection);
-        
-        // Fetch candidates
-        const { data: candidatesData, error: candidatesError } = await supabase
-          .from('candidates')
-          .select('*')
-          .eq('election_id', electionId)
-          .order('position', { ascending: true });
-        
-        if (candidatesError) throw candidatesError;
-        
-        setCandidates(candidatesData || []);
-        
-      } catch (error) {
-        console.error("Error in useElection hook:", error);
-        setError("Failed to load election data");
-        toast.error("Failed to load election data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [electionId]);
-  
-  // Check if the current user has voted in this election
-  useEffect(() => {
-    const checkVoteStatus = async () => {
-      if (!electionId) return;
-      
-      try {
-        const { data } = await supabase.auth.getUser();
-        if (!data || !data.user) return;
-        
-        const { data: votes, error } = await supabase
-          .from('votes')
-          .select('candidate_id, election_id')
-          .eq('election_id', electionId)
-          .eq('user_id', data.user.id);
-        
-        if (error) throw error;
-        
-        // Process votes to track which positions have been voted for
-        if (votes && votes.length > 0) {
-          setHasVoted(true);
-          
-          // Get candidate details to map votes to positions
-          const votedCandidateIds = votes
-            .map(vote => vote?.candidate_id)
-            .filter(Boolean) as string[];
-          
-          if (votedCandidateIds.length > 0) {
-            const { data: votedCandidates, error: candidateError } = await supabase
-              .from('candidates')
-              .select('id, position')
-              .in('id', votedCandidateIds);
-            
-            if (candidateError) throw candidateError;
-            
-            // Create a map of position -> candidateId
-            const positionVotes: Record<string, string> = {};
-            votedCandidates?.forEach(candidate => {
-              if (candidate.position) {
-                positionVotes[candidate.position] = candidate.id;
-              }
-            });
-            
-            setVotedPositions(positionVotes);
-          }
-          
-          // Check if position column exists in votes table
-          // Use a safer approach that doesn't rely on custom RPC functions
-          try {
-            const { data: abstainedData, error: abstainError } = await supabase
-              .from('votes')
-              .select('position')
-              .eq('election_id', electionId)
-              .eq('user_id', data.user.id)
-              .is('candidate_id', null);
-            
-            if (abstainError) {
-              console.error("Error fetching abstained positions:", abstainError);
-              // If error is due to column not existing, just set empty array
-              if (abstainError.message && abstainError.message.includes("column 'position' does not exist")) {
-                setAbstainedPositions([]);
-              } else {
-                throw abstainError;
-              }
-            } else if (abstainedData) {
-              // Extract position field from each abstained vote record if available
-              const abstainedPositionsData = abstainedData
-                // Fix: Use type guard to ensure position property exists and is not null
-                .filter((vote): vote is { position: string } => {
-                  return vote !== null && typeof vote === 'object' && 'position' in vote && vote.position !== null;
-                })
-                .map(vote => vote.position)
-                .filter(position => position !== ''); // Filter out any empty strings
-              
-              setAbstainedPositions(abstainedPositionsData);
-            }
-          } catch (error) {
-            console.error("Error handling abstained positions:", error);
-            setAbstainedPositions([]);
-          }
+        const { data: election, error } = await supabase
+          .from("elections")
+          .select("*")
+          .eq("id", electionId)
+          .single();
+
+        if (error) {
+          throw error;
         }
-        
-      } catch (error) {
-        console.error("Error checking vote status:", error);
+
+        if (!election) {
+          throw new Error("Election not found");
+        }
+
+        // Transform dates for easier display
+        const transformedElection = {
+          ...election,
+          start_date: new Date(election.start_date),
+          end_date: new Date(election.end_date),
+          candidacy_start_date: election.candidacy_start_date
+            ? new Date(election.candidacy_start_date)
+            : null,
+          candidacy_end_date: election.candidacy_end_date
+            ? new Date(election.candidacy_end_date)
+            : null,
+        };
+
+        // Fetch votes for this election
+        const { data: votes, error: votesError } = await supabase
+          .from("votes")
+          .select("*")
+          .eq("election_id", electionId);
+
+        if (votesError) {
+          console.error("Error fetching votes:", votesError);
+        }
+
+        // Calculate voting statistics
+        const votingStats = calculateVotingStats(transformedElection, votes || []);
+
+        setState({
+          election: transformedElection,
+          loading: false,
+          error: null,
+          votes: votes,
+          votingStats,
+        });
+      } catch (error: any) {
+        console.error("Error fetching election:", error);
+        setState({
+          election: null,
+          loading: false,
+          error: error.message || "Failed to load election details",
+          votes: null,
+          votingStats: null,
+        });
+        toast.error("Failed to load election details");
       }
     };
-    
-    checkVoteStatus();
+
+    fetchElection();
   }, [electionId]);
-  
-  return {
-    election,
-    candidates,
-    loading,
-    error,
-    hasVoted,
-    setHasVoted,
-    selectedCandidate,
-    setSelectedCandidate,
-    accessCodeVerified,
-    setAccessCodeVerified,
-    votedPositions,
-    setVotedPositions,
-    abstainedPositions,
-    setAbstainedPositions
+
+  // Calculate voting statistics
+  const calculateVotingStats = (election: Election, votes: any[]): VotingStats => {
+    // Default stats
+    const stats: VotingStats = {
+      totalEligibleVoters: election.total_eligible_voters || 0,
+      totalVotesCast: 0,
+      votingPercentage: 0,
+      positionVoteCounts: {},
+    };
+
+    if (!votes || votes.length === 0) {
+      return stats;
+    }
+
+    // Count unique voters
+    const uniqueVoters = new Set<string>();
+    
+    // Position vote counts
+    const positionVoteCounts: Record<string, number> = {};
+
+    // Process votes
+    votes.forEach((vote) => {
+      // Skip if vote data is malformed
+      if (!vote || !vote.user_id) return;
+      
+      // Count unique voters
+      uniqueVoters.add(vote.user_id);
+      
+      // Count votes per position if position exists in vote
+      if (vote && typeof vote.position === 'string') {
+        if (!positionVoteCounts[vote.position]) {
+          positionVoteCounts[vote.position] = 0;
+        }
+        positionVoteCounts[vote.position]++;
+      }
+    });
+
+    // Update stats
+    stats.totalVotesCast = uniqueVoters.size;
+    stats.votingPercentage = stats.totalEligibleVoters 
+      ? (stats.totalVotesCast / stats.totalEligibleVoters) * 100 
+      : 0;
+    stats.positionVoteCounts = positionVoteCounts;
+
+    return stats;
   };
+
+  return state;
 };
+
+export default useElection;
