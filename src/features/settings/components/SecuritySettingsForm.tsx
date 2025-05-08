@@ -50,7 +50,7 @@ const SecuritySettingsForm = () => {
         if (error) throw error;
         
         if (data) {
-          const parsedSettings = JSON.parse(data.settings_value);
+          const parsedSettings = JSON.parse(data.settings_value as string);
           setSettings({
             requireVerification: parsedSettings.requireVerification ?? settings.requireVerification,
             maxLoginAttempts: parsedSettings.maxLoginAttempts || settings.maxLoginAttempts,

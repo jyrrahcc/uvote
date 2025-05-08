@@ -25,7 +25,7 @@ const ResultsChart = ({ result }: ResultsChartProps) => {
   }
 
   // Format data for the chart
-  const data = result.candidates.map((candidate, index) => ({
+  const data = result.candidates.map((candidate) => ({
     name: candidate.name,
     value: candidate.votes,
     percentage: candidate.percentage

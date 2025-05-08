@@ -1,24 +1,35 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import React from "react";
 
-interface StatsCardProps {
+export interface StatsCardProps {
   title: string;
-  value: string | number;
+  value: number;
+  iconComponent: React.ReactNode;
   loading: boolean;
+  description: string;
+  color: string;
 }
 
-const StatsCard = ({ title, value, loading }: StatsCardProps) => {
+const StatsCard = ({ title, value, iconComponent, loading, description, color }: StatsCardProps) => {
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">
-          {loading ? "..." : value}
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            {loading ? (
+              <Skeleton className="h-8 w-20 mt-1" />
+            ) : (
+              <p className="text-3xl font-bold">{value}</p>
+            )}
+          </div>
+          <div className={`p-2 rounded-full ${color}`}>
+            {iconComponent}
+          </div>
         </div>
+        <p className="mt-4 text-xs text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
   );

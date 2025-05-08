@@ -234,6 +234,30 @@ export type Database = {
         }
         Relationships: []
       }
+      settings: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          settings_value: Json
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          settings_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          settings_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

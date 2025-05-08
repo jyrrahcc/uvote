@@ -51,7 +51,7 @@ const GeneralSettingsForm = () => {
         if (error) throw error;
         
         if (data) {
-          const parsedSettings = JSON.parse(data.settings_value);
+          const parsedSettings = JSON.parse(data.settings_value as string);
           setSettings({
             siteName: parsedSettings.siteName || settings.siteName,
             siteUrl: parsedSettings.siteUrl || settings.siteUrl,

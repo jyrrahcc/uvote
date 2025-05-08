@@ -10,6 +10,7 @@ import { fetchElectionDetails } from "../services/electionService";
 import { fetchElectionResults } from "../services/resultService";
 import ElectionHeader from "../components/ElectionHeader";
 import { Card } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 const ResultsPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
@@ -50,7 +51,14 @@ const ResultsPage = () => {
   };
 
   if (loading) {
-    return <div className="text-center py-10">Loading election results...</div>;
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <div className="text-lg font-medium">Loading election results...</div>
+        </div>
+      </div>
+    );
   }
 
   if (error || !election) {

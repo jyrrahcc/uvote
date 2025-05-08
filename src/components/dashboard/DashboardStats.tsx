@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import StatsCard from './StatsCard';
 import { supabase } from '@/integrations/supabase/client';
-import { Vote, LineUpVertical, BarChart, Award } from 'lucide-react';
+import { Vote, LineVertical, BarChart, Award } from 'lucide-react';
 
 const DashboardStats = () => {
   const [stats, setStats] = useState({
@@ -59,7 +59,7 @@ const DashboardStats = () => {
       <StatsCard 
         title="Active Elections"
         value={stats.activeElections}
-        icon={<Vote className="h-5 w-5" />}
+        iconComponent={<Vote className="h-5 w-5" />}
         loading={loading}
         description="Elections currently in progress"
         color="bg-blue-500"
@@ -67,7 +67,7 @@ const DashboardStats = () => {
       <StatsCard 
         title="Total Votes"
         value={stats.totalVotes}
-        icon={<LineUpVertical className="h-5 w-5" />}
+        iconComponent={<LineVertical className="h-5 w-5" />}
         loading={loading}
         description="Total votes cast across all elections"
         color="bg-green-500"
@@ -75,7 +75,7 @@ const DashboardStats = () => {
       <StatsCard 
         title="All Elections"
         value={stats.totalElections}
-        icon={<BarChart className="h-5 w-5" />}
+        iconComponent={<BarChart className="h-5 w-5" />}
         loading={loading}
         description="Total number of elections"
         color="bg-purple-500"
@@ -83,7 +83,7 @@ const DashboardStats = () => {
       <StatsCard 
         title="Completed Elections"
         value={stats.completedElections}
-        icon={<Award className="h-5 w-5" />}
+        iconComponent={<Award className="h-5 w-5" />}
         loading={loading}
         description="Elections that have concluded"
         color="bg-amber-500"
