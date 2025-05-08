@@ -52,17 +52,23 @@ export const useElection = (electionId: string | undefined) => {
           throw new Error("Election not found");
         }
 
-        // Transform dates for easier display
-        const transformedElection = {
-          ...election,
-          start_date: new Date(election.start_date),
-          end_date: new Date(election.end_date),
-          candidacy_start_date: election.candidacy_start_date
-            ? new Date(election.candidacy_start_date)
-            : null,
-          candidacy_end_date: election.candidacy_end_date
-            ? new Date(election.candidacy_end_date)
-            : null,
+        // Transform dates for easier display and map DB fields to our Election type
+        const transformedElection: Election = {
+          id: election.id,
+          title: election.title,
+          description: election.description || '',
+          startDate: new Date(election.start_date),
+          endDate: new Date(election.end_date),
+          candidacyStartDate: election.candidacy_start_date ? new Date(election.candidacy_start_date) : null,
+          candidacyEndDate: election.candidacy_end_date ? new Date(election.candidacy_end_date) : null,
+          status: election.status || 'upcoming',
+          department: election.department || '',
+          isPrivate: !!election.is_private,
+          accessCode: election.access_code || null,
+          totalEligibleVoters: election.total_eligible_voters || 0,
+          createdBy: election.created_by || '',
+          createdAt: election.created_at || '',
+          updatedAt: election.updated_at || ''
         };
 
         // Fetch votes for this election
@@ -105,7 +111,7 @@ export const useElection = (electionId: string | undefined) => {
   const calculateVotingStats = (election: Election, votes: any[]): VotingStats => {
     // Default stats
     const stats: VotingStats = {
-      totalEligibleVoters: election.total_eligible_voters || 0,
+      totalEligibleVoters: election.totalEligibleVoters || 0,
       totalVotesCast: 0,
       votingPercentage: 0,
       positionVoteCounts: {},
