@@ -24,7 +24,7 @@ const Logo = ({ size = 'medium', className }: LogoProps) => {
       <University className={cn(sizeClass, "text-[#008f50]")} />
       {size !== 'small' && (
         <span className={cn("font-bold ml-2", textClass)}>
-          DLSU-D Voting
+          uVote
         </span>
       )}
     </div>
