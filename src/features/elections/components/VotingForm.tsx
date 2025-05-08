@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 
 interface VotingFormProps {
   electionId: string;
-  candidates: Candidate[];
+  candidates: Candidate[] | null;
   userId: string;
   hasVoted: boolean;
   selectedCandidateId: string | null;
@@ -39,12 +38,15 @@ const VotingForm = ({
   const positionGroups = useMemo(() => {
     const groups: { [key: string]: Candidate[] } = {};
     
-    candidates.forEach((candidate) => {
-      if (!groups[candidate.position]) {
-        groups[candidate.position] = [];
-      }
-      groups[candidate.position].push(candidate);
-    });
+    // Make sure candidates is an array before calling forEach
+    if (Array.isArray(candidates)) {
+      candidates.forEach((candidate) => {
+        if (!groups[candidate.position]) {
+          groups[candidate.position] = [];
+        }
+        groups[candidate.position].push(candidate);
+      });
+    }
     
     return groups;
   }, [candidates]);

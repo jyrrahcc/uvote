@@ -1,4 +1,3 @@
-
 /**
  * Election type definition
  */
@@ -8,17 +7,18 @@ export interface Election {
   description: string;
   startDate: string;
   endDate: string;
-  candidacyStartDate?: string;
-  candidacyEndDate?: string;
+  candidacyStartDate?: string | null;
+  candidacyEndDate?: string | null;
   status: 'upcoming' | 'active' | 'completed';
   createdBy: string;
   createdAt: string;
   updatedAt: string;
   isPrivate: boolean;
-  accessCode?: string;
+  accessCode?: string | null;
   restrictVoting?: boolean;
   department?: string; // Added department field for DLSU-D context
   positions?: string[]; // Added positions array
+  totalEligibleVoters?: number; // Add totalEligibleVoters field
 }
 
 /**
@@ -82,6 +82,7 @@ export interface DbElection {
   restrict_voting?: boolean | null;
   department?: string | null;
   positions?: string[] | null; // Added positions array
+  total_eligible_voters?: number | null; // Added total_eligible_voters field
 }
 
 /**
@@ -99,17 +100,18 @@ export const mapDbElectionToElection = (dbElection: DbElection): Election => {
     description: dbElection.description || '',
     startDate: dbElection.start_date,
     endDate: dbElection.end_date,
-    candidacyStartDate: dbElection.candidacy_start_date || undefined,
-    candidacyEndDate: dbElection.candidacy_end_date || undefined,
+    candidacyStartDate: dbElection.candidacy_start_date || null,
+    candidacyEndDate: dbElection.candidacy_end_date || null,
     status: typedStatus,
     createdBy: dbElection.created_by || '',
     createdAt: dbElection.created_at || '',
     updatedAt: dbElection.updated_at || '',
     isPrivate: dbElection.is_private || false,
-    accessCode: dbElection.access_code || undefined,
+    accessCode: dbElection.access_code || null,
     restrictVoting: dbElection.restrict_voting || false,
-    department: dbElection.department || undefined,
-    positions: dbElection.positions || undefined
+    department: dbElection.department || '',
+    positions: dbElection.positions || [],
+    totalEligibleVoters: dbElection.total_eligible_voters || 0
   };
 };
 
@@ -129,5 +131,6 @@ export const mapElectionToDbElection = (election: Election): DbElection => ({
   access_code: election.accessCode || null,
   restrict_voting: election.restrictVoting || false,
   department: election.department || null,
-  positions: election.positions || []
+  positions: election.positions || [],
+  total_eligible_voters: election.totalEligibleVoters || 0
 });

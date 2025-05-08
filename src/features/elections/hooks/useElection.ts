@@ -10,6 +10,13 @@ interface ElectionState {
   error: string | null;
   votes: any[] | null;
   votingStats: VotingStats | null;
+  candidates: any[] | null;
+  hasVoted: boolean;
+  selectedCandidate: string | null;
+  setSelectedCandidate: (candidateId: string) => void;
+  setHasVoted: (hasVoted: boolean) => void;
+  accessCodeVerified: boolean;
+  setAccessCodeVerified: (verified: boolean) => void;
 }
 
 interface VotingStats {
@@ -20,18 +27,20 @@ interface VotingStats {
 }
 
 export const useElection = (electionId: string | undefined) => {
-  const [state, setState] = useState<ElectionState>({
-    election: null,
-    loading: true,
-    error: null,
-    votes: null,
-    votingStats: null,
-  });
+  const [election, setElection] = useState<Election | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [votes, setVotes] = useState<any[] | null>(null);
+  const [votingStats, setVotingStats] = useState<VotingStats | null>(null);
+  const [candidates, setCandidates] = useState<any[] | null>([]);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
+  const [accessCodeVerified, setAccessCodeVerified] = useState(false);
 
   // Fetch election details
   useEffect(() => {
     if (!electionId) {
-      setState((prev) => ({ ...prev, loading: false }));
+      setLoading(false);
       return;
     }
 
@@ -57,22 +66,33 @@ export const useElection = (electionId: string | undefined) => {
           id: election.id,
           title: election.title,
           description: election.description || '',
-          startDate: new Date(election.start_date),
-          endDate: new Date(election.end_date),
-          candidacyStartDate: election.candidacy_start_date ? new Date(election.candidacy_start_date) : null,
-          candidacyEndDate: election.candidacy_end_date ? new Date(election.candidacy_end_date) : null,
-          status: election.status || 'upcoming',
+          startDate: election.start_date,
+          endDate: election.end_date,
+          candidacyStartDate: election.candidacy_start_date || undefined,
+          candidacyEndDate: election.candidacy_end_date || undefined,
+          status: election.status === 'active' ? 'active' : 
+                 election.status === 'completed' ? 'completed' : 'upcoming',
           department: election.department || '',
           isPrivate: !!election.is_private,
-          accessCode: election.access_code || null,
-          totalEligibleVoters: election.total_eligible_voters || 0,
+          accessCode: election.access_code || undefined,
+          restrictVoting: !!election.restrict_voting,
           createdBy: election.created_by || '',
           createdAt: election.created_at || '',
           updatedAt: election.updated_at || ''
         };
 
+        // Fetch candidates for this election
+        const { data: candidatesData, error: candidatesError } = await supabase
+          .from("candidates")
+          .select("*")
+          .eq("election_id", electionId);
+
+        if (candidatesError) {
+          console.error("Error fetching candidates:", candidatesError);
+        }
+
         // Fetch votes for this election
-        const { data: votes, error: votesError } = await supabase
+        const { data: votesData, error: votesError } = await supabase
           .from("votes")
           .select("*")
           .eq("election_id", electionId);
@@ -81,25 +101,24 @@ export const useElection = (electionId: string | undefined) => {
           console.error("Error fetching votes:", votesError);
         }
 
-        // Calculate voting statistics
-        const votingStats = calculateVotingStats(transformedElection, votes || []);
+        // Check if user has voted
+        if (votesData && votesData.length > 0) {
+          setHasVoted(true);
+        }
 
-        setState({
-          election: transformedElection,
-          loading: false,
-          error: null,
-          votes: votes,
-          votingStats,
-        });
+        // Calculate voting statistics
+        const stats = calculateVotingStats(transformedElection, votesData || []);
+
+        setElection(transformedElection);
+        setCandidates(candidatesData || []);
+        setVotes(votesData);
+        setVotingStats(stats);
+        setLoading(false);
+        setError(null);
       } catch (error: any) {
         console.error("Error fetching election:", error);
-        setState({
-          election: null,
-          loading: false,
-          error: error.message || "Failed to load election details",
-          votes: null,
-          votingStats: null,
-        });
+        setLoading(false);
+        setError(error.message || "Failed to load election details");
         toast.error("Failed to load election details");
       }
     };
@@ -111,7 +130,7 @@ export const useElection = (electionId: string | undefined) => {
   const calculateVotingStats = (election: Election, votes: any[]): VotingStats => {
     // Default stats
     const stats: VotingStats = {
-      totalEligibleVoters: election.totalEligibleVoters || 0,
+      totalEligibleVoters: 0, // Will be updated if available
       totalVotesCast: 0,
       votingPercentage: 0,
       positionVoteCounts: {},
@@ -154,7 +173,20 @@ export const useElection = (electionId: string | undefined) => {
     return stats;
   };
 
-  return state;
+  return {
+    election,
+    loading,
+    error,
+    votes,
+    votingStats,
+    candidates,
+    hasVoted,
+    selectedCandidate,
+    setSelectedCandidate,
+    setHasVoted,
+    accessCodeVerified,
+    setAccessCodeVerified
+  };
 };
 
 export default useElection;
