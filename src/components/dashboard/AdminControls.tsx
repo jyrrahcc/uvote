@@ -8,8 +8,6 @@ import {
   BarChart, 
   Shield, 
   Settings, 
-  LineChart, 
-  List, 
   ArrowRight,
   University
 } from "lucide-react";
@@ -128,7 +126,7 @@ const AdminControls = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-5 mt-4">
         <Card className="hover:shadow-md transition-shadow border-muted/60">
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between">
@@ -150,32 +148,6 @@ const AdminControls = () => {
               className="w-full justify-between"
             >
               System Settings
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow border-muted/60">
-          <CardHeader className="pb-2">
-            <div className="flex items-start justify-between">
-              <CardTitle className="flex items-center text-lg">
-                <LineChart className="mr-2 h-5 w-5 text-[#008f50]" />
-                Election Results
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm mb-4">
-              View comprehensive reports and statistics for all completed elections across all colleges and departments.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              variant="outline"
-              onClick={() => navigate("/admin/results")} 
-              className="w-full justify-between"
-            >
-              View Results
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </CardFooter>
