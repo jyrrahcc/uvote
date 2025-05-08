@@ -41,9 +41,7 @@ export const generateAccessCode = (length: number = 6): string => {
 export const checkColumnExists = async (tableName: string, columnName: string): Promise<boolean> => {
   try {
     // Attempt to query the table with the column
-    const query = `select ${columnName} from ${tableName} limit 1`;
-    
-    // Just try to run a query directly without using an RPC function that doesn't exist
+    // Use a direct query instead of an RPC function that doesn't exist
     const { error } = await supabase
       .from(tableName as any)
       .select(columnName)

@@ -128,8 +128,16 @@ export const useElection = (electionId: string | undefined) => {
             } else if (abstainedData) {
               // Extract position field from each abstained vote record if available
               const abstainedPositionsData = abstainedData
-                .filter(vote => vote && typeof vote === 'object' && 'position' in vote && vote.position !== null)
-                .map(vote => (vote as any).position as string);
+                // Fix: Use type guard to ensure position property exists and is not null
+                .filter(vote => vote !== null && typeof vote === 'object' && 'position' in vote && vote.position !== null)
+                .map(vote => {
+                  // Add explicit null check and type assertion
+                  if (vote !== null && typeof vote === 'object' && 'position' in vote) {
+                    return vote.position as string;
+                  }
+                  return '';
+                })
+                .filter(position => position !== ''); // Filter out any empty strings
               
               setAbstainedPositions(abstainedPositionsData);
             }
