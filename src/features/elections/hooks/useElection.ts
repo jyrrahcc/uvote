@@ -107,16 +107,9 @@ export const useElection = (electionId: string | undefined) => {
             setVotedPositions(positionVotes);
           }
           
-          // Check for abstained positions
-          // First check if the votes table has a position column
-          const { data: tableInfo } = await supabase
-            .rpc('get_column_info', { 
-              table_name: 'votes', 
-              column_name: 'position' 
-            });
-          
-          // If position column exists in votes table, fetch abstained positions
-          if (tableInfo && tableInfo.length > 0) {
+          // Check if position column exists in votes table
+          // Use a safer approach that doesn't rely on custom RPC functions
+          try {
             const { data: abstainedData, error: abstainError } = await supabase
               .from('votes')
               .select('position')
@@ -124,19 +117,24 @@ export const useElection = (electionId: string | undefined) => {
               .eq('user_id', data.user.id)
               .is('candidate_id', null);
             
-            if (abstainError) throw abstainError;
-            
-            if (abstainedData && abstainedData.length > 0) {
-              // Extract position field from each abstained vote record
+            if (abstainError) {
+              console.error("Error fetching abstained positions:", abstainError);
+              // If error is due to column not existing, just set empty array
+              if (abstainError.message.includes("column 'position' does not exist")) {
+                setAbstainedPositions([]);
+              } else {
+                throw abstainError;
+              }
+            } else if (abstainedData) {
+              // Extract position field from each abstained vote record if available
               const abstainedPositionsData = abstainedData
-                .filter(vote => vote.position !== null)
-                .map(vote => vote.position);
+                .filter(vote => vote.position !== null && vote.position !== undefined)
+                .map(vote => vote.position as string);
               
               setAbstainedPositions(abstainedPositionsData);
             }
-          } else {
-            // Fallback if position column doesn't exist in votes table
-            console.log("Position column not found in votes table");
+          } catch (error) {
+            console.error("Error handling abstained positions:", error);
             setAbstainedPositions([]);
           }
         }

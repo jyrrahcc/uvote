@@ -173,7 +173,7 @@ const Profile = () => {
                 <div className="space-y-2">
                   <Label htmlFor="department">College/Department</Label>
                   <Select
-                    value={department}
+                    value={department || "not-specified"}
                     onValueChange={setDepartment}
                   >
                     <SelectTrigger id="department">
@@ -190,7 +190,7 @@ const Profile = () => {
                 <div className="space-y-2">
                   <Label htmlFor="yearLevel">Year Level</Label>
                   <Select
-                    value={yearLevel}
+                    value={yearLevel || "not-specified"}
                     onValueChange={setYearLevel}
                   >
                     <SelectTrigger id="yearLevel">

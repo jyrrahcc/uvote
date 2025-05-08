@@ -63,14 +63,14 @@ const VoterSearch = ({
           Filter by College/Department
         </label>
         <Select 
-          value={departmentFilter || ""} 
-          onValueChange={(value) => setDepartmentFilter(value || null)}
+          value={departmentFilter || "all"} 
+          onValueChange={(value) => setDepartmentFilter(value === "all" ? null : value)}
         >
           <SelectTrigger id="dept-filter">
             <SelectValue placeholder="All Departments" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Departments</SelectItem>
+            <SelectItem value="all">All Departments</SelectItem>
             {DLSU_DEPARTMENTS.map(dept => (
               <SelectItem key={dept} value={dept}>{dept}</SelectItem>
             ))}
@@ -83,14 +83,14 @@ const VoterSearch = ({
           Filter by Year Level
         </label>
         <Select 
-          value={yearFilter || ""} 
-          onValueChange={(value) => setYearFilter(value || null)}
+          value={yearFilter || "all"} 
+          onValueChange={(value) => setYearFilter(value === "all" ? null : value)}
         >
           <SelectTrigger id="year-filter">
             <SelectValue placeholder="All Years" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Years</SelectItem>
+            <SelectItem value="all">All Years</SelectItem>
             {YEAR_LEVELS.map(year => (
               <SelectItem key={year} value={year}>{year}</SelectItem>
             ))}

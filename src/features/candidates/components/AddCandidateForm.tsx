@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +42,7 @@ export interface CandidateInsert {
   year_level?: string | null;
 }
 
-interface AddCandidateFormProps {
+interface CandidateApplicationFormProps {
   electionId: string;
   onCandidateAdded: (candidate: any) => void;
   onCancel: () => void;

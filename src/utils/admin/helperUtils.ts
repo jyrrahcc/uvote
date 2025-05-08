@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -35,31 +36,27 @@ export const generateAccessCode = (length: number = 6): string => {
 };
 
 /**
- * Add a simple RPC function to check if a column exists in a table
+ * Check if a column exists in a table - simplified approach
  */
-export const createGetColumnInfoFunction = async () => {
+export const checkColumnExists = async (tableName: string, columnName: string): Promise<boolean> => {
   try {
-    const { error } = await supabase.rpc('get_column_info', { 
-      table_name: 'votes',
-      column_name: 'id'
-    });
+    // Attempt to query the table with the column
+    const query = `select ${columnName} from ${tableName} limit 1`;
+    const { error } = await supabase.rpc('execute_sql', { query_text: query });
     
-    // If we get a specific error about the function not existing, create it
-    if (error && error.message.includes('does not exist')) {
-      const { error: createError } = await supabase.rpc('create_get_column_info_function');
-      
-      if (createError) {
-        console.error('Failed to create get_column_info function:', createError);
-        return false;
-      }
-      
-      return true;
+    // If no error, the column exists
+    if (!error) return true;
+    
+    // If error message indicates column doesn't exist
+    if (error.message && error.message.includes(`column "${columnName}" does not exist`)) {
+      return false;
     }
     
-    // Function already exists
-    return true;
+    // For other errors, log and assume column doesn't exist
+    console.error("Error checking column existence:", error);
+    return false;
   } catch (error) {
-    console.error('Error checking column info function:', error);
+    console.error("Exception checking column existence:", error);
     return false;
   }
 };
