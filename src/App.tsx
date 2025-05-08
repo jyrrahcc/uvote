@@ -13,14 +13,18 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Elections from "./pages/Elections";
 import MyVotes from "./pages/MyVotes";
+import MyApplications from "./pages/MyApplications";
 import Profile from "./pages/Profile";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminElections from "./pages/admin/AdminElections";
+import AnalyticsDashboard from "./pages/admin/AnalyticsDashboard";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
-import { Loader } from "@/components/ui/skeleton";
+import { Loader } from "@/components/ui/loader";
 
 function App() {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +47,7 @@ function App() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader className="h-8 w-8" />
+        <Loader size="lg" />
       </div>
     );
   }
@@ -68,12 +72,13 @@ function App() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="elections" element={<Elections />} />
               <Route path="my-votes" element={<MyVotes />} />
+              <Route path="my-applications" element={<MyApplications />} />
               <Route path="profile" element={<Profile />} />
 
               {/* Admin Routes */}
-              <Route path="admin/users" element={<div>Admin Users</div>} />
-              <Route path="admin/elections" element={<div>Admin Elections</div>} />
-              <Route path="admin/analytics" element={<div>Admin Analytics</div>} />
+              <Route path="admin/users" element={<AdminUsers />} />
+              <Route path="admin/elections" element={<AdminElections />} />
+              <Route path="admin/analytics" element={<AnalyticsDashboard />} />
             </Route>
           </Routes>
         </Router>
