@@ -17,12 +17,16 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import CampaignPosterUpload from "./CampaignPosterUpload";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   bio: z.string().min(10, { message: "Bio must be at least 10 characters" }),
   position: z.string().min(2, { message: "Position must be at least 2 characters" }),
   image_url: z.string().optional(),
+  student_id: z.string().optional(),
+  department: z.string().optional(),
+  year_level: z.string().optional(),
 });
 
 interface CandidateRegistrationFormProps {
@@ -49,7 +53,10 @@ const CandidateRegistrationForm = ({
         : "",
       bio: "",
       position: "",
-      image_url: user?.user_metadata?.avatar_url || "",
+      image_url: "",
+      student_id: user?.user_metadata?.student_id || "",
+      department: user?.user_metadata?.department || "",
+      year_level: user?.user_metadata?.year_level || "",
     },
   });
 
@@ -62,6 +69,9 @@ const CandidateRegistrationForm = ({
         bio: values.bio,
         position: values.position,
         image_url: values.image_url || null,
+        student_id: values.student_id || null,
+        department: values.department || null,
+        year_level: values.year_level || null,
         election_id: electionId,
         created_by: userId
       };
@@ -121,6 +131,50 @@ const CandidateRegistrationForm = ({
         
         <FormField
           control={form.control}
+          name="student_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Student ID</FormLabel>
+              <FormControl>
+                <Input placeholder="Your student ID (optional)" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department/College</FormLabel>
+                <FormControl>
+                  <Input placeholder="Your department (optional)" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="year_level"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Year Level</FormLabel>
+                <FormControl>
+                  <Input placeholder="Your year level (optional)" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <FormField
+          control={form.control}
           name="bio"
           render={({ field }) => (
             <FormItem>
@@ -142,9 +196,13 @@ const CandidateRegistrationForm = ({
           name="image_url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Profile Image URL</FormLabel>
+              <FormLabel>Campaign Poster</FormLabel>
               <FormControl>
-                <Input placeholder="URL to your profile image (optional)" {...field} />
+                <CampaignPosterUpload 
+                  value={field.value || ""} 
+                  onChange={field.onChange}
+                  error={form.formState.errors.image_url?.message}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,104 +12,38 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useAuth } from "@/features/auth/context/AuthContext";
-import { Eye, Image, X } from "lucide-react";
-import { uploadFile } from "@/utils/imageUploadUtils";
+import { Candidate } from "@/types";
+import CampaignPosterUpload from "./CampaignPosterUpload";
+
+// Adding the missing interface definition
+interface AddCandidateFormProps {
+  electionId: string;
+  onCandidateAdded: (candidate: Candidate | Candidate[]) => void;
+  onCancel: () => void;
+}
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  bio: z.string().min(10, { message: "Bio must be at least 10 characters" }),
   position: z.string().min(2, { message: "Position must be at least 2 characters" }),
+  bio: z.string().min(10, { message: "Bio must be at least 10 characters" }).max(500, { message: "Bio must not exceed 500 characters" }),
   image_url: z.string().optional(),
   student_id: z.string().optional(),
   department: z.string().optional(),
   year_level: z.string().optional(),
 });
 
-// Define typescript-compatible interface that matches the candidate table structure
-export interface CandidateInsert {
-  name: string;
-  bio: string;
-  position: string;
-  image_url: string | null;
-  election_id: string;
-  created_by: string;
-  student_id?: string | null;
-  department?: string | null;
-  year_level?: string | null;
-}
-
-interface CandidateFormProps {
-  electionId: string;
-  onCandidateAdded: (candidate: any) => void;
-  onCancel: () => void;
-}
-
-const AddCandidateForm = ({ 
-  electionId,
-  onCandidateAdded, 
-  onCancel 
-}: CandidateFormProps) => {
-  const { user } = useAuth();
+const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandidateFormProps) => {
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [positions, setPositions] = useState<string[]>([]);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
-  
-  // Fetch available positions for this election
-  useEffect(() => {
-    const fetchPositions = async () => {
-      try {
-        console.log("Fetching positions for election ID:", electionId);
-        const { data, error } = await supabase
-          .from('elections')
-          .select('positions')
-          .eq('id', electionId)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching positions:", error);
-          return;
-        }
-        
-        console.log("Positions data:", data);
-        
-        // If positions is defined and is an array, use it
-        if (data && Array.isArray(data.positions)) {
-          setPositions(data.positions);
-        } else {
-          // Default positions if none are defined
-          setPositions([
-            "President",
-            "Vice President",
-            "Secretary",
-            "Treasurer",
-            "Public Relations Officer",
-            "Senator",
-            "Governor",
-            "Department Representative"
-          ]);
-        }
-      } catch (error) {
-        console.error("Error in fetchPositions:", error);
-      }
-    };
-    
-    fetchPositions();
-  }, [electionId]);
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      bio: "",
       position: "",
+      bio: "",
       image_url: "",
       student_id: "",
       department: "",
@@ -118,54 +51,35 @@ const AddCandidateForm = ({
     },
   });
 
-  const handleAddCandidate = async (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
-      
-      console.log("Adding candidate to election ID:", electionId);
-      console.log("Candidate data:", values);
-      
-      if (!user) {
-        throw new Error("User must be logged in to add a candidate");
-      }
-      
-      const newCandidate: CandidateInsert = {
+
+      const newCandidate = {
         name: values.name,
-        bio: values.bio,
         position: values.position,
+        bio: values.bio,
         image_url: values.image_url || null,
         election_id: electionId,
-        created_by: user.id,
         student_id: values.student_id || null,
         department: values.department || null,
-        year_level: values.year_level || null
+        year_level: values.year_level || null,
       };
-      
-      console.log("Final candidate object:", newCandidate);
-      
-      // Using generic syntax for Supabase to avoid type errors
+
       const { data, error } = await supabase
         .from('candidates')
         .insert(newCandidate)
         .select();
-      
-      if (error) {
-        console.error("Error response from Supabase:", error);
-        throw error;
-      }
-      
-      console.log("Supabase response:", data);
-      
+
+      if (error) throw error;
+
       toast.success("Candidate added successfully");
       form.reset();
-      
-      // Update parent component
+      onCancel();
+
       if (data) {
-        // Type casting to match our Candidate[] type
         onCandidateAdded(data);
       }
-      
-      onCancel();
     } catch (error) {
       console.error("Error adding candidate:", error);
       toast.error("Failed to add candidate");
@@ -174,86 +88,23 @@ const AddCandidateForm = ({
     }
   };
 
-  // Handle image upload for campaign poster
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) {
-      return;
-    }
-
-    const file = event.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `${electionId}/posters/${fileName}`;
-
-    try {
-      setUploading(true);
-      setUploadProgress(10);
-      
-      // Create a temporary preview URL
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewImage(objectUrl);
-      
-      setUploadProgress(25);
-      
-      // Upload the file using our utility function
-      const { url, error } = await uploadFile('candidates', filePath, file, (progress) => {
-        setUploadProgress(25 + Math.floor(progress * 0.75)); // 25-100% based on upload progress
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (!url) {
-        throw new Error('Failed to get URL for uploaded file');
-      }
-      
-      // Update form with the URL
-      form.setValue("image_url", url);
-      setUploadProgress(100);
-      
-      toast.success("Campaign poster uploaded successfully");
-    } catch (error) {
-      console.error("Error uploading poster:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to upload campaign poster");
-      // Clean up in case of error
-      form.setValue("image_url", "");
-      setPreviewImage(null);
-    } finally {
-      setUploading(false);
-      // Reset progress after a short delay
-      setTimeout(() => setUploadProgress(0), 1000);
-    }
-  };
-
-  // Preview image
-  const handlePreviewImage = (url: string) => {
-    setPreviewImage(url);
-    setShowPreview(true);
-  };
-
-  const handleRemoveImage = () => {
-    form.setValue("image_url", "");
-    setPreviewImage(null);
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleAddCandidate)} className="space-y-4 pt-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Candidate name" {...field} />
+                <Input placeholder="Candidate's full name" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="position"
@@ -261,26 +112,13 @@ const AddCandidateForm = ({
             <FormItem>
               <FormLabel>Position</FormLabel>
               <FormControl>
-                {positions.length > 0 ? (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select position" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {positions.map((position) => (
-                        <SelectItem key={position} value={position}>{position}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input placeholder="Position running for" {...field} />
-                )}
+                <Input placeholder="Position running for" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="student_id"
@@ -288,41 +126,43 @@ const AddCandidateForm = ({
             <FormItem>
               <FormLabel>Student ID</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 20120001" {...field} value={field.value || ''} />
+                <Input placeholder="Candidate's student ID (optional)" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
-        <FormField
-          control={form.control}
-          name="department"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Department</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., Computer Science" {...field} value={field.value || ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="year_level"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Year Level</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., 3rd Year" {...field} value={field.value || ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department/College</FormLabel>
+                <FormControl>
+                  <Input placeholder="Candidate's department (optional)" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="year_level"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Year Level</FormLabel>
+                <FormControl>
+                  <Input placeholder="Candidate's year level (optional)" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={form.control}
           name="bio"
@@ -330,114 +170,43 @@ const AddCandidateForm = ({
             <FormItem>
               <FormLabel>Bio</FormLabel>
               <FormControl>
-                <Textarea placeholder="Candidate biography" {...field} />
+                <Textarea
+                  placeholder="Tell voters about the candidate, their qualifications, and why they're running"
+                  className="min-h-[120px]"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="image_url"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Campaign Poster</FormLabel>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => document.getElementById("poster-upload-input")?.click()}
-                    disabled={uploading}
-                    className="flex-1"
-                  >
-                    <Image className="h-4 w-4 mr-2" />
-                    {uploading ? "Uploading..." : "Upload Campaign Poster"}
-                  </Button>
-
-                  {(field.value || previewImage) && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handlePreviewImage(field.value || previewImage || "")}
-                      disabled={uploading}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                
-                <Input 
-                  id="poster-upload-input"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                  disabled={uploading}
+              <FormControl>
+                <CampaignPosterUpload
+                  value={field.value || ""}
+                  onChange={field.onChange}
+                  error={form.formState.errors.image_url?.message}
                 />
-                
-                {uploadProgress > 0 && uploading && (
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
-                    <div className="bg-primary h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
-                  </div>
-                )}
-                
-                {(field.value || previewImage) && (
-                  <div className="mt-2 relative w-full h-48 border rounded-md overflow-hidden">
-                    <img 
-                      src={field.value || previewImage || ""} 
-                      alt="Campaign poster preview" 
-                      className="w-full h-full object-cover"
-                    />
-                    <Button 
-                      variant="destructive" 
-                      size="icon" 
-                      className="absolute top-2 right-2 h-7 w-7"
-                      onClick={handleRemoveImage}
-                      type="button"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-                <FormMessage />
-              </div>
+              </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
-        
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button 
-            type="submit" 
-            disabled={loading}
-          >
-            {loading ? "Adding..." : "Add Candidate"}
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Submitting..." : "Add Candidate"}
           </Button>
         </div>
-
-        {/* Image Preview Modal */}
-        {showPreview && previewImage && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPreview(false)}>
-            <div className="bg-white p-2 rounded-lg max-w-3xl max-h-[90vh] relative" onClick={(e) => e.stopPropagation()}>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="sm" 
-                className="absolute top-2 right-2 z-10"
-                onClick={() => setShowPreview(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              <img 
-                src={previewImage} 
-                alt="Preview" 
-                className="max-w-full max-h-[85vh] object-contain"
-              />
-            </div>
-          </div>
-        )}
       </form>
     </Form>
   );

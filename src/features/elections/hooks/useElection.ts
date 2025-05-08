@@ -129,8 +129,10 @@ export const useElection = (electionId: string | undefined) => {
               // Extract position field from each abstained vote record if available
               const abstainedPositionsData = abstainedData
                 // Fix: Use type guard to ensure position property exists and is not null
-                .filter(vote => vote !== null && typeof vote === 'object' && 'position' in vote && vote.position !== null)
-                .map(vote => {
+                .filter((vote) => {
+                  return vote !== null && typeof vote === 'object' && 'position' in vote && vote.position !== null;
+                })
+                .map((vote) => {
                   // Add explicit null check and type assertion
                   if (vote !== null && typeof vote === 'object' && 'position' in vote) {
                     return vote.position as string;
