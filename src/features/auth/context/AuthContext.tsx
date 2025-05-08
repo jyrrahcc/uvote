@@ -1,8 +1,9 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User, AuthError, AuthResponse } from "@supabase/supabase-js";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type AuthContextType = {
   session: Session | null;
@@ -33,6 +34,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check URL for authentication errors
+    if (location.hash || location.search) {
+      const urlParams = new URLSearchParams(location.search || location.hash.substring(1));
+      const error = urlParams.get('error');
+      const errorDescription = urlParams.get('error_description');
+      
+      if (error) {
+        // Clean the URL by removing error parameters
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        
+        // Show error toast
+        toast.error(`Authentication Error: ${errorDescription || error}`, {
+          description: "Please try a different sign-in method or contact support.",
+          duration: 5000
+        });
+      }
+    }
+  }, [location]);
 
   useEffect(() => {
     // Set up the auth state listener
@@ -103,26 +126,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     setLoading(true);
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        // Specify redirect URL for OAuth sign in
-        redirectTo: window.location.origin + '/dashboard',
-      }
-    });
-    setLoading(false);
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/dashboard',
+        }
+      });
+    } catch (error) {
+      console.error("Google sign in error:", error);
+      toast.error("Failed to sign in with Google", {
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+      });
+      setLoading(false);
+    }
   };
 
   const signInWithMicrosoft = async () => {
     setLoading(true);
-    await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        // Specify redirect URL for OAuth sign in
-        redirectTo: window.location.origin + '/dashboard',
-      }
-    });
-    setLoading(false);
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: window.location.origin + '/dashboard',
+          queryParams: {
+            // Request additional scopes to ensure we get the email
+            scope: 'email openid profile User.Read',
+          },
+        }
+      });
+    } catch (error) {
+      console.error("Microsoft sign in error:", error);
+      toast.error("Failed to sign in with Microsoft", {
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+      });
+      setLoading(false);
+    }
   };
 
   const signOut = async () => {

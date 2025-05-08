@@ -70,7 +70,6 @@ export const useElection = (electionId: string | undefined) => {
       if (!electionId) return;
       
       try {
-        // Fix here: Use data property to access the user
         const { data } = await supabase.auth.getUser();
         if (!data || !data.user) return;
         
@@ -111,7 +110,7 @@ export const useElection = (electionId: string | undefined) => {
           // Check for abstained positions
           const { data: abstainedData, error: abstainError } = await supabase
             .from('votes')
-            .select('*')  // Changed from selecting 'position' to selecting all columns
+            .select('*')
             .eq('election_id', electionId)
             .eq('user_id', data.user.id)
             .is('candidate_id', null);
@@ -119,10 +118,10 @@ export const useElection = (electionId: string | undefined) => {
           if (abstainError) throw abstainError;
           
           if (abstainedData && abstainedData.length > 0) {
-            // Use the position field from the abstainedData objects
+            // Extract position field from each abstained vote record
             setAbstainedPositions(abstainedData
-              .map(vote => vote.position)
-              .filter(Boolean) as string[]);
+              .filter(vote => vote.position)
+              .map(vote => vote.position as string));
           }
         }
         
