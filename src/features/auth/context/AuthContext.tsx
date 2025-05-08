@@ -93,6 +93,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           first_name: firstName,
           last_name: lastName,
         },
+        // Specify redirect URL to avoid the user being redirected to landing page
+        emailRedirectTo: window.location.origin + '/dashboard', 
       },
     });
     setLoading(false);
@@ -103,6 +105,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: {
+        // Specify redirect URL for OAuth sign in
+        redirectTo: window.location.origin + '/dashboard',
+      }
     });
     setLoading(false);
   };
@@ -111,6 +117,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     await supabase.auth.signInWithOAuth({
       provider: 'azure',
+      options: {
+        // Specify redirect URL for OAuth sign in
+        redirectTo: window.location.origin + '/dashboard',
+      }
     });
     setLoading(false);
   };

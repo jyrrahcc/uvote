@@ -25,14 +25,7 @@ const Register = () => {
           <div className="p-8">
             <RegisterForm />
             
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <Link to="/login" className="text-primary hover:underline font-medium inline-flex items-center">
-                  Sign in <ArrowRight size={14} className="ml-1" />
-                </Link>
-              </p>
-            </div>
+            {/* Removed duplicate "Already have an account?" link since it's already in RegisterForm */}
           </div>
         </div>
       </div>

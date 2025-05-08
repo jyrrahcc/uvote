@@ -109,17 +109,20 @@ export const useElection = (electionId: string | undefined) => {
           }
           
           // Check for abstained positions
-          const { data: abstainVotes, error: abstainError } = await supabase
+          const { data: abstainedData, error: abstainError } = await supabase
             .from('votes')
-            .select('position')
+            .select('*')  // Changed from selecting 'position' to selecting all columns
             .eq('election_id', electionId)
             .eq('user_id', data.user.id)
             .is('candidate_id', null);
           
           if (abstainError) throw abstainError;
           
-          if (abstainVotes && abstainVotes.length > 0) {
-            setAbstainedPositions(abstainVotes.map(vote => vote.position).filter(Boolean) as string[]);
+          if (abstainedData && abstainedData.length > 0) {
+            // Use the position field from the abstainedData objects
+            setAbstainedPositions(abstainedData
+              .map(vote => vote.position)
+              .filter(Boolean) as string[]);
           }
         }
         
