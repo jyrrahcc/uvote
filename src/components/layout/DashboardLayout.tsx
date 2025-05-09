@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { 
@@ -77,6 +78,13 @@ const DashboardLayout = () => {
       roles: ["admin"],
       badge: "Admin"
     },
+    { 
+      name: "System Settings", 
+      path: "/admin/settings", 
+      icon: Settings, 
+      roles: ["admin"],
+      badge: "Admin"
+    },
     { name: "Profile", path: "/profile", icon: User, roles: ["admin", "voter"] },
   ];
   
@@ -130,7 +138,7 @@ const DashboardLayout = () => {
           <SidebarHeader className="p-4">
             <div className="flex items-center gap-2">
               <University className="h-6 w-6 text-[#008f50]" />
-              <span className={cn("font-bold text-xl", collapsed ? "hidden" : "block")}>uVote</span>
+              <span className={cn("font-bold text-xl", collapsed ? "hidden" : "block")}>DLSU-D Voting</span>
               <span className={cn("text-xs text-muted-foreground ml-auto", collapsed ? "hidden" : "block")}>
                 {isAdmin && <Badge variant="outline" className="bg-[#008f50]/10 text-[#008f50]">Admin</Badge>}
               </span>

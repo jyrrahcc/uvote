@@ -6,6 +6,8 @@ import {
   Users, 
   Vote, 
   BarChart, 
+  Shield, 
+  Settings, 
   ArrowRight,
   University
 } from "lucide-react";
@@ -118,6 +120,34 @@ const AdminControls = () => {
               className="w-full justify-between bg-[#008f50] hover:bg-[#007a45]"
             >
               View Analytics
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-5 mt-4">
+        <Card className="hover:shadow-md transition-shadow border-muted/60">
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between">
+              <CardTitle className="flex items-center text-lg">
+                <Shield className="mr-2 h-5 w-5 text-[#008f50]" />
+                System Settings
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground text-sm mb-4">
+              Configure system-wide settings, security options, and notification preferences for the DLSU-D election system.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              variant="outline"
+              onClick={() => navigate("/admin/settings")} 
+              className="w-full justify-between"
+            >
+              System Settings
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </CardFooter>

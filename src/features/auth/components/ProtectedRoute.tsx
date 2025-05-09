@@ -1,15 +1,12 @@
 
-import React, { ReactNode } from 'react';
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 interface ProtectedRouteProps {
-  children?: ReactNode;
   redirectTo?: string;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children,
+export const ProtectedRoute = ({ 
   redirectTo = "/login" 
 }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
@@ -18,11 +15,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
-  if (!user) {
-    return <Navigate to={redirectTo} />;
-  }
-
-  return children ? <>{children}</> : <Outlet />;
+  return user ? <Outlet /> : <Navigate to={redirectTo} />;
 };
 
 export const PublicOnlyRoute = ({ 
