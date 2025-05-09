@@ -107,7 +107,7 @@ const CampaignPosterUpload = ({
               Upload your campaign poster or provide an image URL
             </p>
             <UploadButton
-              bucketName="campaign-posters"
+              bucketName="posters"
               folderPath="candidate-posters"
               onUploadComplete={handleUploadComplete}
               buttonText="Upload Campaign Poster"

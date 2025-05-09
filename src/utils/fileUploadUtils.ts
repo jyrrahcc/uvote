@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -26,13 +27,8 @@ export const ensureBucketExists = async (bucketName: string, options = {
     const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
     
     if (!bucketExists) {
-      const { error: createError } = await supabase.storage.createBucket(bucketName, options);
-      
-      if (createError) {
-        console.error(`Error creating bucket ${bucketName}:`, createError);
-        return false;
-      }
-      console.log(`Successfully created bucket: ${bucketName}`);
+      console.log(`Bucket ${bucketName} not found, but it should exist. Check SQL migrations.`);
+      return false;
     }
     
     return true;
@@ -52,10 +48,13 @@ export const uploadFileToStorage = async (
   onProgress?: (progress: UploadProgress) => void
 ): Promise<{ url: string | null; error: string | null }> => {
   try {
-    // Ensure bucket exists
+    console.log(`Starting upload to bucket ${bucketName}, folder ${folderPath}`);
+    
+    // Ensure bucket exists (it should already be created via SQL)
     const bucketReady = await ensureBucketExists(bucketName);
     
     if (!bucketReady) {
+      console.error(`Bucket ${bucketName} not accessible`);
       return { 
         url: null, 
         error: `Storage bucket ${bucketName} could not be accessed` 
@@ -71,7 +70,9 @@ export const uploadFileToStorage = async (
       ? `${folderPath.replace(/^\/|\/$/g, '')}/${fileName}`
       : fileName;
     
-    // Upload file - Fix: Use onUploadProgress as a separate object with event handler
+    console.log(`Uploading file to ${bucketName}/${filePath}`);
+    
+    // Upload file
     const { error: uploadError, data } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
@@ -93,14 +94,19 @@ export const uploadFileToStorage = async (
       return { url: null, error: uploadError.message };
     }
     
+    console.log("File uploaded successfully, getting public URL");
+    
     // Get public URL
     const { data: urlData } = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath);
     
     if (!urlData || !urlData.publicUrl) {
+      console.error("Could not get public URL");
       return { url: null, error: 'Could not get public URL' };
     }
+    
+    console.log("Public URL obtained:", urlData.publicUrl);
     
     return { url: urlData.publicUrl, error: null };
   } catch (error) {

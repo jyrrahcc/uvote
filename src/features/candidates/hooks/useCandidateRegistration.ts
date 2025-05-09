@@ -22,6 +22,7 @@ export const useCandidateRegistration = ({
   const registerCandidate = async (values: CandidateFormData) => {
     try {
       setLoading(true);
+      console.log("Registering candidate with data:", values);
       
       const newCandidate = {
         name: values.name,
@@ -40,8 +41,12 @@ export const useCandidateRegistration = ({
         .insert(newCandidate)
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error registering candidate:", error);
+        throw error;
+      }
       
+      console.log("Candidate registered successfully:", data);
       toast.success("Your candidate registration has been submitted successfully");
       
       onClose();

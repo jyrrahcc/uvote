@@ -45,15 +45,20 @@ export const UploadButton = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
+    console.log(`Selected file: ${file.name} (${file.size} bytes)`);
+    
     // Check file size
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     if (file.size > maxSizeBytes) {
-      toast.error(`File size exceeds ${maxSizeMB}MB limit.`);
-      if (onUploadError) onUploadError(`File size exceeds ${maxSizeMB}MB limit.`);
+      const errorMessage = `File size exceeds ${maxSizeMB}MB limit.`;
+      console.error(errorMessage);
+      toast.error(errorMessage);
+      if (onUploadError) onUploadError(errorMessage);
       return;
     }
     
     setIsUploading(true);
+    console.log(`Starting upload to bucket: ${bucketName}`);
     
     try {
       const result = await uploadFileToStorage(
@@ -61,14 +66,18 @@ export const UploadButton = ({
         bucketName, 
         folderPath,
         (progress) => {
+          console.log(`Upload progress: ${progress.progress}%`);
           setUploadProgress(progress);
         }
       );
       
       if (result.error || !result.url) {
-        toast.error(result.error || "Upload failed");
-        if (onUploadError) onUploadError(result.error || "Upload failed");
+        const errorMessage = result.error || "Upload failed";
+        console.error(errorMessage);
+        toast.error(errorMessage);
+        if (onUploadError) onUploadError(errorMessage);
       } else {
+        console.log(`File uploaded successfully. URL: ${result.url}`);
         toast.success("File uploaded successfully");
         onUploadComplete(result.url);
       }
