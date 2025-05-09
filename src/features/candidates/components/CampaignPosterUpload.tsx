@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { supabase } from "@/integrations/supabase/client";
-import CampaignPosterPreview from "./CampaignPosterPreview";
+import ImagePreviewModal from "@/components/ui/image-preview-modal";
+import { Button } from "@/components/ui/button";
+import { X, Eye } from "lucide-react";
 
 interface CampaignPosterUploadProps {
   value: string;
@@ -20,6 +21,7 @@ const CampaignPosterUpload = ({
   error
 }: CampaignPosterUploadProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(value || null);
+  const [showPreview, setShowPreview] = useState(false);
   const [filePath, setFilePath] = useState<string | null>(null);
   
   // Extract file path from URL if it's a Supabase storage URL
@@ -31,6 +33,8 @@ const CampaignPosterUpload = ({
         setFilePath(match[1]);
       }
     }
+    // Update preview URL when value changes
+    setPreviewUrl(value || null);
   }, [value]);
   
   const handleUploadComplete = (url: string) => {
@@ -59,17 +63,44 @@ const CampaignPosterUpload = ({
     onChange(newUrl);
   };
   
+  const handlePreviewImage = () => {
+    if (previewUrl) {
+      setShowPreview(true);
+    }
+  };
+  
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-6">
         {previewUrl ? (
-          <CampaignPosterPreview
-            imageUrl={previewUrl}
-            onRemove={handleRemovePoster}
-            bucketName="campaign-posters"
-            filePath={filePath}
-            className="mt-4"
-          />
+          <div className="relative group rounded-md overflow-hidden border border-border">
+            <div className="aspect-[16/9] w-full h-full relative">
+              <img
+                src={previewUrl}
+                alt="Campaign poster preview"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center gap-2">
+              <Button
+                variant="default"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={handlePreviewImage}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={handleRemovePoster}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="border border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
             <p className="text-sm text-muted-foreground mb-4">
@@ -98,6 +129,13 @@ const CampaignPosterUpload = ({
           {error && <p className="text-sm font-medium text-destructive">{error}</p>}
         </div>
       </div>
+      
+      {/* Image preview modal */}
+      <ImagePreviewModal
+        imageUrl={previewUrl || ""}
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+      />
     </div>
   );
 };
