@@ -38,6 +38,7 @@ const CampaignPosterUpload = ({
   }, [value]);
   
   const handleUploadComplete = (url: string) => {
+    console.log("Upload complete, received URL:", url);
     setPreviewUrl(url);
     onChange(url);
     

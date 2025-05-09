@@ -27,10 +27,21 @@ export const ensureBucketExists = async (bucketName: string, options = {
     const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
     
     if (!bucketExists) {
-      console.log(`Bucket ${bucketName} not found, but it should exist. Check SQL migrations.`);
-      return false;
+      console.log(`Bucket ${bucketName} does not exist. Attempting to create it...`);
+      
+      // Try to create the bucket
+      const { error: createError } = await supabase.storage.createBucket(bucketName, options);
+      
+      if (createError) {
+        console.error(`Error creating bucket ${bucketName}:`, createError);
+        return false;
+      }
+      
+      console.log(`Successfully created bucket: ${bucketName}`);
+      return true;
     }
     
+    console.log(`Bucket ${bucketName} exists.`);
     return true;
   } catch (e) {
     console.error(`Error in ensureBucketExists for ${bucketName}:`, e);
@@ -46,7 +57,7 @@ export const uploadFileToStorage = async (
   bucketName: string,
   folderPath: string = "",
   onProgress?: (progress: UploadProgress) => void
-): Promise<{ url: string | null; error: string | null }> => {
+): Promise<{ url: string | null; error: Error | null }> => {
   try {
     console.log(`Starting upload to bucket ${bucketName}, folder ${folderPath}`);
     
@@ -57,7 +68,7 @@ export const uploadFileToStorage = async (
       console.error(`Bucket ${bucketName} not accessible`);
       return { 
         url: null, 
-        error: `Storage bucket ${bucketName} could not be accessed` 
+        error: new Error(`Storage bucket ${bucketName} could not be accessed`) 
       };
     }
     
@@ -91,7 +102,7 @@ export const uploadFileToStorage = async (
       
     if (uploadError) {
       console.error("Upload error:", uploadError);
-      return { url: null, error: uploadError.message };
+      return { url: null, error: uploadError };
     }
     
     console.log("File uploaded successfully, getting public URL");
@@ -103,7 +114,7 @@ export const uploadFileToStorage = async (
     
     if (!urlData || !urlData.publicUrl) {
       console.error("Could not get public URL");
-      return { url: null, error: 'Could not get public URL' };
+      return { url: null, error: new Error('Could not get public URL') };
     }
     
     console.log("Public URL obtained:", urlData.publicUrl);
@@ -113,7 +124,7 @@ export const uploadFileToStorage = async (
     console.error("Error in uploadFileToStorage:", error);
     return { 
       url: null, 
-      error: error instanceof Error ? error.message : 'Unknown error during file upload'
+      error: error instanceof Error ? error : new Error('Unknown error during file upload')
     };
   }
 };

@@ -58,7 +58,7 @@ export const UploadButton = ({
     }
     
     setIsUploading(true);
-    console.log(`Starting upload to bucket: ${bucketName}`);
+    console.log(`Starting upload to bucket: ${bucketName}, folder: ${folderPath}`);
     
     try {
       const result = await uploadFileToStorage(
@@ -72,8 +72,8 @@ export const UploadButton = ({
       );
       
       if (result.error || !result.url) {
-        const errorMessage = result.error || "Upload failed";
-        console.error(errorMessage);
+        const errorMessage = result.error?.message || "Upload failed";
+        console.error("Upload error:", errorMessage);
         toast.error(errorMessage);
         if (onUploadError) onUploadError(errorMessage);
       } else {

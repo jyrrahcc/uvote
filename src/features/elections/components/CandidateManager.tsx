@@ -194,7 +194,7 @@ const CandidateManager = forwardRef(({
     const file = event.target.files[0];
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `${electionId || 'new'}/posters/${fileName}`;
+    const filePath = `candidate-posters/${electionId}/${fileName}`;
 
     try {
       setUploading(prev => ({ ...prev, [index]: true }));
@@ -203,33 +203,34 @@ const CandidateManager = forwardRef(({
       const objectUrl = URL.createObjectURL(file);
       updateCandidate(index, 'image_url', objectUrl);
       
-      // Check if candidates bucket exists, create if not
-      const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.find(bucket => bucket.name === 'candidates')) {
-        await supabase.storage.createBucket('candidates', { 
-          public: true,
-          fileSizeLimit: 1024 * 1024 * 5 // 5MB limit
-        });
-      }
+      console.log("Uploading file to posters bucket:", filePath);
       
-      // Upload the file to Supabase storage
+      // Upload the file to Supabase storage - using the 'posters' bucket we created
       const { error: uploadError, data } = await supabase.storage
-        .from('candidates')
+        .from('posters')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
         
       if (uploadError) {
+        console.error("Upload error details:", uploadError);
         throw uploadError;
       }
 
-      // Get the public URL
-      const { data: publicURL } = supabase.storage.from('candidates').getPublicUrl(filePath);
+      console.log("File uploaded successfully, getting public URL");
+
+      // Get the public URL from the 'posters' bucket
+      const { data: publicURL } = supabase.storage
+        .from('posters')
+        .getPublicUrl(filePath);
       
-      if (!publicURL) {
+      if (!publicURL || !publicURL.publicUrl) {
+        console.error("Could not get public URL");
         throw new Error('Could not generate public URL');
       }
+
+      console.log("Public URL obtained:", publicURL.publicUrl);
 
       // Update the candidate state with the new image URL
       updateCandidate(index, 'image_url', publicURL.publicUrl);
@@ -237,7 +238,7 @@ const CandidateManager = forwardRef(({
       toast.success("Campaign poster uploaded successfully");
     } catch (error) {
       console.error("Error uploading poster:", error);
-      toast.error("Failed to upload campaign poster");
+      toast.error("Failed to upload campaign poster: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setUploading(prev => ({ ...prev, [index]: false }));
     }
