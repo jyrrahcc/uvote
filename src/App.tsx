@@ -1,4 +1,5 @@
 
+import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -39,7 +40,6 @@ import Blog from "./pages/Blog";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Contact from "./pages/Contact";
-import React from "react";
 
 /**
  * Main App component that sets up providers and routing
@@ -58,8 +58,8 @@ const App = () => {
 
   return (
     <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <RoleProvider>
               {/* Toast notifications */}
@@ -115,8 +115,8 @@ const App = () => {
               </Routes>
             </RoleProvider>
           </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
+        </QueryClientProvider>
+      </BrowserRouter>
     </React.StrictMode>
   );
 };
