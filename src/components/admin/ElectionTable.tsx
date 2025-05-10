@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Pencil, Trash2, Eye } from "lucide-react";
+import { Pencil, Trash2, Eye, RefreshCcw } from "lucide-react";
 import { Election } from "@/types";
 
 interface ElectionTableProps {
@@ -18,6 +18,7 @@ interface ElectionTableProps {
 const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: ElectionTableProps) => {
   const navigate = useNavigate();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [resettingId, setResettingId] = useState<string | null>(null);
   
   /**
    * Delete an election and all related data
@@ -40,6 +41,32 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
       toast.error("Failed to delete election");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  /**
+   * Reset all votes for an election
+   */
+  const handleResetVotes = async (electionId: string) => {
+    try {
+      setResettingId(electionId);
+      
+      const { error } = await supabase
+        .from('votes')
+        .delete()
+        .eq('election_id', electionId);
+      
+      if (error) throw error;
+      
+      toast.success("Election votes have been reset successfully", {
+        description: "All voters can now vote again in this election"
+      });
+      onElectionDeleted(); // Refresh the list
+    } catch (error) {
+      console.error("Error resetting election votes:", error);
+      toast.error("Failed to reset election votes");
+    } finally {
+      setResettingId(null);
     }
   };
 
@@ -87,6 +114,36 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-amber-600"
+                      >
+                        <RefreshCcw className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Reset Election Votes?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete all votes for the election "{election.title}". 
+                          All voters will be able to vote again. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          className="bg-amber-600 text-white hover:bg-amber-700"
+                          onClick={() => handleResetVotes(election.id)}
+                        >
+                          {resettingId === election.id ? "Resetting..." : "Reset Votes"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
