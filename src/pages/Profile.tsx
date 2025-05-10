@@ -1,36 +1,19 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { DlsudProfile } from "@/types";
-import { canVerifyProfiles } from "@/utils/admin/roleUtils";
-
-const DLSU_DEPARTMENTS = [
-  "College of Business Administration and Accountancy",
-  "College of Education",
-  "College of Engineering, Architecture and Technology",
-  "College of Humanities, Arts and Social Sciences",
-  "College of Science and Computer Studies",
-  "College of Criminal Justice Education",
-  "College of Tourism and Hospitality Management"
-];
-
-const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
+import ProfileHeader from "@/components/profile/ProfileHeader";
+import ProfileForm from "@/components/profile/ProfileForm";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
-  const { userRole, isAdmin } = useRole();
+  const { userRole } = useRole();
   const [profile, setProfile] = useState<DlsudProfile | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -40,11 +23,7 @@ const Profile = () => {
   const [isVerified, setIsVerified] = useState(false);
   const [isPendingVerification, setIsPendingVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-
-  const isProfileComplete = !!firstName && !!lastName && !!studentId && !!department && !!yearLevel;
 
   useEffect(() => {
     const getProfile = async () => {
@@ -82,77 +61,6 @@ const Profile = () => {
     getProfile();
   }, [user]);
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-          student_id: studentId,
-          department: department,
-          year_level: yearLevel,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      // Update local state
-      setProfile(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          first_name: firstName,
-          last_name: lastName,
-          student_id: studentId,
-          department: department,
-          year_level: yearLevel,
-          updated_at: new Date().toISOString()
-        };
-      });
-      
-      // Check if profile is now complete but not verified
-      if (isProfileComplete && !isVerified) {
-        setIsPendingVerification(true);
-      }
-
-      toast.success("Profile updated successfully");
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile information");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSubmitForVerification = async () => {
-    if (!isProfileComplete) {
-      toast.warning("Please complete your profile before submitting for verification");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // We're not actually updating anything in the database here
-      // We're just using this as a flag to indicate that the user has submitted their profile for verification
-      setIsPendingVerification(true);
-      
-      toast.success("Your profile has been submitted for verification!", {
-        description: "An administrator will review and verify your profile shortly."
-      });
-    } catch (error) {
-      console.error("Error submitting for verification:", error);
-      toast.error("Failed to submit profile for verification");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
@@ -174,199 +82,34 @@ const Profile = () => {
     <PageLayout>
       <div className="container mx-auto py-12 px-4">
         <div className="max-w-md mx-auto">
-          <h1 className="text-3xl font-bold text-center mb-8">Your DLSU-D Profile</h1>
-          
-          {isPendingVerification && !isVerified && (
-            <Alert className="mb-6 border-amber-500 bg-amber-50 text-amber-800">
-              <Clock className="h-4 w-4 text-amber-600" />
-              <AlertTitle>Verification Pending</AlertTitle>
-              <AlertDescription>
-                Your profile has been submitted for verification. An administrator will review your information and verify your profile shortly.
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {!isPendingVerification && !isVerified && (
-            <Alert className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Profile Verification Needed</AlertTitle>
-              <AlertDescription>
-                Complete your profile information and submit it for verification. 
-                You need to provide your student ID, department, and year level to be eligible for voter privileges.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {isVerified && (
-            <Alert className="mb-6 border-green-500 bg-green-50 text-green-800">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertTitle>Profile Verified</AlertTitle>
-              <AlertDescription>
-                Your profile has been verified. You now have voter privileges and can participate in elections.
-              </AlertDescription>
-            </Alert>
-          )}
+          <ProfileHeader 
+            isVerified={isVerified} 
+            isPendingVerification={isPendingVerification} 
+          />
           
           <Card>
             <CardHeader>
               <CardTitle>Personal Information</CardTitle>
               <CardDescription>Update your DLSU-D student details</CardDescription>
             </CardHeader>
-            <form onSubmit={handleUpdateProfile}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile?.email || ""}
-                    disabled
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Email cannot be changed
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="studentId">Student ID*</Label>
-                  <Input
-                    id="studentId"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    placeholder="e.g., 2018-00123-ST-0"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Your DLSU-D Student ID Number (required for verification)
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="department">College/Department*</Label>
-                  <Select
-                    value={department}
-                    onValueChange={setDepartment}
-                    required
-                  >
-                    <SelectTrigger id="department">
-                      <SelectValue placeholder="Select your college" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DLSU_DEPARTMENTS.map((dept) => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Required for verification and college-specific elections
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="yearLevel">Year Level*</Label>
-                  <Select
-                    value={yearLevel}
-                    onValueChange={setYearLevel}
-                    required
-                  >
-                    <SelectTrigger id="yearLevel">
-                      <SelectValue placeholder="Select your year level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {YEAR_LEVELS.map((year) => (
-                        <SelectItem key={year} value={year}>{year}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Required for verification and year-specific elections
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="joined">Joined</Label>
-                  <Input
-                    id="joined"
-                    value={profile?.created_at 
-                      ? new Date(profile.created_at).toLocaleDateString() 
-                      : ""
-                    }
-                    disabled
-                  />
-                </div>
-                
-                <div className="pt-2 flex flex-col space-y-2">
-                  <Label className="font-semibold">Verification Status</Label>
-                  <div className={`px-3 py-2 rounded-md text-center ${
-                    isVerified 
-                      ? 'bg-green-100 text-green-800' 
-                      : isPendingVerification 
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {isVerified ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>Verified</span>
-                      </div>
-                    ) : isPendingVerification ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <Clock className="h-4 w-4" />
-                        <span>Pending Verification</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center space-x-2">
-                        <InfoIcon className="h-4 w-4" />
-                        <span>Not Submitted</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col space-y-4">
-                <Button 
-                  type="submit" 
-                  className="w-full bg-[#008f50] hover:bg-[#007a45]" 
-                  disabled={isSaving}
-                >
-                  {isSaving ? "Saving..." : "Save Changes"}
-                </Button>
-                
-                {isProfileComplete && !isVerified && !isPendingVerification && (
-                  <Button 
-                    type="button"
-                    onClick={handleSubmitForVerification}
-                    className="w-full bg-blue-600 hover:bg-blue-700" 
-                    disabled={isSubmitting || !isProfileComplete}
-                  >
-                    {isSubmitting ? "Submitting..." : "Submit for Verification"}
-                  </Button>
-                )}
-                
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleSignOut}
-                >
-                  Sign Out
-                </Button>
-              </CardFooter>
-            </form>
+            
+            <ProfileForm
+              profile={profile}
+              firstName={firstName}
+              setFirstName={setFirstName}
+              lastName={lastName}
+              setLastName={setLastName}
+              studentId={studentId}
+              setStudentId={setStudentId}
+              department={department}
+              setDepartment={setDepartment}
+              yearLevel={yearLevel}
+              setYearLevel={setYearLevel}
+              isVerified={isVerified}
+              isPendingVerification={isPendingVerification}
+              setIsPendingVerification={setIsPendingVerification}
+              onSignOut={handleSignOut}
+            />
           </Card>
         </div>
       </div>
