@@ -17,7 +17,8 @@ export interface Election {
   isPrivate: boolean;
   accessCode?: string | null;
   restrictVoting?: boolean;
-  department?: string; // Added department field for DLSU-D context
+  department?: string; // For backward compatibility
+  departments?: string[]; // Array of departments
   positions?: string[]; // Added positions array
   totalEligibleVoters?: number; // Add totalEligibleVoters field
   banner_urls?: string[]; // Added banner_urls array to store election banner images
@@ -83,6 +84,7 @@ export interface DbElection {
   access_code?: string | null;
   restrict_voting?: boolean | null;
   department?: string | null;
+  departments?: string[] | null; // Added departments array
   positions?: string[] | null; // Added positions array
   total_eligible_voters?: number | null; // Added total_eligible_voters field
   banner_urls?: string[] | null; // Added banner_urls field
@@ -113,6 +115,7 @@ export const mapDbElectionToElection = (dbElection: DbElection): Election => {
     accessCode: dbElection.access_code || null,
     restrictVoting: dbElection.restrict_voting || false,
     department: dbElection.department || '',
+    departments: dbElection.departments || [],
     positions: dbElection.positions || [],
     totalEligibleVoters: dbElection.total_eligible_voters || 0,
     banner_urls: dbElection.banner_urls || []
@@ -135,6 +138,7 @@ export const mapElectionToDbElection = (election: Election): DbElection => ({
   access_code: election.accessCode || null,
   restrict_voting: election.restrictVoting || false,
   department: election.department || null,
+  departments: election.departments || [],
   positions: election.positions || [],
   total_eligible_voters: election.totalEligibleVoters || 0,
   banner_urls: election.banner_urls || []

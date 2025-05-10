@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { UploadButton } from "@/components/ui/upload-button";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -87,7 +87,6 @@ const ElectionBannerUpload = ({
               bucketName="election-banners"
               folderPath="banners"
               onUploadComplete={handleUploadComplete}
-              buttonText="Upload Banner"
               accept="image/png,image/jpeg,image/jpg"
               maxSizeMB={2}
               className="w-full sm:w-auto"
