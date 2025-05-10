@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,24 +47,29 @@ const UsersManagement = () => {
         .from('profiles')
         .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified, image_url');
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
+      if (!profiles) {
+        setUsers([]);
+        return;
+      }
 
       // For each user, get their roles
-      if (profiles) {
-        const usersWithRoles = await Promise.all(profiles.map(async (profile) => {
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', profile.id);
-          
-          return {
-            ...profile,
-            roles: roleData?.map(r => r.role) || []
-          };
-        }));
+      const usersWithRoles = await Promise.all(profiles.map(async (profile) => {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', profile.id);
         
-        setUsers(usersWithRoles);
-      }
+        return {
+          ...profile,
+          roles: roleData?.map(r => r.role) || []
+        };
+      }));
+      
+      setUsers(usersWithRoles);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Failed to fetch users");

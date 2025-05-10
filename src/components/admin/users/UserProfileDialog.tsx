@@ -83,7 +83,7 @@ const UserProfileDialog = ({
         <div className="flex justify-between pt-4">
           {!selectedUser.is_verified ? (
             <Button 
-              onClick={() => onVerifyProfile(selectedUser.id, true)} 
+              onClick={() => onVerifyProfile(selectedUser.id, false)} 
               disabled={isProcessing}
               className="gap-2"
             >
@@ -92,7 +92,7 @@ const UserProfileDialog = ({
             </Button>
           ) : (
             <Button 
-              onClick={() => onVerifyProfile(selectedUser.id, false)} 
+              onClick={() => onVerifyProfile(selectedUser.id, true)} 
               disabled={isProcessing}
               variant="destructive"
               className="gap-2"
