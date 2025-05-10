@@ -13,8 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { FileImage } from "lucide-react";
-import { uploadImage } from "@/utils/imageUpload";
-import { submitCandidateApplication } from "../services/candidateApplicationService";
+import { uploadFileToStorage } from "@/utils/fileUploadUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CandidateApplicationFormProps {
   electionId: string;
@@ -51,9 +51,13 @@ const CandidateApplicationForm = ({
     setImageUploading(true);
 
     try {
-      const url = await uploadImage(file);
-      setImageUrl(url);
-      toast.success("Image uploaded successfully!");
+      const uploadResult = await uploadFileToStorage(file, "candidate-images", `applications/${electionId}`);
+      if (uploadResult.url) {
+        setImageUrl(uploadResult.url);
+        toast.success("Image uploaded successfully!");
+      } else {
+        throw new Error("Failed to get image URL");
+      }
     } catch (error) {
       console.error("Image upload error:", error);
       toast.error("Failed to upload image.");
@@ -65,19 +69,33 @@ const CandidateApplicationForm = ({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
+    if (!userId) {
+      toast.error("You must be logged in to submit an application");
+      return;
+    }
+    
+    if (!position) {
+      toast.error("Please select a position");
+      return;
+    }
+    
     try {
       setSubmitting(true);
       
-      // Submit the application with feedback set to null
-      await submitCandidateApplication({
-        name,
-        position,
-        bio,
-        image_url: imageUrl,
-        election_id: electionId,
-        user_id: userId,
-        feedback: null
-      });
+      const { data, error } = await supabase
+        .from('candidate_applications')
+        .insert({
+          name,
+          position,
+          bio,
+          image_url: imageUrl,
+          election_id: electionId,
+          user_id: userId,
+          status: 'pending'
+        })
+        .select();
+      
+      if (error) throw error;
       
       toast.success("Application submitted successfully");
       

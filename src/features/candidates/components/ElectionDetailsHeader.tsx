@@ -223,6 +223,9 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
           {election.id && (
             <CandidateApplicationForm 
               electionId={election.id} 
+              userId={user?.id}
+              open={applicationFormOpen}
+              onClose={() => setApplicationFormOpen(false)}
               onApplicationSubmitted={handleApplicationSubmitted}
               onCancel={() => setApplicationFormOpen(false)}
             />
