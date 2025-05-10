@@ -34,11 +34,14 @@ const CandidateRegistrationDialog = ({
   userId,
   onCandidateAdded
 }: CandidateRegistrationDialogProps) => {
+  // Function to close the dialog
+  const handleClose = () => setIsOpen(false);
+
   if (isAdmin) {
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button className="mt-4 md:mt-0">
+          <Button className="mt-4 md:mt-0" type="button">
             <Plus className="mr-2 h-4 w-4" />
             Add Candidate
           </Button>
@@ -57,7 +60,7 @@ const CandidateRegistrationDialog = ({
                 electionId={electionId}
                 userId={userId}
                 onCandidateAdded={onCandidateAdded}
-                onClose={() => setIsOpen(false)}
+                onClose={handleClose}
               />
             </div>
           )}
@@ -70,7 +73,7 @@ const CandidateRegistrationDialog = ({
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button className="mt-4 md:mt-0">
+          <Button className="mt-4 md:mt-0" type="button">
             <Plus className="mr-2 h-4 w-4" />
             Register as Candidate
           </Button>
@@ -89,7 +92,7 @@ const CandidateRegistrationDialog = ({
                 electionId={electionId}
                 userId={userId}
                 onCandidateAdded={onCandidateAdded}
-                onClose={() => setIsOpen(false)}
+                onClose={handleClose}
               />
             </div>
           )}

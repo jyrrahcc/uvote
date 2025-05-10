@@ -28,8 +28,10 @@ const CandidateRegistrationForm = ({
   const { registerCandidate, loading } = useCandidateRegistration({
     electionId,
     userId,
-    onCandidateAdded,
-    onClose
+    onSuccess: (candidate) => {
+      onCandidateAdded(candidate);
+      onClose();
+    }
   });
   
   const form = useForm<CandidateFormData>({
@@ -49,7 +51,6 @@ const CandidateRegistrationForm = ({
 
   const handleSubmit = async (values: CandidateFormData) => {
     await registerCandidate(values);
-    form.reset();
   };
 
   return (

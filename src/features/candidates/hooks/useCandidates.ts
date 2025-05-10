@@ -69,7 +69,7 @@ export const useCandidates = (electionId: string | undefined, userId: string | u
           .select('id')
           .eq('election_id', electionId)
           .eq('created_by', userId)
-          .single();
+          .maybeSingle();
         
         if (!checkError || checkError.code !== 'PGRST116') {
           setUserHasRegistered(!!data);
@@ -103,6 +103,8 @@ export const useCandidates = (electionId: string | undefined, userId: string | u
   };
 
   const handleCandidateAdded = (newCandidateData: any) => {
+    console.log("Candidate added:", newCandidateData);
+    
     // Make sure to transform the new candidate data to match our Candidate type
     let newCandidate: Candidate[] = [];
     
