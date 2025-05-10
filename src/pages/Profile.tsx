@@ -37,6 +37,11 @@ const Profile = () => {
           .single();
 
         if (error) {
+          // If the profile doesn't exist yet, create it
+          if (error.code === 'PGRST116') {
+            await createNewProfile();
+            return;
+          }
           throw error;
         }
 
@@ -61,6 +66,45 @@ const Profile = () => {
     getProfile();
   }, [user]);
 
+  // Helper function to create a new profile if it doesn't exist
+  const createNewProfile = async () => {
+    try {
+      if (!user) return;
+      
+      // Extract user metadata
+      const firstName = user.user_metadata?.first_name || '';
+      const lastName = user.user_metadata?.last_name || '';
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          email: user.email,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_verified: false
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      if (data) {
+        setProfile(data);
+        setFirstName(data.first_name || "");
+        setLastName(data.last_name || "");
+        toast.success("Profile created successfully");
+      }
+    } catch (error) {
+      console.error("Error creating profile:", error);
+      toast.error("Failed to create profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
@@ -71,7 +115,10 @@ const Profile = () => {
       <PageLayout>
         <div className="container mx-auto py-12 px-4">
           <div className="flex justify-center">
-            <p>Loading profile...</p>
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+              <p className="text-muted-foreground">Loading profile...</p>
+            </div>
           </div>
         </div>
       </PageLayout>

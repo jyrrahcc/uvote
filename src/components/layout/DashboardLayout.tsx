@@ -40,7 +40,7 @@ interface MenuItem {
   name: string;
   path: string;
   icon: LucideIcon;
-  roles: ("admin" | "voter")[];
+  roles: ("admin" | "voter" | "any")[];
   badge?: string;
 }
 
@@ -53,8 +53,8 @@ const DashboardLayout = () => {
   
   // Define menu items with required roles
   const menuItems: MenuItem[] = [
-    { name: "Dashboard", path: "/dashboard", icon: Home, roles: ["admin", "voter"] },
-    { name: "Elections", path: "/elections", icon: Vote, roles: ["admin", "voter"] },
+    { name: "Dashboard", path: "/dashboard", icon: Home, roles: ["admin", "voter", "any"] },
+    { name: "Elections", path: "/elections", icon: Vote, roles: ["admin", "voter", "any"] },
     { name: "My Votes", path: "/my-votes", icon: FileText, roles: ["voter"] },
     { name: "My Applications", path: "/my-applications", icon: User, roles: ["voter"] },
     { 
@@ -85,15 +85,14 @@ const DashboardLayout = () => {
       roles: ["admin"],
       badge: "Admin"
     },
-    { name: "Profile", path: "/profile", icon: User, roles: ["admin", "voter"] },
+    { name: "Profile", path: "/profile", icon: User, roles: ["admin", "voter", "any"] },
   ];
   
   // Filter menu items based on user roles
   const filteredMenuItems = menuItems.filter(item => {
     if (isAdmin && item.roles.includes("admin")) return true;
-    if (isVoter && item.roles.includes("voter") && item.path !== "/profile") return true;
-    // If no specific role is detected, show general menu items for authenticated users
-    if (!isAdmin && !isVoter && !item.badge) return true;
+    if (isVoter && item.roles.includes("voter")) return true;
+    if (item.roles.includes("any")) return true; // Items that any authenticated user can access
     return false;
   });
 
@@ -228,8 +227,8 @@ const DashboardLayout = () => {
                         >
                           <button className="w-full">
                             <div className="flex items-center">
-                              <Settings className="h-4 w-4 mr-2" />
-                              <span className={cn(collapsed ? "hidden" : "block")}>Settings</span>
+                              <User className="h-4 w-4 mr-2" />
+                              <span className={cn(collapsed ? "hidden" : "block")}>Profile</span>
                             </div>
                           </button>
                         </SidebarMenuButton>
@@ -258,7 +257,7 @@ const DashboardLayout = () => {
                       {getUserFullName()}
                     </span>
                     <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {userRole && `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}`}
+                      {userRole ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}` : 'No Role'}
                     </span>
                   </div>
                 </div>

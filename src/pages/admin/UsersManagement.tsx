@@ -321,13 +321,15 @@ const UsersManagement = () => {
       </Card>
 
       {/* Profile Dialog */}
-      <UserProfileDialog
-        open={profileDialogOpen}
-        onClose={() => setProfileDialogOpen(false)}
-        selectedUser={selectedUser}
-        onVerifyProfile={handleVerifyProfile}
-        isProcessing={isProcessing}
-      />
+      {selectedUser && (
+        <UserProfileDialog
+          open={profileDialogOpen}
+          onClose={() => setProfileDialogOpen(false)}
+          selectedUser={selectedUser}
+          onVerifyProfile={handleVerifyProfile}
+          isProcessing={isProcessing}
+        />
+      )}
 
       {/* Role Assignment Dialog */}
       <RoleConfirmDialog

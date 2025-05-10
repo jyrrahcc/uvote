@@ -79,7 +79,7 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
   const checkRole = (role: UserRole): boolean => {
     if (!userRole) return false;
     if (role === 'admin') return userRole === 'admin';
-    return true; // If checking for 'voter', both 'admin' and 'voter' can access
+    return userRole === 'admin' || userRole === 'voter'; // Both admin and voter can access voter-protected routes
   };
 
   const assignRole = async (userId: string, role: UserRole) => {

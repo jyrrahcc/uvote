@@ -94,14 +94,18 @@ const App = () => {
                   {/* Dashboard layout for authenticated routes */}
                   <Route element={<DashboardLayout />}>
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="/elections" element={<Elections />} />
                     <Route path="/elections/details/:electionId" element={<ElectionDetailPage />} />
-                    <Route path="/elections/:electionId" element={<VotingPage />} />
-                    <Route path="/elections/:electionId/results" element={<ResultsPage />} />
-                    <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
-                    <Route path="/my-votes" element={<MyVotes />} />
-                    <Route path="/my-applications" element={<MyApplicationsPage />} />
-                    <Route path="/profile" element={<Profile />} />
+                    
+                    {/* Routes that require voter role */}
+                    <Route element={<RoleProtectedRoute requiredRole="voter" redirectTo="/profile" />}>
+                      <Route path="/elections/:electionId" element={<VotingPage />} />
+                      <Route path="/elections/:electionId/results" element={<ResultsPage />} />
+                      <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
+                      <Route path="/my-votes" element={<MyVotes />} />
+                      <Route path="/my-applications" element={<MyApplicationsPage />} />
+                    </Route>
                     
                     {/* Admin routes */}
                     <Route element={<RoleProtectedRoute requiredRole="admin" />}>
