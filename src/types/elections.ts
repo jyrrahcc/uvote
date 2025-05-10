@@ -22,6 +22,7 @@ export interface Election {
   positions?: string[]; // Added positions array
   totalEligibleVoters?: number; // Add totalEligibleVoters field
   banner_urls?: string[]; // Added banner_urls array to store election banner images
+  eligibleYearLevels?: string[]; // Added eligibleYearLevels array
 }
 
 /**
@@ -88,6 +89,7 @@ export interface DbElection {
   positions?: string[] | null; // Added positions array
   total_eligible_voters?: number | null; // Added total_eligible_voters field
   banner_urls?: string[] | null; // Added banner_urls field
+  eligible_year_levels?: string[] | null; // Added eligible_year_levels field
 }
 
 /**
@@ -118,7 +120,8 @@ export const mapDbElectionToElection = (dbElection: DbElection): Election => {
     departments: dbElection.departments || [],
     positions: dbElection.positions || [],
     totalEligibleVoters: dbElection.total_eligible_voters || 0,
-    banner_urls: dbElection.banner_urls || []
+    banner_urls: dbElection.banner_urls || [],
+    eligibleYearLevels: dbElection.eligible_year_levels || []
   };
 };
 
@@ -141,5 +144,6 @@ export const mapElectionToDbElection = (election: Election): DbElection => ({
   departments: election.departments || [],
   positions: election.positions || [],
   total_eligible_voters: election.totalEligibleVoters || 0,
-  banner_urls: election.banner_urls || []
+  banner_urls: election.banner_urls || [],
+  eligible_year_levels: election.eligibleYearLevels || []
 });

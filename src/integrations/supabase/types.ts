@@ -120,6 +120,7 @@ export type Database = {
           department: string | null
           departments: string[] | null
           description: string | null
+          eligible_year_levels: string[] | null
           end_date: string
           id: string
           is_private: boolean | null
@@ -140,6 +141,7 @@ export type Database = {
           department?: string | null
           departments?: string[] | null
           description?: string | null
+          eligible_year_levels?: string[] | null
           end_date: string
           id?: string
           is_private?: boolean | null
@@ -160,6 +162,7 @@ export type Database = {
           department?: string | null
           departments?: string[] | null
           description?: string | null
+          eligible_year_levels?: string[] | null
           end_date?: string
           id?: string
           is_private?: boolean | null

@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -90,9 +89,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
     fetchElectionData();
   }, [editingElectionId, form]);
 
-  /**
-   * Handle form submission for creating or updating an election
-   */
   const onSubmit = async (values: ElectionFormValues) => {
     if (!user) {
       toast.error("You must be logged in to create or edit an election");
@@ -154,7 +150,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       let electionId: string;
       
       if (editingElectionId) {
-        // Update existing election
         console.log("Updating election with ID:", editingElectionId);
         console.log("Update data:", electionData);
         
@@ -207,7 +202,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         
         toast.success("Election updated successfully");
       } else {
-        // Create new election
         const { data: newElection, error } = await supabase
           .from('elections')
           .insert([electionData])
