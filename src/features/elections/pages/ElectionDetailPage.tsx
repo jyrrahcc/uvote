@@ -4,16 +4,18 @@ import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, ArrowLeft, CheckCircle } from "lucide-react";
+import { Calendar, Users, ArrowLeft, CheckCircle, FileText, Vote } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { useRole } from "@/features/auth/context/RoleContext";
 import { Election, mapDbElectionToElection } from "@/types";
 import { useElection } from "@/features/elections/hooks/useElection";
 import ElectionStatusAlert from "@/features/elections/components/ElectionStatusAlert";
 import CandidatesList from "@/features/candidates/components/CandidatesList";
+import { useCandidacyPeriod } from "@/features/candidates/components/election-header/useCandidacyPeriod";
 
 /**
  * Election Detail Page - Displays full information about a specific election
@@ -21,6 +23,7 @@ import CandidatesList from "@/features/candidates/components/CandidatesList";
 const ElectionDetailPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const { user } = useAuth();
+  const { isVoter } = useRole();
   const {
     election,
     loading,
@@ -33,6 +36,7 @@ const ElectionDetailPage = () => {
   } = useElection(electionId);
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [positionVotes, setPositionVotes] = useState<Record<string, any>>({});
+  const { isCandidacyPeriodActive } = useCandidacyPeriod(election);
 
   // Fetch live vote counts for each position when the election is active
   useEffect(() => {
@@ -45,23 +49,21 @@ const ElectionDetailPage = () => {
     if (!election || !electionId) return;
     
     try {
-      // Get all votes for this election grouped by position and candidate
+      // Get votes grouped by candidate for this election
       const { data: votesData, error: votesError } = await supabase
         .from("votes")
-        .select(`
-          candidate_id,
-          position
-        `)
-        .eq("election_id", electionId);
+        .select("candidate_id")
+        .eq("election_id", electionId)
+        .not("candidate_id", "is", null);
 
       if (votesError) throw votesError;
 
-      // Process votes by position
+      // Process votes by position using candidates data
       const votesByPosition: Record<string, any> = {};
       
-      if (votesData && election.positions) {
+      if (votesData && election.positions && candidates) {
+        // Initialize positions
         election.positions.forEach(position => {
-          // Initialize the position with an empty array of candidate votes
           votesByPosition[position] = {
             position,
             totalVotes: 0,
@@ -69,23 +71,27 @@ const ElectionDetailPage = () => {
           };
         });
         
-        // Count votes for each candidate by position
+        // Count votes for each candidate
         votesData.forEach(vote => {
-          if (vote.position && vote.candidate_id) {
-            if (!votesByPosition[vote.position]) {
-              votesByPosition[vote.position] = {
-                position: vote.position,
-                totalVotes: 0,
-                candidates: {}
-              };
+          if (vote.candidate_id) {
+            // Find candidate and their position
+            const candidate = candidates.find(c => c.id === vote.candidate_id);
+            if (candidate && candidate.position) {
+              if (!votesByPosition[candidate.position]) {
+                votesByPosition[candidate.position] = {
+                  position: candidate.position,
+                  totalVotes: 0,
+                  candidates: {}
+                };
+              }
+              
+              if (!votesByPosition[candidate.position].candidates[vote.candidate_id]) {
+                votesByPosition[candidate.position].candidates[vote.candidate_id] = 0;
+              }
+              
+              votesByPosition[candidate.position].candidates[vote.candidate_id]++;
+              votesByPosition[candidate.position].totalVotes++;
             }
-            
-            if (!votesByPosition[vote.position].candidates[vote.candidate_id]) {
-              votesByPosition[vote.position].candidates[vote.candidate_id] = 0;
-            }
-            
-            votesByPosition[vote.position].candidates[vote.candidate_id]++;
-            votesByPosition[vote.position].totalVotes++;
           }
         });
       }
@@ -166,26 +172,43 @@ const ElectionDetailPage = () => {
           )}
         </div>
         
-        {election.status === "active" && (
-          <div className="flex items-center gap-2">
-            {hasVoted ? (
-              <Badge className="flex items-center gap-1 bg-green-500">
-                <CheckCircle className="h-3 w-3" />
-                <span>You have voted</span>
-              </Badge>
-            ) : (
-              <Button asChild>
-                <Link to={`/elections/${election.id}`}>Vote Now</Link>
-              </Button>
-            )}
-          </div>
-        )}
-        
-        {election.status === "completed" && (
-          <Button asChild>
-            <Link to={`/elections/${election.id}/results`}>View Full Results</Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* File Candidacy button (only shown during candidacy period and for eligible voters) */}
+          {isCandidacyPeriodActive && isVoter && (
+            <Button variant="outline" className="flex items-center gap-2" asChild>
+              <Link to={`/elections/${election.id}/candidates`}>
+                <FileText className="h-4 w-4" />
+                <span>File Candidacy</span>
+              </Link>
+            </Button>
+          )}
+          
+          {/* Vote button (only shown during active elections) */}
+          {election.status === "active" && (
+            <>
+              {hasVoted ? (
+                <Badge className="flex items-center gap-1 bg-green-500">
+                  <CheckCircle className="h-3 w-3" />
+                  <span>You have voted</span>
+                </Badge>
+              ) : (
+                <Button className="flex items-center gap-2" asChild>
+                  <Link to={`/elections/${election.id}`}>
+                    <Vote className="h-4 w-4" />
+                    <span>Cast Your Vote</span>
+                  </Link>
+                </Button>
+              )}
+            </>
+          )}
+          
+          {/* View Results button (only shown for completed elections) */}
+          {election.status === "completed" && (
+            <Button asChild>
+              <Link to={`/elections/${election.id}/results`}>View Full Results</Link>
+            </Button>
+          )}
+        </div>
       </div>
       
       {/* Election title and description */}

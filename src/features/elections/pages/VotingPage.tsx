@@ -197,7 +197,7 @@ const VotingPage = () => {
             <p>Please review all candidates carefully before casting your vote. Once submitted, your vote cannot be changed.</p>
             <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
               <li>Select one candidate for each position</li>
-              <li>You must be a registered DLSU-D community member to vote</li>
+              <li>You may choose to abstain for any position</li>
               <li>Your vote is confidential and secure</li>
               <li>Results will be available after the election ends</li>
             </ul>
@@ -216,6 +216,7 @@ const VotingPage = () => {
           onSelect={(candidateId) => {
             if (!hasVoted) {
               setSelectedCandidate(candidateId);
+              setHasVoted(true);
             }
           }}
         />

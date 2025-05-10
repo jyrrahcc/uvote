@@ -9,7 +9,7 @@ import { Candidate } from "@/types";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { ChevronLeft, ChevronRight, Check, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, AlertTriangle, Vote, CircleX } from "lucide-react";
 import { useRole } from "@/features/auth/context/RoleContext";
 
 interface VotingFormProps {
@@ -35,6 +35,7 @@ const VotingForm = ({
 }: VotingFormProps) => {
   const [voteLoading, setVoteLoading] = useState(false);
   const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
+  const [confirmVoteOpen, setConfirmVoteOpen] = useState(false);
   const { isVoter } = useRole();
   
   // Group candidates by position
@@ -150,7 +151,10 @@ const VotingForm = ({
       
       if (userVoteStatusError) throw userVoteStatusError;
       
-      toast.success("Your votes have been recorded");
+      toast.success("Your votes have been recorded successfully", {
+        description: "Thank you for participating in this election"
+      });
+      
       // Update parent component that user has voted
       if (votes.length > 0) {
         onSelect(votes[0].candidate_id);
@@ -223,7 +227,10 @@ const VotingForm = ({
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>Cast Your Vote</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Vote className="h-5 w-5" />
+          Cast Your Vote
+        </CardTitle>
         <CardDescription>
           Select your preferred candidate for each position
         </CardDescription>
@@ -279,6 +286,26 @@ const VotingForm = ({
                                 </FormLabel>
                               </FormItem>
                             ))}
+                            
+                            {/* Abstain option at the bottom */}
+                            <FormItem className="flex items-center space-x-3 space-y-0 mt-2">
+                              <FormControl>
+                                <RadioGroupItem value="abstain" />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer flex items-center">
+                                <div className="flex items-center">
+                                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                    <CircleX className="h-6 w-6 text-gray-400" />
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">Abstain</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      I choose not to vote for this position
+                                    </div>
+                                  </div>
+                                </div>
+                              </FormLabel>
+                            </FormItem>
                           </RadioGroup>
                         </FormControl>
                         <FormMessage />
@@ -297,20 +324,14 @@ const VotingForm = ({
                     <ChevronLeft className="mr-2 h-4 w-4" /> Previous
                   </Button>
                   
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleAbstain}
-                  >
-                    Abstain for this position
-                  </Button>
-                  
                   {currentPositionIndex === positions.length - 1 ? (
                     <Button
                       type="submit"
                       disabled={voteLoading}
+                      className="gap-2"
                     >
                       {voteLoading ? "Submitting..." : "Submit All Votes"}
+                      {!voteLoading && <Vote className="h-4 w-4" />}
                     </Button>
                   ) : (
                     <Button

@@ -7,7 +7,7 @@ import { Election } from "@/types";
 
 interface ElectionStatusAlertProps {
   election: Election;
-  status: 'completed' | 'upcoming';
+  status: 'completed' | 'upcoming' | 'active';
 }
 
 const ElectionStatusAlert = ({ election, status }: ElectionStatusAlertProps) => {

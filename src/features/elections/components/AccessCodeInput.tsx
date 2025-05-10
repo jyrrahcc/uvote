@@ -1,99 +1,61 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Lock } from "lucide-react";
-import { toast } from "sonner";
 
 interface AccessCodeInputProps {
-  accessCode?: string;
+  accessCode: string | null | undefined;
   onVerify: (verified: boolean) => void;
 }
 
 const AccessCodeInput = ({ accessCode, onVerify }: AccessCodeInputProps) => {
-  const [code, setCode] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [attempts, setAttempts] = useState(0);
+  const [inputCode, setInputCode] = useState('');
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleVerify = () => {
-    if (!code.trim()) {
-      toast.error("Please enter an access code");
-      return;
-    }
-    
-    setIsVerifying(true);
-    
-    // Short timeout to simulate verification
+    setLoading(true);
+    setError(false);
+
+    // Add a small delay to simulate verification
     setTimeout(() => {
-      // Simple comparison for verification
-      if (code === accessCode) {
+      if (inputCode === accessCode) {
         onVerify(true);
-        
-        // Store verified election access in local storage to maintain access across page refreshes
-        try {
-          const verifiedElections = JSON.parse(localStorage.getItem('verifiedElections') || '{}');
-          verifiedElections[accessCode || ''] = true;
-          localStorage.setItem('verifiedElections', JSON.stringify(verifiedElections));
-        } catch (error) {
-          console.error('Error storing verification:', error);
-        }
       } else {
+        setError(true);
         onVerify(false);
-        setAttempts(prev => prev + 1);
-        
-        if (attempts >= 2) {
-          toast.error("Too many incorrect attempts. Please check the access code and try again later.");
-        } else {
-          toast.error("Incorrect access code. Please try again.");
-        }
       }
-      
-      setIsVerifying(false);
+      setLoading(false);
     }, 500);
   };
 
   return (
     <div className="space-y-4">
-      <div className="text-center mb-6">
-        <div className="bg-muted inline-flex p-3 rounded-full mb-3">
-          <Lock className="h-6 w-6 text-[#008f50]" />
-        </div>
-        <h3 className="font-medium">Access Code Required</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Enter the access code provided by the election administrator
-        </p>
-      </div>
-      
       <div className="space-y-2">
+        <Label htmlFor="access-code">Enter Access Code</Label>
         <Input
+          id="access-code"
           type="text"
-          placeholder="Enter access code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && code.trim().length > 0) {
-              handleVerify();
-            }
+          placeholder="Enter the access code"
+          value={inputCode}
+          onChange={(e) => {
+            setInputCode(e.target.value);
+            setError(false);
           }}
-          className="text-center text-lg tracking-wider"
-          autoFocus
-          disabled={attempts >= 5 || isVerifying}
+          className={error ? "border-destructive" : ""}
         />
-        
-        {attempts >= 5 ? (
-          <p className="text-destructive text-sm text-center">
-            Too many incorrect attempts. Please try again later.
-          </p>
-        ) : (
-          <Button 
-            className="w-full"
-            onClick={handleVerify}
-            disabled={code.trim().length === 0 || isVerifying}
-          >
-            {isVerifying ? "Verifying..." : "Verify Access Code"}
-          </Button>
+        {error && (
+          <p className="text-sm text-destructive">Invalid access code. Please try again.</p>
         )}
       </div>
+      <Button 
+        onClick={handleVerify}
+        disabled={!inputCode || loading}
+        className="w-full"
+      >
+        {loading ? "Verifying..." : "Verify Code"}
+      </Button>
     </div>
   );
 };
