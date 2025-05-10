@@ -1,21 +1,17 @@
 
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, ArrowLeft, CheckCircle, FileText, Vote } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
+import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { Election, mapDbElectionToElection } from "@/types";
 import { useElection } from "@/features/elections/hooks/useElection";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ElectionStatusAlert from "@/features/elections/components/ElectionStatusAlert";
-import CandidatesList from "@/features/candidates/components/CandidatesList";
-import { useCandidacyPeriod } from "@/features/candidates/components/election-header/useCandidacyPeriod";
+import ElectionMetadata from "@/features/elections/components/position-details/ElectionMetadata";
+import ElectionHeader from "@/features/elections/components/position-details/ElectionHeader";
+import ElectionOverviewTab from "@/features/elections/components/position-details/ElectionOverviewTab";
+import CandidatesTab from "@/features/elections/components/position-details/CandidatesTab";
 
 /**
  * Election Detail Page - Displays full information about a specific election
@@ -36,7 +32,6 @@ const ElectionDetailPage = () => {
   } = useElection(electionId);
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [positionVotes, setPositionVotes] = useState<Record<string, any>>({});
-  const { isCandidacyPeriodActive } = useCandidacyPeriod(election);
 
   // Fetch live vote counts for each position when the election is active
   useEffect(() => {
@@ -151,65 +146,20 @@ const ElectionDetailPage = () => {
     );
   }
 
+  // Import these components here to avoid circular dependency issues
+  import { Link } from "react-router-dom";
+  import { Button } from "@/components/ui/button";
+  import { ArrowLeft } from "lucide-react";
+
   // Render election details
   return (
     <div className="container mx-auto py-8 px-4">
-      {/* Back button and election status */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div className="flex items-center mb-4 md:mb-0">
-          <Button variant="ghost" size="sm" asChild className="mr-2">
-            <Link to="/elections"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Elections</Link>
-          </Button>
-          
-          {election.status === "active" && (
-            <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>
-          )}
-          {election.status === "upcoming" && (
-            <Badge variant="outline" className="text-blue-500 border-blue-500">Upcoming</Badge>
-          )}
-          {election.status === "completed" && (
-            <Badge variant="secondary">Completed</Badge>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {/* File Candidacy button (only shown during candidacy period and for eligible voters) */}
-          {isCandidacyPeriodActive && isVoter && (
-            <Button variant="outline" className="flex items-center gap-2" asChild>
-              <Link to={`/elections/${election.id}/candidates`}>
-                <FileText className="h-4 w-4" />
-                <span>File Candidacy</span>
-              </Link>
-            </Button>
-          )}
-          
-          {/* Vote button (only shown during active elections) */}
-          {election.status === "active" && (
-            <>
-              {hasVoted ? (
-                <Badge className="flex items-center gap-1 bg-green-500">
-                  <CheckCircle className="h-3 w-3" />
-                  <span>You have voted</span>
-                </Badge>
-              ) : (
-                <Button className="flex items-center gap-2" asChild>
-                  <Link to={`/elections/${election.id}`}>
-                    <Vote className="h-4 w-4" />
-                    <span>Cast Your Vote</span>
-                  </Link>
-                </Button>
-              )}
-            </>
-          )}
-          
-          {/* View Results button (only shown for completed elections) */}
-          {election.status === "completed" && (
-            <Button asChild>
-              <Link to={`/elections/${election.id}/results`}>View Full Results</Link>
-            </Button>
-          )}
-        </div>
-      </div>
+      {/* Header with back button and action buttons */}
+      <ElectionHeader 
+        election={election} 
+        hasVoted={hasVoted} 
+        isVoter={isVoter} 
+      />
       
       {/* Election title and description */}
       <div className="mb-6">
@@ -235,44 +185,8 @@ const ElectionDetailPage = () => {
         </div>
       )}
       
-      {/* Election details */}
-      <Card className="mb-6">
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-          <div className="flex items-start gap-3">
-            <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-            <div>
-              <h3 className="font-medium">Voting Period</h3>
-              <p className="text-sm text-muted-foreground">
-                {formatDate(election.startDate)} - {formatDate(election.endDate)}
-              </p>
-            </div>
-          </div>
-          
-          {election.candidacyStartDate && election.candidacyEndDate && (
-            <div className="flex items-start gap-3">
-              <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
-                <h3 className="font-medium">Candidacy Period</h3>
-                <p className="text-sm text-muted-foreground">
-                  {formatDate(election.candidacyStartDate)} - {formatDate(election.candidacyEndDate)}
-                </p>
-              </div>
-            </div>
-          )}
-          
-          <div className="flex items-start gap-3">
-            <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
-            <div>
-              <h3 className="font-medium">Department</h3>
-              <p className="text-sm text-muted-foreground">
-                {election.departments && election.departments.length > 0
-                  ? election.departments.join(", ")
-                  : election.department || "University-wide"}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Election metadata */}
+      <ElectionMetadata election={election} formatDate={formatDate} />
       
       {/* Tabs for Overview and Candidates */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
@@ -282,134 +196,21 @@ const ElectionDetailPage = () => {
         </TabsList>
         
         {/* Overview tab content */}
-        <TabsContent value="overview" className="space-y-6">
-          {election.status === "active" && election.positions && election.positions.length > 0 ? (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold">Live Election Results</h2>
-              
-              {election.positions.map((position) => {
-                const positionData = positionVotes[position];
-                const totalVotes = positionData?.totalVotes || 0;
-                
-                return (
-                  <Card key={position} className="overflow-hidden">
-                    <div className="bg-muted p-4">
-                      <h3 className="font-medium">{position}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {totalVotes} {totalVotes === 1 ? 'vote' : 'votes'} cast
-                      </p>
-                    </div>
-                    <CardContent className="p-0">
-                      {candidates
-                        ?.filter(candidate => candidate.position === position)
-                        .map((candidate) => {
-                          const candidateVotes = positionData?.candidates[candidate.id] || 0;
-                          const percentage = totalVotes > 0 ? (candidateVotes / totalVotes) * 100 : 0;
-                          
-                          return (
-                            <div 
-                              key={candidate.id}
-                              className="p-4 border-b last:border-b-0 flex justify-between items-center"
-                            >
-                              <div className="flex items-center gap-3">
-                                {candidate.image_url && (
-                                  <div className="h-10 w-10 rounded-full overflow-hidden">
-                                    <img 
-                                      src={candidate.image_url}
-                                      alt={candidate.name}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
-                                )}
-                                <div>
-                                  <p className="font-medium">{candidate.name}</p>
-                                  {candidate.bio && (
-                                    <p className="text-xs text-muted-foreground line-clamp-1">
-                                      {candidate.bio}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold">{candidateVotes}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {percentage.toFixed(1)}%
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        
-                      {candidates?.filter(candidate => candidate.position === position).length === 0 && (
-                        <div className="p-6 text-center text-muted-foreground">
-                          No candidates for this position
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <h2 className="text-xl font-semibold mb-2">
-                {election.status === "upcoming" ? "Election has not started yet" : "Election has ended"}
-              </h2>
-              <p className="text-muted-foreground">
-                {election.status === "upcoming" 
-                  ? `Voting will begin on ${formatDate(election.startDate)}`
-                  : `The election ended on ${formatDate(election.endDate)}`
-                }
-              </p>
-              
-              {election.status === "completed" && (
-                <Button className="mt-4" asChild>
-                  <Link to={`/elections/${election.id}/results`}>View Full Results</Link>
-                </Button>
-              )}
-            </div>
-          )}
+        <TabsContent value="overview">
+          <ElectionOverviewTab 
+            election={election}
+            candidates={candidates}
+            positionVotes={positionVotes}
+            formatDate={formatDate}
+          />
         </TabsContent>
         
         {/* Candidates tab content */}
-        <TabsContent value="candidates" className="space-y-6">
-          <h2 className="text-xl font-semibold">Election Candidates</h2>
-          
-          {election.positions && election.positions.length > 0 ? (
-            <div className="space-y-8">
-              {election.positions.map((position) => (
-                <div key={position} className="space-y-4">
-                  <h3 className="text-lg font-medium">{position}</h3>
-                  <Separator />
-                  
-                  {candidates && candidates.filter(c => c.position === position).length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {candidates
-                        .filter(candidate => candidate.position === position)
-                        .map((candidate) => (
-                          <CandidatesList 
-                            key={candidate.id}
-                            candidates={[candidate]}
-                            readOnly={true}
-                          />
-                        ))
-                      }
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">No candidates for this position</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            candidates && candidates.length > 0 ? (
-              <CandidatesList candidates={candidates} readOnly={true} />
-            ) : (
-              <div className="text-center py-6">
-                <p className="text-muted-foreground">No candidates have been added to this election yet.</p>
-              </div>
-            )
-          )}
+        <TabsContent value="candidates">
+          <CandidatesTab 
+            positions={election.positions}
+            candidates={candidates}
+          />
         </TabsContent>
       </Tabs>
     </div>
