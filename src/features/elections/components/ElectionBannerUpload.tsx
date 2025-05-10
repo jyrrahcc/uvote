@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Eye, Plus } from "lucide-react";
 import ImagePreviewModal from "@/components/ui/image-preview-modal";
 
-interface ElectionBannerUploadProps {
+export interface ElectionBannerUploadProps {
   banners: string[];
   onChange: (banners: string[]) => void;
   maxBanners?: number;
@@ -66,6 +66,7 @@ const ElectionBannerUpload = ({
                 size="icon"
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => handlePreviewBanner(banner)}
+                type="button"
               >
                 <Eye className="h-4 w-4" />
               </Button>
@@ -74,6 +75,7 @@ const ElectionBannerUpload = ({
                 size="icon"
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => handleRemoveBanner(index)}
+                type="button"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

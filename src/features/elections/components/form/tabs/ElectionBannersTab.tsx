@@ -42,7 +42,7 @@ const ElectionBannersTab = () => {
           <FormItem>
             <FormLabel>Upload Banners</FormLabel>
             <ElectionBannerUpload
-              value={field.value || []}
+              banners={field.value || []}
               onChange={(urls) => {
                 field.onChange(urls);
               }}
