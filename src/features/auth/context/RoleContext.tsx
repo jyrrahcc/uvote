@@ -64,6 +64,22 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
           setUserRole('voter');
         } else {
           setUserRole(null);
+          
+          // Check if user profile is verified
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('is_verified')
+            .eq('id', user.id)
+            .single();
+            
+          if (profileError) {
+            console.error("Error checking user profile:", profileError);
+          } else if (profileData && profileData.is_verified) {
+            // If profile is verified but user doesn't have voter role, assign it
+            await assignRole(user.id, 'voter');
+            setUserRole('voter');
+            toast.success("Your account has been verified. You now have voter privileges.");
+          }
         }
       } catch (error) {
         console.error("Error fetching user role:", error);
@@ -83,22 +99,30 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const assignRole = async (userId: string, role: UserRole) => {
-    if (!checkRole('admin')) {
-      toast.error("You don't have permission to assign roles");
-      return;
-    }
-
     try {
+      // Check if admin is assigning the role or it's a system assignment for verified users
+      const isAdminAction = userRole === 'admin';
+      
+      // For admin users, we check permission first
+      if (role === 'admin' && !isAdminAction) {
+        toast.error("You don't have permission to assign admin role");
+        return;
+      }
+
       const { error } = await supabase
         .from('user_roles')
         .insert({ user_id: userId, role });
       
       if (error) throw error;
       
-      toast.success(`User assigned ${role} role successfully`);
+      if (isAdminAction) {
+        toast.success(`User assigned ${role} role successfully`);
+      }
     } catch (error) {
       console.error("Error assigning role:", error);
-      toast.error("Failed to assign role. Please try again.");
+      if (userRole === 'admin') {
+        toast.error("Failed to assign role. Please try again.");
+      }
     }
   };
 

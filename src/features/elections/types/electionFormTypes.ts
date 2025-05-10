@@ -8,6 +8,7 @@ export const electionFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
   departments: z.array(z.string()).min(1, "At least one department must be selected"),
+  eligibleYearLevels: z.array(z.string()).default([]),
   candidacyStartDate: z.string().min(1, "Candidacy start date is required"),
   candidacyEndDate: z.string().min(1, "Candidacy end date is required"),
   startDate: z.string().min(1, "Start date is required"),
@@ -64,6 +65,17 @@ export const DLSU_DEPARTMENTS = [
   "College of Criminal Justice Education",
   "College of Tourism and Hospitality Management",
   "University-wide"
+];
+
+// Year levels
+export const YEAR_LEVELS = [
+  "First Year",
+  "Second Year",
+  "Third Year",
+  "Fourth Year",
+  "Fifth Year",
+  "Graduate Student",
+  "All Year Levels"
 ];
 
 // Default positions available for elections

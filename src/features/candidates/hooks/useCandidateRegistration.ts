@@ -54,11 +54,11 @@ export const useCandidateRegistration = ({
         return false;
       }
       
-      // Check if user's department matches election departments
+      // Check if user's department matches election departments and check year level eligibility
       if (userProfile?.department) {
         const { data: electionData, error: electionError } = await supabase
           .from('elections')
-          .select('departments')
+          .select('departments, eligible_year_levels')
           .eq('id', electionId)
           .single();
           
@@ -66,10 +66,21 @@ export const useCandidateRegistration = ({
           // Check if election is department-specific and user belongs to one of the specified departments
           if (Array.isArray(electionData.departments) && electionData.departments.length > 0) {
             const eligibleForElection = electionData.departments.includes(userProfile.department) || 
-                                       electionData.departments.includes("University-wide");
+                                        electionData.departments.includes("University-wide");
                                        
             if (!eligibleForElection) {
               toast.error(`You cannot register as a candidate for this election because your department (${userProfile.department}) is not eligible.`);
+              return false;
+            }
+          }
+          
+          // Check if user's year level is eligible
+          if (Array.isArray(electionData.eligible_year_levels) && electionData.eligible_year_levels.length > 0 && 
+              !electionData.eligible_year_levels.includes("All Year Levels") && userProfile.year_level) {
+            const yearLevelEligible = electionData.eligible_year_levels.includes(userProfile.year_level);
+            
+            if (!yearLevelEligible) {
+              toast.error(`You cannot register as a candidate for this election because your year level (${userProfile.year_level}) is not eligible.`);
               return false;
             }
           }

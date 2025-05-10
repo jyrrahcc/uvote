@@ -24,7 +24,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
   const [activeTab, setActiveTab] = useState("details");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const candidateManagerRef = useRef<any>(null);
-  const eligibleVotersManagerRef = useRef<any>(null);
   
   // Initialize form
   const form = useForm<ElectionFormValues>({
@@ -33,6 +32,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       title: "",
       description: "",
       departments: [],
+      eligibleYearLevels: [],
       candidacyStartDate: "",
       candidacyEndDate: "",
       startDate: "",
@@ -69,6 +69,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             departments: Array.isArray(data.departments) && data.departments.length > 0 
               ? data.departments 
               : data.department ? [data.department] : [],
+            eligibleYearLevels: Array.isArray(data.eligible_year_levels) ? data.eligible_year_levels : [],
             candidacyStartDate: data.candidacy_start_date || "",
             candidacyEndDate: data.candidacy_end_date || "",
             startDate: data.start_date || "",
@@ -136,6 +137,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         description: values.description || "",
         department: values.departments.includes("University-wide") ? "University-wide" : values.departments[0], // For backward compatibility
         departments: values.departments,
+        eligible_year_levels: values.eligibleYearLevels,
         candidacy_start_date: values.candidacyStartDate,
         candidacy_end_date: values.candidacyEndDate,
         start_date: values.startDate,
@@ -143,7 +145,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         created_by: user.id,
         is_private: values.isPrivate,
         access_code: values.isPrivate ? values.accessCode : null,
-        restrict_voting: values.restrictVoting,
+        restrict_voting: false, // We're integrating voter eligibility directly with departments and year levels
         status: status,
         positions: values.positions,
         banner_urls: values.banner_urls
@@ -247,29 +249,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
           }
         }
         
-        // If we're restricting voting and there are eligible voters, add them
-        if (values.restrictVoting && eligibleVotersManagerRef.current && electionId) {
-          const eligibleVoters = eligibleVotersManagerRef.current.getEligibleVotersForNewElection?.();
-          console.log("Voters to add:", eligibleVoters);
-          
-          if (eligibleVoters && eligibleVoters.length > 0) {
-            const votersToInsert = eligibleVoters.map((userId: string) => ({
-              election_id: electionId,
-              user_id: userId,
-              added_by: user.id,
-            }));
-            
-            const { error: votersError } = await supabase
-              .from('eligible_voters')
-              .insert(votersToInsert);
-            
-            if (votersError) {
-              console.error("Error adding eligible voters:", votersError);
-              toast.error(`Failed to add eligible voters: ${votersError.message}`);
-            }
-          }
-        }
-        
         toast.success("Election created successfully");
       }
       
@@ -292,7 +271,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       isSubmitting={isSubmitting}
       editingElectionId={editingElectionId}
       candidateManagerRef={candidateManagerRef}
-      eligibleVotersManagerRef={eligibleVotersManagerRef}
     />
   );
 };

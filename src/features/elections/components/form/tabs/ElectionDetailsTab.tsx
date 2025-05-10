@@ -4,10 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField, FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Info } from "lucide-react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { DLSU_DEPARTMENTS, ElectionFormValues } from "../../../types/electionFormTypes";
+import { 
+  DLSU_DEPARTMENTS, 
+  ElectionFormValues,
+  YEAR_LEVELS 
+} from "../../../types/electionFormTypes";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 const ElectionDetailsTab = () => {
   const form = useFormContext<ElectionFormValues>();
@@ -46,54 +52,130 @@ const ElectionDetailsTab = () => {
         )}
       />
       
-      <FormField
-        control={form.control}
-        name="departments"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>College/Department*</FormLabel>
-            <div className="space-y-2">
-              {DLSU_DEPARTMENTS.map((dept) => (
-                <div key={dept} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={dept}
-                    checked={field.value.includes(dept)}
-                    onCheckedChange={(checked) => {
-                      const currentDepartments = [...field.value];
-                      if (checked) {
-                        // If University-wide is selected, clear other selections
-                        if (dept === "University-wide") {
-                          form.setValue("departments", ["University-wide"]);
-                        } else {
-                          // If another option is selected, remove University-wide
-                          const newDeps = currentDepartments.filter(d => d !== "University-wide");
-                          newDeps.push(dept);
-                          form.setValue("departments", newDeps);
-                        }
-                      } else {
-                        form.setValue("departments", 
-                          currentDepartments.filter(d => d !== dept)
-                        );
-                      }
-                    }}
-                  />
-                  <Label 
-                    htmlFor={dept}
-                    className="text-sm font-normal"
-                  >
-                    {dept}
-                  </Label>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Select one or more departments for this election. 
-              Only students from selected departments will be eligible to vote or run as candidates.
-            </p>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <Card className="border-blue-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center">
+            <span>Eligible Voters</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 ml-2">
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Only verified users from the selected departments and year levels will be 
+                    eligible to vote in this election.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardTitle>
+          <CardDescription>
+            Select the departments and year levels that are eligible to vote in this election
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="departments"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Eligible Departments*</FormLabel>
+                  <div className="space-y-2">
+                    {DLSU_DEPARTMENTS.map((dept) => (
+                      <div key={dept} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={dept}
+                          checked={field.value.includes(dept)}
+                          onCheckedChange={(checked) => {
+                            const currentDepartments = [...field.value];
+                            if (checked) {
+                              // If University-wide is selected, clear other selections
+                              if (dept === "University-wide") {
+                                form.setValue("departments", ["University-wide"]);
+                              } else {
+                                // If another option is selected, remove University-wide
+                                const newDeps = currentDepartments.filter(d => d !== "University-wide");
+                                newDeps.push(dept);
+                                form.setValue("departments", newDeps);
+                              }
+                            } else {
+                              form.setValue("departments", 
+                                currentDepartments.filter(d => d !== dept)
+                              );
+                            }
+                          }}
+                        />
+                        <Label 
+                          htmlFor={dept}
+                          className="text-sm font-normal"
+                        >
+                          {dept}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Select one or more departments for this election.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="eligibleYearLevels"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Eligible Year Levels</FormLabel>
+                  <div className="space-y-2">
+                    {YEAR_LEVELS.map((year) => (
+                      <div key={year} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={year}
+                          checked={field.value.includes(year)}
+                          onCheckedChange={(checked) => {
+                            const currentYears = [...field.value];
+                            if (checked) {
+                              // If All Year Levels is selected, clear other selections
+                              if (year === "All Year Levels") {
+                                form.setValue("eligibleYearLevels", ["All Year Levels"]);
+                              } else {
+                                // If another option is selected, remove All Year Levels
+                                const newYears = currentYears.filter(y => y !== "All Year Levels");
+                                newYears.push(year);
+                                form.setValue("eligibleYearLevels", newYears);
+                              }
+                            } else {
+                              form.setValue("eligibleYearLevels", 
+                                currentYears.filter(y => y !== year)
+                              );
+                            }
+                          }}
+                        />
+                        <Label 
+                          htmlFor={year}
+                          className="text-sm font-normal"
+                        >
+                          {year}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Select eligible year levels. If none selected, all year levels are eligible.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
       
       <FormField
         control={form.control}
