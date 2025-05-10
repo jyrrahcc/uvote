@@ -174,6 +174,21 @@ export const useVotingForm = ({
         return;
       }
       
+      // First create a "vote marker" record to track that the user has voted in this election
+      const { error: markerError } = await supabase
+        .from('votes')
+        .insert({
+          election_id: electionId,
+          user_id: userId,
+          candidate_id: null, // null candidate_id indicates this is just a marker
+          position: null // Use null instead of string to avoid DB constraint issues
+        });
+      
+      if (markerError) {
+        console.error("Error creating vote marker:", markerError);
+        throw new Error("Failed to record your participation");
+      }
+      
       // Prepare votes data - filter out "abstain" values
       const votes = Object.entries(data)
         .filter(([position, candidateId]) => candidateId !== "abstain") // Skip abstained positions
@@ -183,21 +198,6 @@ export const useVotingForm = ({
           user_id: userId,
           position // Add position for better tracking
         }));
-      
-      // First create a "vote marker" record to track that the user has voted in this election
-      const { error: markerError } = await supabase
-        .from('votes')
-        .insert([{
-          election_id: electionId,
-          user_id: userId,
-          candidate_id: null, // null candidate_id indicates this is just a marker
-          position: null // Changed from string to null to avoid issues with DB constraints
-        }]);
-      
-      if (markerError) {
-        console.error("Error creating vote marker:", markerError);
-        throw new Error("Failed to record your participation");
-      }
       
       // Now insert actual candidate votes if there are any
       if (votes.length > 0) {
