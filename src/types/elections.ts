@@ -1,3 +1,4 @@
+
 /**
  * Election type definition
  */
@@ -19,6 +20,7 @@ export interface Election {
   department?: string; // Added department field for DLSU-D context
   positions?: string[]; // Added positions array
   totalEligibleVoters?: number; // Add totalEligibleVoters field
+  banner_urls?: string[]; // Added banner_urls array to store election banner images
 }
 
 /**
@@ -83,6 +85,7 @@ export interface DbElection {
   department?: string | null;
   positions?: string[] | null; // Added positions array
   total_eligible_voters?: number | null; // Added total_eligible_voters field
+  banner_urls?: string[] | null; // Added banner_urls field
 }
 
 /**
@@ -111,7 +114,8 @@ export const mapDbElectionToElection = (dbElection: DbElection): Election => {
     restrictVoting: dbElection.restrict_voting || false,
     department: dbElection.department || '',
     positions: dbElection.positions || [],
-    totalEligibleVoters: dbElection.total_eligible_voters || 0
+    totalEligibleVoters: dbElection.total_eligible_voters || 0,
+    banner_urls: dbElection.banner_urls || []
   };
 };
 
@@ -132,5 +136,6 @@ export const mapElectionToDbElection = (election: Election): DbElection => ({
   restrict_voting: election.restrictVoting || false,
   department: election.department || null,
   positions: election.positions || [],
-  total_eligible_voters: election.totalEligibleVoters || 0
+  total_eligible_voters: election.totalEligibleVoters || 0,
+  banner_urls: election.banner_urls || []
 });

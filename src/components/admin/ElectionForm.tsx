@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +11,13 @@ import * as z from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Plus } from "lucide-react";
+import { X, Plus, ImageIcon } from "lucide-react";
 import CandidateManager from "@/features/elections/components/CandidateManager";
 import EligibleVotersManager from "@/features/elections/components/EligibleVotersManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Election, mapElectionToDbElection } from "@/types";
+import ElectionBannerUpload from "@/features/elections/components/ElectionBannerUpload";
 
 // College departments for DLSU-D
 const DLSU_DEPARTMENTS = [
@@ -63,6 +63,7 @@ const electionFormSchema = z.object({
     }),
   restrictVoting: z.boolean().default(false),
   positions: z.array(z.string()).default([]),
+  banner_urls: z.array(z.string()).default([]),
 }).refine((data) => {
   // Candidacy period should come before voting period
   const candidacyStart = new Date(data.candidacyStartDate);
@@ -124,6 +125,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       accessCode: "",
       restrictVoting: false,
       positions: DEFAULT_POSITIONS,
+      banner_urls: [],
     },
   });
 
@@ -133,6 +135,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
   const positions = form.watch("positions");
   const restrictVoting = form.watch("restrictVoting");
   const selectedDepartments = form.watch("departments");
+  const banner_urls = form.watch("banner_urls");
   
   // Fetch election data if editing
   useEffect(() => {
@@ -166,6 +169,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             accessCode: data.access_code || "",
             restrictVoting: data.restrict_voting || false,
             positions: Array.isArray(data.positions) ? data.positions : DEFAULT_POSITIONS,
+            banner_urls: Array.isArray(data.banner_urls) ? data.banner_urls : [],
           });
         }
       } catch (error) {
@@ -246,7 +250,8 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         access_code: values.isPrivate ? values.accessCode : null,
         restrict_voting: values.restrictVoting,
         status: status,
-        positions: values.positions
+        positions: values.positions,
+        banner_urls: values.banner_urls
       };
       
       let electionId: string;
@@ -386,8 +391,9 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
     <div className="overflow-hidden max-h-[90vh]">
       <ScrollArea className="h-[calc(90vh-180px)] px-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="banners">Banners</TabsTrigger>
             <TabsTrigger value="candidates">Candidates</TabsTrigger>
             <TabsTrigger value="voters">Eligible Voters</TabsTrigger>
           </TabsList>
@@ -653,6 +659,34 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                       )}
                     />
                   )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="banners">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center">
+                    <ImageIcon className="h-5 w-5 mr-2 text-[#008f50]" />
+                    Election Banners
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload banner images for your election. These will be displayed on the election details page.
+                  </p>
+                  
+                  <FormField
+                    control={form.control}
+                    name="banner_urls"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <ElectionBannerUpload 
+                            banners={field.value} 
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </TabsContent>
               

@@ -62,13 +62,25 @@ export const useCandidateRegistration = ({
           .eq('id', electionId)
           .single();
           
-        if (!electionError && electionData && Array.isArray(electionData.departments)) {
-          const eligibleForElection = electionData.departments.includes(userProfile.department) || 
-                                     electionData.departments.includes("University-wide");
-                                     
-          if (!eligibleForElection) {
-            toast.error(`You cannot register as a candidate for this election because your department (${userProfile.department}) is not eligible.`);
-            return false;
+        if (!electionError && electionData) {
+          // Check if election is department-specific and user belongs to one of the specified departments
+          if (Array.isArray(electionData.departments) && electionData.departments.length > 0) {
+            const eligibleForElection = electionData.departments.includes(userProfile.department) || 
+                                       electionData.departments.includes("University-wide");
+                                       
+            if (!eligibleForElection) {
+              toast.error(`You cannot register as a candidate for this election because your department (${userProfile.department}) is not eligible.`);
+              return false;
+            }
+          } else if (electionData.department) {
+            // Legacy check for single department
+            const eligibleForElection = electionData.department === userProfile.department || 
+                                       electionData.department === "University-wide";
+                                       
+            if (!eligibleForElection) {
+              toast.error(`You cannot register as a candidate for this election because your department (${userProfile.department}) is not eligible.`);
+              return false;
+            }
           }
         }
       }
