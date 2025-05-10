@@ -72,15 +72,6 @@ export const useCandidateRegistration = ({
               toast.error(`You cannot register as a candidate for this election because your department (${userProfile.department}) is not eligible.`);
               return false;
             }
-          } else if (electionData.department) {
-            // Legacy check for single department
-            const eligibleForElection = electionData.department === userProfile.department || 
-                                       electionData.department === "University-wide";
-                                       
-            if (!eligibleForElection) {
-              toast.error(`You cannot register as a candidate for this election because your department (${userProfile.department}) is not eligible.`);
-              return false;
-            }
           }
         }
       }
