@@ -61,10 +61,9 @@ export interface ElectionResult {
 export interface Vote {
   id: string;
   electionId: string;
-  candidateId: string | null;
+  candidateId: string;
   userId: string;
   timestamp: string;
-  position?: string; // Added position field
 }
 
 /**

@@ -28,11 +28,7 @@ import UsersManagement from "./pages/admin/UsersManagement";
 import ElectionsManagement from "./pages/admin/ElectionsManagement";
 import Analytics from "./pages/admin/Analytics"; 
 import SystemSettings from "./pages/admin/SystemSettings";
-
-// Elections Features
 import VotingPage from "./features/elections/pages/VotingPage";
-import ElectionDetailPage from "./features/elections/pages/ElectionDetailPage";
-import VotingFormPage from "./features/elections/pages/VotingFormPage";
 import ResultsPage from "./features/elections/pages/ResultsPage";
 import CandidatesPage from "./features/candidates/pages/CandidatesPage";
 import MyApplicationsPage from "./features/candidates/pages/MyApplicationsPage";
@@ -98,13 +94,9 @@ const App = () => {
                   <Route element={<DashboardLayout />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/elections" element={<Elections />} />
-                    
-                    {/* Election routes */}
-                    <Route path="/elections/:electionId" element={<ElectionDetailPage />} />
-                    <Route path="/elections/:electionId/vote" element={<VotingFormPage />} />
+                    <Route path="/elections/:electionId" element={<VotingPage />} />
                     <Route path="/elections/:electionId/results" element={<ResultsPage />} />
                     <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
-                    
                     <Route path="/my-votes" element={<MyVotes />} />
                     <Route path="/my-applications" element={<MyApplicationsPage />} />
                     <Route path="/profile" element={<Profile />} />

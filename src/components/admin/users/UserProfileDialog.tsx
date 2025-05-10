@@ -1,292 +1,159 @@
-import { useState, useEffect } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { Check, Shield, User, UserCheck, X } from "lucide-react";
 import { UserProfile } from "./types";
-// We just need to correct the import of Info icon from Lucide
-import { Check, AlertCircle, User2, UserCheck, Info } from "lucide-react";
 
 interface UserProfileDialogProps {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  user: UserProfile | null;
-  onProfileUpdate?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  selectedUser: UserProfile | null;
+  onVerifyProfile: (userId: string, isVerified: boolean) => void;
+  isProcessing: boolean;
 }
 
 const UserProfileDialog = ({
-  open,
-  setOpen,
-  user,
-  onProfileUpdate,
+  isOpen,
+  onClose,
+  selectedUser,
+  onVerifyProfile,
+  isProcessing
 }: UserProfileDialogProps) => {
-  const [isVerified, setIsVerified] = useState(user?.is_verified || false);
-  const [roles, setRoles] = useState<string[]>(user?.roles || []);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setIsVerified(user?.is_verified || false);
-    setRoles(user?.roles || []);
-  }, [user]);
-
-  const handleVerify = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_verified: !isVerified })
-        .eq("id", user?.id);
-
-      if (error) {
-        throw error;
-      }
-
-      setIsVerified(!isVerified);
-      toast.success(
-        `User ${isVerified ? "unverified" : "verified"} successfully.`
-      );
-      onProfileUpdate?.();
-    } catch (error: any) {
-      console.error("Error updating user verification:", error);
-      toast.error("Failed to update user verification.");
-    } finally {
-      setLoading(false);
+  // Get user initials
+  const getUserInitials = (first_name?: string, last_name?: string, email?: string) => {
+    if (first_name && last_name) {
+      return `${first_name.charAt(0)}${last_name.charAt(0)}`;
     }
+    if (email) {
+      return email.charAt(0).toUpperCase();
+    }
+    return "U";
   };
 
-  const handleRoleChange = async (role: string, action: "add" | "remove") => {
-    setLoading(true);
-    try {
-      let newRoles = [...roles];
-      if (action === "add") {
-        newRoles.push(role);
-      } else {
-        newRoles = newRoles.filter((r) => r !== role);
-      }
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({ roles: newRoles })
-        .eq("id", user?.id);
-
-      if (error) {
-        throw error;
-      }
-
-      setRoles(newRoles);
-      toast.success(`Role ${action === "add" ? "added" : "removed"} successfully.`);
-      onProfileUpdate?.();
-    } catch (error: any) {
-      console.error("Error updating user roles:", error);
-      toast.error("Failed to update user roles.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isAdmin = roles.includes("admin");
+  if (!selectedUser) return null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>User Profile</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5 text-primary" /> User Profile
+          </DialogTitle>
           <DialogDescription>
-            Manage user profile and roles.
+            View detailed user profile information
           </DialogDescription>
         </DialogHeader>
-
-        {user ? (
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                type="email"
-                id="email"
-                value={user.email}
-                readOnly
-                className="col-span-3"
-              />
+        
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16">
+              <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                {getUserInitials(selectedUser.first_name, selectedUser.last_name, selectedUser.email)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-lg font-semibold">{selectedUser.first_name} {selectedUser.last_name}</h3>
+              <p className="text-muted-foreground">{selectedUser.email}</p>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="first_name" className="text-right">
-                First Name
-              </Label>
-              <Input
-                type="text"
-                id="first_name"
-                value={user.first_name}
-                readOnly
-                className="col-span-3"
-              />
+          </div>
+          
+          <div className="grid gap-2">
+            <div className="grid grid-cols-3 items-center">
+              <span className="text-sm font-medium">Student ID:</span>
+              <span className="col-span-2">{selectedUser.student_id || "Not provided"}</span>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="last_name" className="text-right">
-                Last Name
-              </Label>
-              <Input
-                type="text"
-                id="last_name"
-                value={user.last_name}
-                readOnly
-                className="col-span-3"
-              />
+            
+            <div className="grid grid-cols-3 items-center">
+              <span className="text-sm font-medium">Department:</span>
+              <span className="col-span-2">{selectedUser.department || "Not provided"}</span>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="student_id" className="text-right">
-                Student ID
-              </Label>
-              <Input
-                type="text"
-                id="student_id"
-                value={user.student_id || "N/A"}
-                readOnly
-                className="col-span-3"
-              />
+            
+            <div className="grid grid-cols-3 items-center">
+              <span className="text-sm font-medium">Year Level:</span>
+              <span className="col-span-2">{selectedUser.year_level || "Not provided"}</span>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="department" className="text-right">
-                Department
-              </Label>
-              <Input
-                type="text"
-                id="department"
-                value={user.department || "N/A"}
-                readOnly
-                className="col-span-3"
-              />
+            
+            <div className="grid grid-cols-3 items-center">
+              <span className="text-sm font-medium">Joined:</span>
+              <span className="col-span-2">{new Date(selectedUser.created_at).toLocaleDateString()}</span>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="year_level" className="text-right">
-                Year Level
-              </Label>
-              <Input
-                type="text"
-                id="year_level"
-                value={user.year_level || "N/A"}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="is_verified" className="text-right">
-                Verified
-              </Label>
-              <div className="col-span-3">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" disabled={loading}>
-                      {isVerified ? (
-                        <>
-                          <UserCheck className="mr-2 h-4 w-4" />
-                          Verified
-                        </>
-                      ) : (
-                        <>
-                          <User2 className="mr-2 h-4 w-4" />
-                          Unverified
-                        </>
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        {isVerified ? "Unverify User?" : "Verify User?"}
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to{" "}
-                        {isVerified ? "unverify" : "verify"} this user?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleVerify} disabled={loading}>
-                        {loading ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
-                        ) : (
-                          <>
-                            {isVerified ? "Unverify" : "Verify"}
-                          </>
-                        )}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+            
+            <div className="grid grid-cols-3 items-center">
+              <span className="text-sm font-medium">Roles:</span>
+              <div className="col-span-2 flex flex-wrap gap-1.5">
+                {selectedUser.roles.length > 0 ? (
+                  selectedUser.roles.map(role => (
+                    <Badge key={role} variant={role === 'admin' ? 'secondary' : 'outline'} className={role === 'admin' ? 'bg-primary/10 text-primary' : ''}>
+                      {role === 'admin' ? <Shield className="h-3 w-3 mr-1" /> : <UserCheck className="h-3 w-3 mr-1" />}
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-muted-foreground">No roles assigned</span>
+                )}
               </div>
             </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="roles" className="text-right">
-                Roles
-              </Label>
-              <div className="col-span-3 flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleRoleChange("admin", isAdmin ? "remove" : "add")}
-                  disabled={loading}
+            
+            <div className="grid grid-cols-3 items-center">
+              <span className="text-sm font-medium">Verification:</span>
+              <div className="col-span-2">
+                {selectedUser.is_verified ? (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <Check className="h-3 w-3 mr-1" />
+                    Verified
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                    <Info className="h-3 w-3 mr-1" />
+                    Not Verified
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="pt-4 flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">Profile Management:</p>
+            <div className="flex flex-wrap gap-2">
+              {selectedUser.is_verified ? (
+                <Button 
+                  variant="outline" 
+                  onClick={() => onVerifyProfile(selectedUser.id, true)}
+                  disabled={isProcessing}
+                  className="border-amber-200 text-amber-700 hover:bg-amber-50"
                 >
-                  {isAdmin ? (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      Admin
-                    </>
-                  ) : (
-                    "Make Admin"
-                  )}
+                  <X className="h-4 w-4 mr-2" />
+                  Revoke Verification
                 </Button>
-              </div>
+              ) : (
+                <Button 
+                  variant="outline"
+                  onClick={() => onVerifyProfile(selectedUser.id, false)}
+                  disabled={isProcessing}
+                  className="border-green-200 text-green-700 hover:bg-green-50"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Verify Profile
+                </Button>
+              )}
             </div>
           </div>
-        ) : (
-          <div className="flex items-center space-x-2">
-            <AlertCircle className="h-4 w-4" />
-            <span>No user selected.</span>
-          </div>
-        )}
-
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button type="submit" disabled={loading}>
-              Save changes
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. Are you sure you want to update
-                this user?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction disabled={loading}>Continue</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
