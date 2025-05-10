@@ -86,10 +86,8 @@ export const useElection = (electionId: string | undefined) => {
           console.error("Error fetching votes:", votesError);
         }
 
-        // Check if user has voted
-        if (votesData && votesData.length > 0) {
-          setHasVoted(true);
-        }
+        // Check if current user has voted - this needs to be checked when user is logged in
+        // The VotingPage component will handle checking if the current user has voted
 
         // Calculate voting statistics
         const stats = calculateVotingStats(transformedElection, votesData || []);

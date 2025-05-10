@@ -117,7 +117,9 @@ const VotingForm = ({
         .eq('user_id', userId)
         .maybeSingle();
       
-      if (!checkError && existingVote) {
+      if (checkError) throw checkError;
+      
+      if (existingVote) {
         toast.error("You have already voted in this election");
         return;
       }

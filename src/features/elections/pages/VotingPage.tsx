@@ -25,6 +25,7 @@ const VotingPage = () => {
   
   const [showAccessCodeInput, setShowAccessCodeInput] = useState(false);
   const [canVoteInElection, setCanVoteInElection] = useState<boolean | null>(null);
+  const [userHasVoted, setUserHasVoted] = useState(false);
   
   const {
     election,
@@ -37,6 +38,32 @@ const VotingPage = () => {
     accessCodeVerified,
     setAccessCodeVerified
   } = useElection(electionId);
+
+  // Check if user has already voted
+  useEffect(() => {
+    const checkIfUserHasVoted = async () => {
+      if (!user || !electionId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('votes')
+          .select('id')
+          .eq('election_id', electionId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+          
+        if (error) throw error;
+        
+        const hasAlreadyVoted = !!data;
+        setUserHasVoted(hasAlreadyVoted);
+        setHasVoted(hasAlreadyVoted);
+      } catch (error) {
+        console.error("Error checking if user has voted:", error);
+      }
+    };
+    
+    checkIfUserHasVoted();
+  }, [user, electionId, setHasVoted]);
 
   // Check if user is eligible to vote in this election
   useEffect(() => {
@@ -190,7 +217,7 @@ const VotingPage = () => {
       )}
       
       {/* Voter instructions */}
-      {election.status === 'active' && !hasVoted && (
+      {election.status === 'active' && !userHasVoted && (
         <Alert className="mb-6 bg-[#008f50]/5 border-[#008f50]/20">
           <AlertTitle className="text-[#008f50]">DLSU-D Election Voting Instructions</AlertTitle>
           <AlertDescription>
@@ -211,19 +238,20 @@ const VotingPage = () => {
           electionId={election.id}
           candidates={candidates}
           userId={user?.id || ''}
-          hasVoted={hasVoted}
+          hasVoted={userHasVoted}
           selectedCandidateId={selectedCandidate}
           onSelect={(candidateId) => {
-            if (!hasVoted) {
+            if (!userHasVoted) {
               setSelectedCandidate(candidateId);
               setHasVoted(true);
+              setUserHasVoted(true);
             }
           }}
         />
       )}
       
       {/* Already voted message */}
-      {election.status === 'active' && hasVoted && (
+      {election.status === 'active' && userHasVoted && (
         <div className="text-center py-8 border rounded-md bg-green-50">
           <div className="text-2xl font-semibold text-green-700 mb-2">Thank you for voting!</div>
           <p className="text-green-600">Your vote has been recorded. Results will be available when the election closes.</p>
