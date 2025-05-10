@@ -49,7 +49,7 @@ const DEFAULT_POSITIONS = [
 const electionFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
-  department: z.string().optional(),
+  departments: z.array(z.string()).min(1, "At least one department must be selected"),
   candidacyStartDate: z.string().min(1, "Candidacy start date is required"),
   candidacyEndDate: z.string().min(1, "Candidacy end date is required"),
   startDate: z.string().min(1, "Start date is required"),
@@ -115,7 +115,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
     defaultValues: {
       title: "",
       description: "",
-      department: "",
+      departments: [],
       candidacyStartDate: "",
       candidacyEndDate: "",
       startDate: "",
@@ -132,6 +132,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
   const candidacyEndDate = form.watch("candidacyEndDate");
   const positions = form.watch("positions");
   const restrictVoting = form.watch("restrictVoting");
+  const selectedDepartments = form.watch("departments");
   
   // Fetch election data if editing
   useEffect(() => {
@@ -154,7 +155,9 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
           form.reset({
             title: data.title || "",
             description: data.description || "",
-            department: data.department || "",
+            departments: Array.isArray(data.departments) && data.departments.length > 0 
+              ? data.departments 
+              : data.department ? [data.department] : [],
             candidacyStartDate: data.candidacy_start_date || "",
             candidacyEndDate: data.candidacy_end_date || "",
             startDate: data.start_date || "",
@@ -232,7 +235,8 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       let electionData = {
         title: values.title,
         description: values.description || "",
-        department: values.department || "",
+        department: values.departments.includes("University-wide") ? "University-wide" : values.departments[0], // For backward compatibility
+        departments: values.departments,
         candidacy_start_date: values.candidacyStartDate,
         candidacy_end_date: values.candidacyEndDate,
         start_date: values.startDate,
@@ -411,29 +415,49 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
                   
                   <FormField
                     control={form.control}
-                    name="department"
+                    name="departments"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>College/Department</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select department" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="University-wide">University-wide</SelectItem>
-                            {DLSU_DEPARTMENTS.filter(dept => dept !== "University-wide").map(dept => (
-                              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>College/Department*</FormLabel>
+                        <div className="space-y-2">
+                          {DLSU_DEPARTMENTS.map((dept) => (
+                            <div key={dept} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={dept}
+                                checked={field.value.includes(dept)}
+                                onCheckedChange={(checked) => {
+                                  const currentDepartments = [...field.value];
+                                  if (checked) {
+                                    // If University-wide is selected, clear other selections
+                                    if (dept === "University-wide") {
+                                      form.setValue("departments", ["University-wide"]);
+                                    } else {
+                                      // If another option is selected, remove University-wide
+                                      const newDeps = currentDepartments.filter(d => d !== "University-wide");
+                                      newDeps.push(dept);
+                                      form.setValue("departments", newDeps);
+                                    }
+                                  } else {
+                                    form.setValue("departments", 
+                                      currentDepartments.filter(d => d !== dept)
+                                    );
+                                  }
+                                }}
+                              />
+                              <Label 
+                                htmlFor={dept}
+                                className="text-sm font-normal"
+                              >
+                                {dept}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
                         <p className="text-sm text-muted-foreground">
-                          Select the department this election belongs to
+                          Select one or more departments for this election. 
+                          Only students from selected departments will be eligible to vote or run as candidates.
                         </p>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />

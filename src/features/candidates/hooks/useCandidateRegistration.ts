@@ -1,8 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { CandidateFormData } from "../schemas/candidateFormSchema";
+import { uploadFileToStorage } from "@/utils/fileUploadUtils";
 
 interface UseCandidateRegistrationProps {
   electionId: string;
@@ -18,9 +19,60 @@ export const useCandidateRegistration = ({
   onClose
 }: UseCandidateRegistrationProps) => {
   const [loading, setLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [profileVerified, setProfileVerified] = useState(false);
+  
+  // Fetch user profile and verification status
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
+          
+        if (error) throw error;
+        
+        setUserProfile(data);
+        setProfileVerified(data?.is_verified || false);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+    
+    if (userId) {
+      fetchUserProfile();
+    }
+  }, [userId]);
   
   const registerCandidate = async (values: CandidateFormData) => {
     try {
+      // Check if profile is verified
+      if (!profileVerified) {
+        toast.error("You need to complete and verify your profile before registering as a candidate");
+        return false;
+      }
+      
+      // Check if user's department matches election departments
+      if (userProfile?.department) {
+        const { data: electionData, error: electionError } = await supabase
+          .from('elections')
+          .select('departments')
+          .eq('id', electionId)
+          .single();
+          
+        if (!electionError && electionData && Array.isArray(electionData.departments)) {
+          const eligibleForElection = electionData.departments.includes(userProfile.department) || 
+                                     electionData.departments.includes("University-wide");
+                                     
+          if (!eligibleForElection) {
+            toast.error(`You cannot register as a candidate for this election because your department (${userProfile.department}) is not eligible.`);
+            return false;
+          }
+        }
+      }
+      
       setLoading(true);
       console.log("Registering candidate with data:", values);
       
@@ -38,9 +90,9 @@ export const useCandidateRegistration = ({
         bio: values.bio,
         position: values.position,
         image_url: finalImageUrl || null,
-        student_id: values.student_id || null,
-        department: values.department || null,
-        year_level: values.year_level || null,
+        student_id: values.student_id || userProfile?.student_id || null,
+        department: values.department || userProfile?.department || null,
+        year_level: values.year_level || userProfile?.year_level || null,
         election_id: electionId,
         created_by: userId
       };
@@ -76,6 +128,7 @@ export const useCandidateRegistration = ({
   
   return {
     registerCandidate,
-    loading
+    loading,
+    profileVerified
   };
 };

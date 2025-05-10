@@ -40,6 +40,7 @@ export interface DlsudProfile {
   student_id?: string;
   department?: string;
   year_level?: string;
+  is_verified?: boolean;
 }
 
 /**
@@ -68,5 +69,6 @@ export const mapDbProfileToProfile = (profile: any): DlsudProfile => ({
   updated_at: profile.updated_at,
   student_id: profile.student_id || '',
   department: profile.department || '',
-  year_level: profile.year_level || ''
+  year_level: profile.year_level || '',
+  is_verified: profile.is_verified || false
 });

@@ -117,6 +117,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           department: string | null
+          departments: string[] | null
           description: string | null
           end_date: string
           id: string
@@ -135,6 +136,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           department?: string | null
+          departments?: string[] | null
           description?: string | null
           end_date: string
           id?: string
@@ -153,6 +155,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           department?: string | null
+          departments?: string[] | null
           description?: string | null
           end_date?: string
           id?: string
@@ -205,6 +208,7 @@ export type Database = {
           email: string
           first_name: string
           id: string
+          is_verified: boolean | null
           last_name: string
           student_id: string | null
           updated_at: string
@@ -216,6 +220,7 @@ export type Database = {
           email: string
           first_name: string
           id: string
+          is_verified?: boolean | null
           last_name: string
           student_id?: string | null
           updated_at?: string
@@ -227,6 +232,7 @@ export type Database = {
           email?: string
           first_name?: string
           id?: string
+          is_verified?: boolean | null
           last_name?: string
           student_id?: string | null
           updated_at?: string
