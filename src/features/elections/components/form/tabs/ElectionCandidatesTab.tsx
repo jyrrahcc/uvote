@@ -1,5 +1,5 @@
 
-import { forwardRef, useImperativeHandle, ForwardRefRenderFunction } from "react";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import CandidateManager from "../../CandidateManager";
 
 interface ElectionCandidatesTabProps {
@@ -9,31 +9,35 @@ interface ElectionCandidatesTabProps {
   positions: string[];
 }
 
-const ElectionCandidatesTab: ForwardRefRenderFunction<any, ElectionCandidatesTabProps> = (
-  { electionId, candidacyStartDate, candidacyEndDate, positions },
-  ref
-) => {
-  // Use forwardRef to expose the CandidateManager ref to parent
-  useImperativeHandle(ref, () => ({
-    getCandidatesForNewElection: () => {
-      if (ref && 'current' in ref && ref.current && ref.current.getCandidatesForNewElection) {
-        return ref.current.getCandidatesForNewElection();
+const ElectionCandidatesTab = forwardRef<any, ElectionCandidatesTabProps>(
+  ({ electionId, candidacyStartDate, candidacyEndDate, positions }, ref) => {
+    // Create a local ref to the CandidateManager
+    const candidateManagerRef = useRef<any>(null);
+
+    // Expose the CandidateManager methods to the parent component
+    useImperativeHandle(ref, () => ({
+      getCandidatesForNewElection: () => {
+        if (candidateManagerRef.current && candidateManagerRef.current.getCandidatesForNewElection) {
+          return candidateManagerRef.current.getCandidatesForNewElection();
+        }
+        return [];
       }
-      return [];
-    }
-  }));
+    }));
 
-  return (
-    <CandidateManager
-      ref={ref}
-      electionId={electionId}
-      isNewElection={!electionId}
-      candidacyStartDate={candidacyStartDate}
-      candidacyEndDate={candidacyEndDate}
-      isAdmin={true}
-      positions={positions}
-    />
-  );
-};
+    return (
+      <CandidateManager
+        ref={candidateManagerRef}
+        electionId={electionId}
+        isNewElection={!electionId}
+        candidacyStartDate={candidacyStartDate}
+        candidacyEndDate={candidacyEndDate}
+        isAdmin={true}
+        positions={positions}
+      />
+    );
+  }
+);
 
-export default forwardRef(ElectionCandidatesTab);
+ElectionCandidatesTab.displayName = "ElectionCandidatesTab";
+
+export default ElectionCandidatesTab;

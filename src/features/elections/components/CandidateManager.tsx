@@ -18,7 +18,7 @@ export interface CandidateManagerProps {
   positions?: string[];
 }
 
-const CandidateManager = forwardRef(({ 
+const CandidateManager = forwardRef<any, CandidateManagerProps>(({ 
   electionId, 
   isNewElection, 
   candidacyStartDate, 
@@ -48,33 +48,6 @@ const CandidateManager = forwardRef(({
       fetchCandidates();
     }
   }, [electionId, isNewElection]);
-
-  // Also fetch election positions if election ID is provided
-  useEffect(() => {
-    if (electionId && !isNewElection) {
-      fetchElectionPositions();
-    }
-  }, [electionId, isNewElection]);
-
-  const fetchElectionPositions = async () => {
-    if (!electionId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('elections')
-        .select('positions')
-        .eq('id', electionId)
-        .single();
-      
-      if (error) throw error;
-
-      if (data && data.positions && Array.isArray(data.positions) && data.positions.length > 0) {
-        setAvailablePositions(data.positions);
-      }
-    } catch (error) {
-      console.error("Error fetching election positions:", error);
-    }
-  };
 
   const fetchCandidates = async () => {
     if (!electionId) return;
@@ -158,26 +131,28 @@ const CandidateManager = forwardRef(({
     setShowPreview(true);
   };
 
-  // Expose methods to parent component
+  // This is the critical part - expose the method to parent component
+  // Make sure we're not creating circular references
   useImperativeHandle(ref, () => ({
     getCandidatesForNewElection: () => {
-      return candidates.filter(candidate => 
-        candidate.name && candidate.position
-      ).map(c => ({
-        name: c.name,
-        bio: c.bio,
-        position: c.position,
-        image_url: c.image_url,
-        student_id: c.student_id,
-        department: c.department,
-        year_level: c.year_level,
-        election_id: electionId // Explicitly set the election_id
-      }));
+      // Return a new array with only the necessary properties
+      return candidates
+        .filter(candidate => candidate.name && candidate.position) // Only include candidates with at least name and position
+        .map(c => ({
+          name: c.name,
+          bio: c.bio || "",
+          position: c.position,
+          image_url: c.image_url || "",
+          student_id: c.student_id || "",
+          department: c.department || "",
+          year_level: c.year_level || "",
+          // Don't include the election_id here, it will be added by the parent component
+        }));
     }
   }));
 
   if (loading) {
-    return <div>Loading candidates...</div>;
+    return <div className="flex justify-center p-4">Loading candidates...</div>;
   }
 
   const canAddCandidates = isNewElection || isAdmin || isInCandidacyPeriod();
