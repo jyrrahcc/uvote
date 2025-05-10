@@ -52,7 +52,9 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
       {election.banner_urls && election.banner_urls.length > 0 && (
         <ElectionBannerCarousel 
           bannerUrls={election.banner_urls} 
-          title={election.title} 
+          title={election.title}
+          autoAdvance={true}
+          interval={5000}
         />
       )}
 

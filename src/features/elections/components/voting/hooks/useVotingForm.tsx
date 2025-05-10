@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ export const useVotingForm = ({
   const [voteLoading, setVoteLoading] = useState(false);
   const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [selections, setSelections] = useState<VotingSelections>({});
   const { isVoter } = useRole();
   
   // Group candidates by position
@@ -49,13 +50,39 @@ export const useVotingForm = ({
     Object.keys(positionGroups),
   [positionGroups]);
   
-  // Initialize form
+  // Initialize form with any saved selections
   const form = useForm<VotingSelections>({
-    defaultValues: {},
+    defaultValues: selections,
   });
+  
+  // Update form whenever selections change
+  useEffect(() => {
+    const currentValues = form.getValues();
+    
+    // Only update if there are actual changes
+    if (JSON.stringify(currentValues) !== JSON.stringify(selections)) {
+      Object.entries(selections).forEach(([position, value]) => {
+        form.setValue(position, value);
+      });
+    }
+  }, [selections, form]);
   
   const currentPosition = positions[currentPositionIndex];
   const currentCandidates = currentPosition ? positionGroups[currentPosition] : [];
+  
+  // When form values change, update our selections state
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value[currentPosition]) {
+        setSelections(prev => ({
+          ...prev,
+          [currentPosition]: value[currentPosition] as string
+        }));
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form, currentPosition]);
   
   // Navigation functions
   const goToNextPosition = () => {
@@ -83,7 +110,12 @@ export const useVotingForm = ({
   // Add an abstain option for the current position
   const handleAbstain = () => {
     form.setValue(currentPosition, "abstain");
+    setSelections(prev => ({
+      ...prev,
+      [currentPosition]: "abstain"
+    }));
     setValidationError(null);
+    
     if (currentPositionIndex < positions.length - 1) {
       goToNextPosition();
     }

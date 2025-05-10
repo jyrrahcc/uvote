@@ -89,8 +89,8 @@ const VotingForm = ({
   }
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
+    <Card className="mb-6 shadow-lg border-green-100 transition-all duration-300">
+      <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
         <CardTitle className="flex items-center gap-2">
           <Vote className="h-5 w-5" />
           Cast Your Vote
@@ -99,23 +99,20 @@ const VotingForm = ({
           Select your preferred candidate for each position
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleVote)} className="space-y-6">
             {positions.length > 0 ? (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium">
-                    Position {currentPositionIndex + 1} of {positions.length}: {currentPosition}
+                    <span className="text-[#008f50]">Question {currentPositionIndex + 1}:</span> Who will you vote for {currentPosition}?
                   </h3>
-                  <div className="text-sm text-muted-foreground">
-                    {currentPositionIndex + 1}/{positions.length}
-                  </div>
                 </div>
                 
                 <ValidationError error={validationError} />
                 
-                <div className="border rounded-md p-4 bg-slate-50">
+                <div className="border rounded-md p-6 bg-slate-50 shadow-inner">
                   <FormField
                     control={form.control}
                     name={currentPosition}
@@ -124,7 +121,17 @@ const VotingForm = ({
                         <FormLabel className="text-base">Select a candidate:</FormLabel>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={field.onChange}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              // Automatically advance after short delay when option selected
+                              if (currentPositionIndex < positions.length - 1) {
+                                setTimeout(() => {
+                                  if (form.getValues()[currentPosition]) {
+                                    goToNextPosition();
+                                  }
+                                }, 300);
+                              }
+                            }}
                             defaultValue={field.value}
                             className="flex flex-col space-y-3 mt-4"
                           >
@@ -162,7 +169,7 @@ const VotingForm = ({
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex flex-col">
+      <CardFooter className="flex flex-col bg-gray-50 border-t border-gray-100 pt-4">
         <VotingProgress 
           currentPosition={currentPositionIndex} 
           totalPositions={positions.length} 
