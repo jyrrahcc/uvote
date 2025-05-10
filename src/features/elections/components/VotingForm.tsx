@@ -1,15 +1,22 @@
-import { useState, useMemo } from "react";
+
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Candidate } from "@/types";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { ChevronLeft, ChevronRight, Check, AlertTriangle, Vote, CircleX } from "lucide-react";
+import { AlertTriangle, Vote } from "lucide-react";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { RadioGroup } from "@/components/ui/radio-group";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { Candidate } from "@/types";
+
+// Import custom components
+import CandidateOption from "./voting/CandidateOption";
+import AbstainOption from "./voting/AbstainOption";
+import PositionNavigation from "./voting/PositionNavigation";
+import ValidationError from "./voting/ValidationError";
+import VotingProgress from "./voting/VotingProgress";
+import VoteSummary from "./voting/VoteSummary";
+import { useVotingForm } from "./voting/hooks/useVotingForm";
 
 interface VotingFormProps {
   electionId: string;
@@ -20,212 +27,38 @@ interface VotingFormProps {
   onSelect: (candidateId: string) => void;
 }
 
-interface VotingSelections {
-  [position: string]: string;
-}
-
 const VotingForm = ({ 
   electionId, 
   candidates, 
   userId, 
   hasVoted, 
-  selectedCandidateId, 
   onSelect 
 }: VotingFormProps) => {
-  const [voteLoading, setVoteLoading] = useState(false);
-  const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
-  const [confirmVoteOpen, setConfirmVoteOpen] = useState(false);
   const { isVoter } = useRole();
-  const [validationError, setValidationError] = useState<string | null>(null);
   
-  // Group candidates by position
-  const positionGroups = useMemo(() => {
-    const groups: { [key: string]: Candidate[] } = {};
-    
-    // Make sure candidates is an array before calling forEach
-    if (Array.isArray(candidates)) {
-      candidates.forEach((candidate) => {
-        if (!groups[candidate.position]) {
-          groups[candidate.position] = [];
-        }
-        groups[candidate.position].push(candidate);
-      });
-    }
-    
-    return groups;
-  }, [candidates]);
-  
-  // Get unique positions
-  const positions = useMemo(() => 
-    Object.keys(positionGroups),
-  [positionGroups]);
-  
-  // Initialize form
-  const form = useForm<VotingSelections>({
-    defaultValues: {},
+  // Use the custom hook for form logic
+  const {
+    form,
+    positions,
+    currentPosition,
+    currentPositionIndex,
+    currentCandidates,
+    voteLoading,
+    validationError,
+    handleVote,
+    goToNextPosition,
+    goToPreviousPosition,
+    hasCurrentSelection
+  } = useVotingForm({ 
+    electionId, 
+    candidates, 
+    userId,
+    onVoteSubmitted: onSelect
   });
-  
-  const currentPosition = positions[currentPositionIndex];
-  const currentCandidates = currentPosition ? positionGroups[currentPosition] : [];
-  
-  // Navigation functions
-  const goToNextPosition = () => {
-    setValidationError(null);
-    
-    // Check if a selection has been made for the current position
-    const currentSelection = form.getValues()[currentPosition];
-    if (!currentSelection) {
-      setValidationError(`Please select a candidate or choose to abstain for the ${currentPosition} position before proceeding.`);
-      return;
-    }
-    
-    if (currentPositionIndex < positions.length - 1) {
-      setCurrentPositionIndex(prev => prev + 1);
-    }
-  };
-  
-  const goToPreviousPosition = () => {
-    setValidationError(null);
-    if (currentPositionIndex > 0) {
-      setCurrentPositionIndex(prev => prev - 1);
-    }
-  };
-  
-  // Check if there are any selections
-  const hasSelections = Object.keys(form.getValues()).length > 0;
-
-  // Add an abstain option for the current position
-  const handleAbstain = () => {
-    form.setValue(currentPosition, "abstain");
-    setValidationError(null);
-    if (currentPositionIndex < positions.length - 1) {
-      goToNextPosition();
-    }
-  };
-  
-  // Check if all positions have a selection before submitting
-  const validateAllSelections = () => {
-    const values = form.getValues();
-    const missingSelections = positions.filter(position => !values[position]);
-    
-    if (missingSelections.length > 0) {
-      setValidationError(`Please make a selection for all positions before submitting your vote. Missing: ${missingSelections.join(', ')}`);
-      return false;
-    }
-    
-    return true;
-  };
-  
-  const handleVote = async (data: VotingSelections) => {
-    // Validate all positions have a selection
-    if (!validateAllSelections()) {
-      return;
-    }
-    
-    if (!userId) {
-      toast.error("You need to be logged in to vote");
-      return;
-    }
-    
-    // Check if user has voter role first
-    if (!isVoter) {
-      toast.error("You need to verify your profile to vote", {
-        description: "Only verified users with voter privileges can cast votes in elections."
-      });
-      return;
-    }
-    
-    try {
-      setVoteLoading(true);
-      
-      // Check if user has already voted
-      const { data: existingVote, error: checkError } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('election_id', electionId)
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      if (checkError) throw checkError;
-      
-      if (existingVote) {
-        toast.error("You have already voted in this election");
-        return;
-      }
-      
-      // Prepare votes data - filter out "abstain" values
-      const votes = Object.entries(data)
-        .filter(([position, candidateId]) => candidateId !== "abstain") // Skip abstained positions
-        .map(([position, candidateId]) => ({
-          election_id: electionId,
-          candidate_id: candidateId,
-          user_id: userId,
-          position: position // Add position for better tracking
-        }));
-      
-      // First create a "vote marker" record to track that the user has voted in this election
-      // This should be done regardless of whether they vote for candidates or abstain for all positions
-      const { error: markerError } = await supabase
-        .from('votes')
-        .insert([{
-          election_id: electionId,
-          user_id: userId,
-          candidate_id: null, // null candidate_id indicates this is just a marker
-          position: '_voted_marker' // Special position name to mark that user has participated
-        }]);
-      
-      if (markerError) throw markerError;
-      
-      // Now insert actual candidate votes if there are any
-      if (votes.length > 0) {
-        const { error: voteError } = await supabase
-          .from('votes')
-          .insert(votes);
-        
-        if (voteError) throw voteError;
-      }
-      
-      toast.success("Your votes have been recorded successfully", {
-        description: "Thank you for participating in this election"
-      });
-      
-      // Update parent component that user has voted
-      onSelect(votes.length > 0 ? votes[0].candidate_id : "abstained");
-      
-    } catch (error) {
-      console.error("Error submitting votes:", error);
-      toast.error("Failed to submit your votes");
-    } finally {
-      setVoteLoading(false);
-    }
-  };
 
   // If the user has already voted, show the results button
   if (hasVoted) {
-    return (
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Thank You for Voting</CardTitle>
-          <CardDescription>
-            You have already cast your vote in this election.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="rounded-full bg-green-100 p-3">
-            <Check className="h-8 w-8 text-green-600" />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            asChild 
-            variant="outline"
-            className="w-full"
-          >
-            <Link to={`/elections/${electionId}/results`}>View Results</Link>
-          </Button>
-        </CardFooter>
-      </Card>
-    );
+    return <VoteSummary electionId={electionId} />;
   }
 
   // If user doesn't have voter role, show an alert
@@ -280,11 +113,7 @@ const VotingForm = ({
                   </div>
                 </div>
                 
-                {validationError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
-                    {validationError}
-                  </div>
-                )}
+                <ValidationError error={validationError} />
                 
                 <div className="border rounded-md p-4 bg-slate-50">
                   <FormField
@@ -300,86 +129,30 @@ const VotingForm = ({
                             className="flex flex-col space-y-3 mt-4"
                           >
                             {currentCandidates.map((candidate) => (
-                              <FormItem key={candidate.id} className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value={candidate.id} />
-                                </FormControl>
-                                <FormLabel className="font-normal cursor-pointer flex items-center">
-                                  {candidate.image_url && (
-                                    <img 
-                                      src={candidate.image_url} 
-                                      alt={candidate.name} 
-                                      className="w-10 h-10 rounded-full object-cover mr-3" 
-                                    />
-                                  )}
-                                  <div>
-                                    <div className="font-medium">{candidate.name}</div>
-                                    {candidate.bio && (
-                                      <div className="text-sm text-muted-foreground line-clamp-1">
-                                        {candidate.bio}
-                                      </div>
-                                    )}
-                                  </div>
-                                </FormLabel>
-                              </FormItem>
+                              <CandidateOption 
+                                key={candidate.id} 
+                                candidate={candidate} 
+                              />
                             ))}
                             
-                            {/* Abstain option at the bottom */}
-                            <FormItem className="flex items-center space-x-3 space-y-0 mt-2">
-                              <FormControl>
-                                <RadioGroupItem value="abstain" />
-                              </FormControl>
-                              <FormLabel className="font-normal cursor-pointer flex items-center">
-                                <div className="flex items-center">
-                                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
-                                    <CircleX className="h-6 w-6 text-gray-400" />
-                                  </div>
-                                  <div>
-                                    <div className="font-medium">Abstain</div>
-                                    <div className="text-sm text-muted-foreground">
-                                      I choose not to vote for this position
-                                    </div>
-                                  </div>
-                                </div>
-                              </FormLabel>
-                            </FormItem>
+                            {/* Abstain option */}
+                            <AbstainOption />
                           </RadioGroup>
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
                 
-                <div className="flex justify-between pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={goToPreviousPosition}
-                    disabled={currentPositionIndex === 0}
-                  >
-                    <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-                  </Button>
-                  
-                  {currentPositionIndex === positions.length - 1 ? (
-                    <Button
-                      type="submit"
-                      disabled={voteLoading}
-                      className="gap-2"
-                    >
-                      {voteLoading ? "Submitting..." : "Submit All Votes"}
-                      {!voteLoading && <Vote className="h-4 w-4" />}
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={goToNextPosition}
-                      disabled={!form.getValues()[currentPosition]}
-                    >
-                      Next <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                <PositionNavigation 
+                  currentPositionIndex={currentPositionIndex}
+                  totalPositions={positions.length}
+                  onPrevious={goToPreviousPosition}
+                  onNext={goToNextPosition}
+                  onSubmit={() => form.handleSubmit(handleVote)()}
+                  isLoading={voteLoading}
+                  canProceed={hasCurrentSelection}
+                />
               </div>
             ) : (
               <div className="text-center py-4">
@@ -390,15 +163,10 @@ const VotingForm = ({
         </Form>
       </CardContent>
       <CardFooter className="flex flex-col">
-        <div className="w-full bg-gray-200 h-2 rounded-full mt-2">
-          <div 
-            className="bg-[#008f50] h-2 rounded-full transition-all" 
-            style={{ width: `${(currentPositionIndex + 1) / positions.length * 100}%` }}
-          />
-        </div>
-        <div className="text-xs text-muted-foreground text-center w-full mt-1">
-          {currentPositionIndex + 1} of {positions.length} positions
-        </div>
+        <VotingProgress 
+          currentPosition={currentPositionIndex} 
+          totalPositions={positions.length} 
+        />
       </CardFooter>
     </Card>
   );
