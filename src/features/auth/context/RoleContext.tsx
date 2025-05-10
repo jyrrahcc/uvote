@@ -21,6 +21,7 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined);
 export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasCheckedVerification, setHasCheckedVerification] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
       if (!user) {
         setUserRole(null);
         setLoading(false);
+        setHasCheckedVerification(false);
         return;
       }
 
@@ -65,20 +67,25 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           setUserRole(null);
           
-          // Check if user profile is verified
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('is_verified')
-            .eq('id', user.id)
-            .single();
+          // Only check profile verification once per session
+          if (!hasCheckedVerification) {
+            setHasCheckedVerification(true);
             
-          if (profileError) {
-            console.error("Error checking user profile:", profileError);
-          } else if (profileData && profileData.is_verified) {
-            // If profile is verified but user doesn't have voter role, assign it
-            await assignRole(user.id, 'voter');
-            setUserRole('voter');
-            toast.success("Your account has been verified. You now have voter privileges.");
+            // Check if user profile is verified
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('is_verified')
+              .eq('id', user.id)
+              .single();
+              
+            if (profileError) {
+              console.error("Error checking user profile:", profileError);
+            } else if (profileData && profileData.is_verified) {
+              // If profile is verified but user doesn't have voter role, assign it
+              await assignRole(user.id, 'voter');
+              setUserRole('voter');
+              toast.success("Your account has been verified. You now have voter privileges.");
+            }
           }
         }
       } catch (error) {
