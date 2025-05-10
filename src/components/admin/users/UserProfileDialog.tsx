@@ -35,7 +35,7 @@ const UserProfileDialog = ({
         
         <div className="flex flex-col items-center justify-center space-y-4 py-4">
           <Avatar className="h-24 w-24">
-            <AvatarImage src={selectedUser.image_url} />
+            <AvatarImage src={selectedUser.image_url || undefined} />
             <AvatarFallback>
               <User className="h-12 w-12 text-muted-foreground" />
             </AvatarFallback>

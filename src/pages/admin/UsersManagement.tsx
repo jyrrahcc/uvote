@@ -13,6 +13,7 @@ import RoleConfirmDialog from "@/components/admin/users/RoleConfirmDialog";
 import UserSearchAndFilters from "@/components/admin/users/UserSearchAndFilters";
 import { UserProfile } from "@/components/admin/users/types";
 import UserMenuDropdown from "@/components/admin/users/UserMenuDropdown";
+import { useUserManagement } from "@/hooks/useUserManagement";
 
 const UsersManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -27,13 +28,13 @@ const UsersManagement = () => {
     role: "",
     action: "add"
   });
-  const [isProcessing, setIsProcessing] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [activeUserMenuId, setActiveUserMenuId] = useState<string | null>(null);
   
-  const { assignRole, removeRole, isAdmin } = useRole();
+  const { isAdmin } = useRole();
   const { user: currentUser } = useAuth();
+  const { isProcessing, handleVerifyProfile, handleToggleRole } = useUserManagement(users, setUsers);
 
   useEffect(() => {
     fetchUsers();
@@ -42,10 +43,10 @@ const UsersManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      // Get all user profiles with more detailed information
+      // Get all user profiles with more detailed information, but avoid requesting image_url since it doesn't exist
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified, image_url');
+        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified');
       
       if (error) {
         throw error;
@@ -63,8 +64,10 @@ const UsersManagement = () => {
           .select('role')
           .eq('user_id', profile.id);
         
+        // Set default image placeholder
         return {
           ...profile,
+          image_url: null, // Add a null or empty image_url since it's expected in the UserProfile type
           roles: roleData?.map(r => r.role) || []
         };
       }));
@@ -78,153 +81,6 @@ const UsersManagement = () => {
     }
   };
 
-  const handleToggleRole = async (userId: string, role: "admin" | "voter", hasRole: boolean) => {
-    if (isProcessing) return; // Prevent multiple clicks
-    
-    try {
-      setIsProcessing(true);
-      
-      setConfirmDialog({
-        open: false,
-        userId: "",
-        role: "",
-        action: "add"
-      });
-      
-      if (hasRole) {
-        await removeRole(userId, role);
-      } else {
-        await assignRole(userId, role);
-      }
-      
-      // Update local state
-      setUsers(prevUsers => prevUsers.map(user => {
-        if (user.id === userId) {
-          let updatedRoles = [...user.roles];
-          if (hasRole) {
-            updatedRoles = updatedRoles.filter(r => r !== role);
-          } else if (!updatedRoles.includes(role)) {
-            updatedRoles.push(role);
-          }
-          return { ...user, roles: updatedRoles };
-        }
-        return user;
-      }));
-      
-      toast.success(
-        hasRole 
-          ? `Removed ${role} role successfully` 
-          : `Assigned ${role} role successfully`
-      );
-      
-    } catch (error) {
-      console.error(`Error toggling ${role} role:`, error);
-      toast.error(`Failed to update user role`);
-    } finally {
-      // Add a small delay before enabling interactions again
-      setTimeout(() => {
-        setIsProcessing(false);
-      }, 500);
-    }
-  };
-
-  const handleSort = (column: string) => {
-    const isAsc = sortColumn === column && sortDirection === "asc";
-    setSortDirection(isAsc ? "desc" : "asc");
-    setSortColumn(column);
-  };
-  
-  const handleVerifyProfile = async (userId: string, isVerified: boolean) => {
-    if (isProcessing) return;
-    
-    // Check if user has admin permission to verify profiles
-    if (!canVerifyProfiles(isAdmin)) {
-      return;
-    }
-    
-    try {
-      setIsProcessing(true);
-      
-      // Update profile verification status
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          is_verified: !isVerified,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', userId);
-      
-      if (error) throw error;
-      
-      // If verifying, assign voter role if not already assigned
-      if (!isVerified) {
-        const user = users.find(u => u.id === userId);
-        if (user && !user.roles.includes('voter')) {
-          await assignRole(userId, 'voter');
-        }
-      } 
-      // If revoking verification, remove voter role
-      else {
-        const user = users.find(u => u.id === userId);
-        if (user && user.roles.includes('voter')) {
-          await removeRole(userId, 'voter');
-        }
-      }
-      
-      // Update local state
-      setUsers(prevUsers => prevUsers.map(user => {
-        if (user.id === userId) {
-          const updatedUser = { 
-            ...user, 
-            is_verified: !isVerified 
-          };
-          
-          // If verifying, add voter role if not present
-          if (!isVerified && !user.roles.includes('voter')) {
-            updatedUser.roles = [...user.roles, 'voter'];
-          }
-          // If revoking, remove voter role
-          else if (isVerified && user.roles.includes('voter')) {
-            updatedUser.roles = user.roles.filter(r => r !== 'voter');
-          }
-          
-          return updatedUser;
-        }
-        return user;
-      }));
-      
-      // Update selected user if dialog is open
-      if (selectedUser && selectedUser.id === userId) {
-        setSelectedUser({
-          ...selectedUser,
-          is_verified: !isVerified,
-          roles: !isVerified 
-            ? [...selectedUser.roles.filter(r => r !== 'voter'), 'voter'] 
-            : selectedUser.roles.filter(r => r !== 'voter')
-        });
-      }
-      
-      toast.success(
-        isVerified 
-          ? "Profile verification revoked and voter role removed successfully" 
-          : "Profile verified and voter role assigned successfully"
-      );
-      
-    } catch (error) {
-      console.error("Error updating profile verification:", error);
-      toast.error("Failed to update profile verification status");
-    } finally {
-      setTimeout(() => {
-        setIsProcessing(false);
-      }, 500);
-    }
-  };
-  
-  const openProfileDialog = (user: UserProfile) => {
-    setSelectedUser(user);
-    setProfileDialogOpen(true);
-  };
-
   const handleRoleAction = (userId: string, role: string, action: 'add' | 'remove') => {
     setConfirmDialog({
       open: true,
@@ -236,6 +92,17 @@ const UsersManagement = () => {
 
   const toggleUserMenu = (userId: string) => {
     setActiveUserMenuId(prevId => prevId === userId ? null : userId);
+  };
+
+  const handleSort = (column: string) => {
+    const isAsc = sortColumn === column && sortDirection === "asc";
+    setSortDirection(isAsc ? "desc" : "asc");
+    setSortColumn(column);
+  };
+  
+  const openProfileDialog = (user: UserProfile) => {
+    setSelectedUser(user);
+    setProfileDialogOpen(true);
   };
 
   const filteredUsers = users
