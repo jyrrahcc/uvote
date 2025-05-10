@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Election, mapDbElectionToElection } from "@/types";
 import { toast } from "sonner";
+import { VotingStats, calculateVotingStats } from "../utils/voteStatistics";
 
 interface ElectionState {
   election: Election | null;
@@ -17,13 +18,6 @@ interface ElectionState {
   setHasVoted: (hasVoted: boolean) => void;
   accessCodeVerified: boolean;
   setAccessCodeVerified: (verified: boolean) => void;
-}
-
-interface VotingStats {
-  totalEligibleVoters: number;
-  totalVotesCast: number;
-  votingPercentage: number;
-  positionVoteCounts: Record<string, number>;
 }
 
 export const useElection = (electionId: string | undefined) => {
@@ -86,7 +80,7 @@ export const useElection = (electionId: string | undefined) => {
           console.error("Error fetching votes:", votesError);
         }
 
-        // Calculate voting statistics
+        // Calculate voting statistics using the extracted utility function
         const stats = calculateVotingStats(transformedElection, votesData || []);
 
         setElection(transformedElection);
@@ -105,55 +99,6 @@ export const useElection = (electionId: string | undefined) => {
 
     fetchElection();
   }, [electionId]);
-
-  // Calculate voting statistics
-  const calculateVotingStats = (election: Election, votes: any[]): VotingStats => {
-    // Default stats
-    const stats: VotingStats = {
-      totalEligibleVoters: election.totalEligibleVoters || 0,
-      totalVotesCast: 0,
-      votingPercentage: 0,
-      positionVoteCounts: {},
-    };
-
-    if (!votes || votes.length === 0) {
-      return stats;
-    }
-
-    // Count unique voters - look for vote marker records
-    const uniqueVoters = new Set<string>();
-    
-    // Position vote counts
-    const positionVoteCounts: Record<string, number> = {};
-
-    // Process votes
-    votes.forEach((vote) => {
-      // Skip if vote data is malformed
-      if (!vote || !vote.user_id) return;
-      
-      // If this is a vote marker (position is '_voted_marker'), count it for unique voters
-      if (vote.position === '_voted_marker') {
-        uniqueVoters.add(vote.user_id);
-      }
-      
-      // Count votes per position if position exists in vote and isn't a marker
-      if (vote && typeof vote.position === 'string' && vote.position !== '_voted_marker') {
-        if (!positionVoteCounts[vote.position]) {
-          positionVoteCounts[vote.position] = 0;
-        }
-        positionVoteCounts[vote.position]++;
-      }
-    });
-
-    // Update stats
-    stats.totalVotesCast = uniqueVoters.size;
-    stats.votingPercentage = stats.totalEligibleVoters 
-      ? (stats.totalVotesCast / stats.totalEligibleVoters) * 100 
-      : 0;
-    stats.positionVoteCounts = positionVoteCounts;
-
-    return stats;
-  };
 
   return {
     election,
