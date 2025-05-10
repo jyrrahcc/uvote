@@ -32,38 +32,24 @@ export const uploadFileToStorage = async (
     
     console.log(`Uploading ${file.name} to ${bucketName}/${filePath}`);
 
-    // Check if bucket exists before uploading
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-    
-    if (bucketError) {
-      console.error("Error listing buckets:", bucketError);
-      return { url: null, error: bucketError };
-    }
-    
-    const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-    
-    if (!bucketExists) {
-      const error = new Error(`Storage bucket ${bucketName} does not exist`);
-      console.error(error);
-      return { url: null, error };
-    }
-
     // Upload file to storage
     const { data, error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: true,
-        onUploadProgress: onProgress ? (progress) => {
-          const { bytesUploaded, totalBytes } = progress;
-          const progressPercent = Math.round((bytesUploaded / totalBytes) * 100);
-          
-          onProgress({
-            progress: progressPercent,
-            bytesUploaded,
-            totalBytes
-          });
-        } : undefined
+        onUploadProgress: progress => {
+          if (onProgress) {
+            const { bytesUploaded, totalBytes } = progress;
+            const progressPercent = Math.round((bytesUploaded / totalBytes) * 100);
+            
+            onProgress({
+              progress: progressPercent,
+              bytesUploaded,
+              totalBytes
+            });
+          }
+        }
       });
 
     if (uploadError) {
@@ -90,6 +76,35 @@ export const uploadFileToStorage = async (
     return { 
       url: null, 
       error: error instanceof Error ? error : new Error('Unknown error during upload') 
+    };
+  }
+};
+
+/**
+ * Deletes a file from Supabase storage
+ */
+export const deleteFileFromStorage = async (
+  filePath: string,
+  bucketName: string
+): Promise<{ error: Error | null }> => {
+  try {
+    console.log(`Deleting file ${filePath} from ${bucketName}`);
+    
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .remove([filePath]);
+    
+    if (error) {
+      console.error("Error deleting file:", error);
+      return { error };
+    }
+    
+    console.log(`File deleted successfully`);
+    return { error: null };
+  } catch (error) {
+    console.error("Unexpected error during file deletion:", error);
+    return { 
+      error: error instanceof Error ? error : new Error('Unknown error during deletion') 
     };
   }
 };
