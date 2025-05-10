@@ -31,7 +31,11 @@ import {
   ShieldCheck, 
   ShieldX,
   ArrowUpDown,
-  UserCog
+  UserCog,
+  User,
+  Check,
+  X,
+  Info
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/features/auth/context/RoleContext";
@@ -60,12 +64,17 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
+import { DlsudProfile } from "@/types";
 
 interface UserProfile {
   id: string;
   email: string;
   first_name: string;
   last_name: string;
+  student_id?: string;
+  department?: string;
+  year_level?: string;
+  is_verified?: boolean;
   roles: string[];
   created_at: string;
 }
@@ -84,6 +93,8 @@ const UsersManagement = () => {
     action: "add"
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   
   const { assignRole, removeRole } = useRole();
   const { user: currentUser } = useAuth();
@@ -95,10 +106,10 @@ const UsersManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      // Get all user profiles
+      // Get all user profiles with more detailed information
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, created_at');
+        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified');
       
       if (error) throw error;
 
@@ -181,16 +192,89 @@ const UsersManagement = () => {
     setSortDirection(isAsc ? "desc" : "asc");
     setSortColumn(column);
   };
+  
+  const handleVerifyProfile = async (userId: string, isVerified: boolean) => {
+    if (isProcessing) return;
+    
+    try {
+      setIsProcessing(true);
+      
+      // Update profile verification status
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_verified: !isVerified,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      // If verifying, assign voter role if not already assigned
+      if (!isVerified) {
+        const user = users.find(u => u.id === userId);
+        if (user && !user.roles.includes('voter')) {
+          await assignRole(userId, 'voter');
+        }
+      }
+      
+      // Update local state
+      setUsers(prevUsers => prevUsers.map(user => {
+        if (user.id === userId) {
+          const updatedUser = { 
+            ...user, 
+            is_verified: !isVerified 
+          };
+          
+          // If verifying, add voter role if not present
+          if (!isVerified && !user.roles.includes('voter')) {
+            updatedUser.roles = [...user.roles, 'voter'];
+          }
+          
+          return updatedUser;
+        }
+        return user;
+      }));
+      
+      // Update selected user if dialog is open
+      if (selectedUser && selectedUser.id === userId) {
+        setSelectedUser({
+          ...selectedUser,
+          is_verified: !isVerified
+        });
+      }
+      
+      toast.success(
+        isVerified 
+          ? "Profile verification revoked successfully" 
+          : "Profile verified and voter role assigned successfully"
+      );
+      
+    } catch (error) {
+      console.error("Error updating profile verification:", error);
+      toast.error("Failed to update profile verification status");
+    } finally {
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 500);
+    }
+  };
+  
+  const openProfileDialog = (user: UserProfile) => {
+    setSelectedUser(user);
+    setProfileDialogOpen(true);
+  };
 
   const filteredUsers = users
     .filter(user => {
       const matchesSearch = 
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase());
+        `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.student_id || '').toLowerCase().includes(searchTerm.toLowerCase());
       
       if (currentTab === 'all') return matchesSearch;
       if (currentTab === 'admins') return matchesSearch && user.roles.includes('admin');
-      if (currentTab === 'voters') return matchesSearch && user.roles.includes('voter') && !user.roles.includes('admin');
+      if (currentTab === 'voters') return matchesSearch && user.roles.includes('voter');
       
       return matchesSearch;
     })
@@ -300,6 +384,7 @@ const UsersManagement = () => {
                       </div>
                     </TableHead>
                     <TableHead>Roles</TableHead>
+                    <TableHead>Verification</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -364,80 +449,126 @@ const UsersManagement = () => {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell>
+                          {user.is_verified ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <Check className="h-3 w-3 mr-1" />
+                              Verified
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                              <Info className="h-3 w-3 mr-1" />
+                              Not Verified
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           {user.id !== currentUser?.id ? (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  disabled={isProcessing}
-                                >
-                                  <UserCog className="h-4 w-4" />
-                                  <span className="sr-only">Open menu</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>User Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {user.roles.includes("admin") ? (
-                                  <DropdownMenuItem
-                                    className="text-destructive focus:text-destructive"
-                                    onClick={() => setConfirmDialog({
-                                      open: true,
-                                      userId: user.id,
-                                      role: "admin",
-                                      action: "remove"
-                                    })}
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openProfileDialog(user)}
+                                title="View Profile"
+                              >
+                                <User className="h-4 w-4" />
+                                <span className="sr-only">View Profile</span>
+                              </Button>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
                                     disabled={isProcessing}
                                   >
-                                    <ShieldX className="mr-2 h-4 w-4" />
-                                    Remove Admin Role
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem
-                                    onClick={() => setConfirmDialog({
-                                      open: true,
-                                      userId: user.id,
-                                      role: "admin",
-                                      action: "add"
-                                    })}
-                                    disabled={isProcessing}
-                                  >
-                                    <ShieldCheck className="mr-2 h-4 w-4" />
-                                    Make Admin
-                                  </DropdownMenuItem>
-                                )}
-                                
-                                {user.roles.includes("voter") ? (
-                                  <DropdownMenuItem
-                                    onClick={() => setConfirmDialog({
-                                      open: true,
-                                      userId: user.id,
-                                      role: "voter",
-                                      action: "remove"
-                                    })}
-                                    disabled={isProcessing}
-                                  >
-                                    <UserX className="mr-2 h-4 w-4" />
-                                    Remove Voter Role
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem
-                                    onClick={() => setConfirmDialog({
-                                      open: true,
-                                      userId: user.id,
-                                      role: "voter",
-                                      action: "add"
-                                    })}
-                                    disabled={isProcessing}
-                                  >
-                                    <UserCheck className="mr-2 h-4 w-4" />
-                                    Make Voter
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                    <UserCog className="h-4 w-4" />
+                                    <span className="sr-only">Open menu</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>User Actions</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  
+                                  {user.is_verified ? (
+                                    <DropdownMenuItem
+                                      onClick={() => handleVerifyProfile(user.id, true)}
+                                      disabled={isProcessing}
+                                    >
+                                      <X className="mr-2 h-4 w-4 text-amber-600" />
+                                      Revoke Verification
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onClick={() => handleVerifyProfile(user.id, false)}
+                                      disabled={isProcessing}
+                                    >
+                                      <Check className="mr-2 h-4 w-4 text-green-600" />
+                                      Verify Profile
+                                    </DropdownMenuItem>
+                                  )}
+                                  
+                                  <DropdownMenuSeparator />
+                                  
+                                  {user.roles.includes("admin") ? (
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => setConfirmDialog({
+                                        open: true,
+                                        userId: user.id,
+                                        role: "admin",
+                                        action: "remove"
+                                      })}
+                                      disabled={isProcessing}
+                                    >
+                                      <ShieldX className="mr-2 h-4 w-4" />
+                                      Remove Admin Role
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onClick={() => setConfirmDialog({
+                                        open: true,
+                                        userId: user.id,
+                                        role: "admin",
+                                        action: "add"
+                                      })}
+                                      disabled={isProcessing}
+                                    >
+                                      <ShieldCheck className="mr-2 h-4 w-4" />
+                                      Make Admin
+                                    </DropdownMenuItem>
+                                  )}
+                                  
+                                  {user.roles.includes("voter") ? (
+                                    <DropdownMenuItem
+                                      onClick={() => setConfirmDialog({
+                                        open: true,
+                                        userId: user.id,
+                                        role: "voter",
+                                        action: "remove"
+                                      })}
+                                      disabled={isProcessing}
+                                    >
+                                      <UserX className="mr-2 h-4 w-4" />
+                                      Remove Voter Role
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onClick={() => setConfirmDialog({
+                                        open: true,
+                                        userId: user.id,
+                                        role: "voter",
+                                        action: "add"
+                                      })}
+                                      disabled={isProcessing}
+                                    >
+                                      <UserCheck className="mr-2 h-4 w-4" />
+                                      Make Voter
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           ) : (
                             <Badge variant="outline" className="bg-primary-foreground/5">
                               Current User
@@ -448,7 +579,7 @@ const UsersManagement = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                         No users found
                       </TableCell>
                     </TableRow>
@@ -460,6 +591,125 @@ const UsersManagement = () => {
         </CardContent>
       </Card>
 
+      {/* Profile Dialog */}
+      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" /> User Profile
+            </DialogTitle>
+            <DialogDescription>
+              View detailed user profile information
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                    {getUserInitials(selectedUser.first_name, selectedUser.last_name, selectedUser.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedUser.first_name} {selectedUser.last_name}</h3>
+                  <p className="text-muted-foreground">{selectedUser.email}</p>
+                </div>
+              </div>
+              
+              <div className="grid gap-2">
+                <div className="grid grid-cols-3 items-center">
+                  <span className="text-sm font-medium">Student ID:</span>
+                  <span className="col-span-2">{selectedUser.student_id || "Not provided"}</span>
+                </div>
+                
+                <div className="grid grid-cols-3 items-center">
+                  <span className="text-sm font-medium">Department:</span>
+                  <span className="col-span-2">{selectedUser.department || "Not provided"}</span>
+                </div>
+                
+                <div className="grid grid-cols-3 items-center">
+                  <span className="text-sm font-medium">Year Level:</span>
+                  <span className="col-span-2">{selectedUser.year_level || "Not provided"}</span>
+                </div>
+                
+                <div className="grid grid-cols-3 items-center">
+                  <span className="text-sm font-medium">Joined:</span>
+                  <span className="col-span-2">{new Date(selectedUser.created_at).toLocaleDateString()}</span>
+                </div>
+                
+                <div className="grid grid-cols-3 items-center">
+                  <span className="text-sm font-medium">Roles:</span>
+                  <div className="col-span-2 flex flex-wrap gap-1.5">
+                    {selectedUser.roles.length > 0 ? (
+                      selectedUser.roles.map(role => (
+                        <Badge key={role} variant={role === 'admin' ? 'secondary' : 'outline'} className={role === 'admin' ? 'bg-primary/10 text-primary' : ''}>
+                          {role === 'admin' ? <Shield className="h-3 w-3 mr-1" /> : <UserCheck className="h-3 w-3 mr-1" />}
+                          {role.charAt(0).toUpperCase() + role.slice(1)}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground">No roles assigned</span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 items-center">
+                  <span className="text-sm font-medium">Verification:</span>
+                  <div className="col-span-2">
+                    {selectedUser.is_verified ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <Check className="h-3 w-3 mr-1" />
+                        Verified
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                        <Info className="h-3 w-3 mr-1" />
+                        Not Verified
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-4 flex flex-col gap-2">
+                <p className="text-sm text-muted-foreground">Profile Management:</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedUser.is_verified ? (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleVerifyProfile(selectedUser.id, true)}
+                      disabled={isProcessing}
+                      className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Revoke Verification
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="outline"
+                      onClick={() => handleVerifyProfile(selectedUser.id, false)}
+                      disabled={isProcessing}
+                      className="border-green-200 text-green-700 hover:bg-green-50"
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Verify Profile
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProfileDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Assignment Dialog */}
       <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({...prev, open}))}>
         <DialogContent>
           <DialogHeader>

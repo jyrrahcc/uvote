@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { createCandidate } from "../services/candidateService";
 import { CandidateFormData } from "../schemas/candidateFormSchema";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { canRegisterAsCandidate } from "@/utils/admin/roleUtils";
 
 interface UseCandidateRegistrationProps {
   electionId: string;
@@ -22,8 +23,7 @@ export const useCandidateRegistration = ({
   const registerCandidate = async (formData: CandidateFormData) => {
     try {
       // Check if user has voter role first
-      if (!isVoter) {
-        toast.error("You must verify your profile to register as a candidate");
+      if (!canRegisterAsCandidate(isVoter)) {
         throw new Error("Profile verification required");
       }
       

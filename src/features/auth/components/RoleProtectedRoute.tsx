@@ -3,15 +3,18 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useRole } from "../context/RoleContext";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface RoleProtectedRouteProps {
   requiredRole: "admin" | "voter";
   redirectTo?: string;
+  showMessage?: boolean;
 }
 
 export const RoleProtectedRoute = ({ 
   requiredRole,
-  redirectTo = "/" 
+  redirectTo = "/", 
+  showMessage = true
 }: RoleProtectedRouteProps) => {
   const { user, loading: authLoading } = useAuth();
   const { loading: roleLoading, checkRole } = useRole();
@@ -32,8 +35,21 @@ export const RoleProtectedRoute = ({
     
     if (!loading) {
       setAccessChecked(true);
+      
+      // Show access denied message if configured
+      if (!hasPermission && user && showMessage) {
+        if (requiredRole === "voter") {
+          toast.error("You need to verify your profile to access this feature", {
+            description: "Please complete your profile information and verify it first."
+          });
+        } else if (requiredRole === "admin") {
+          toast.error("Administrative privileges required", {
+            description: "You don't have permission to access this area."
+          });
+        }
+      }
     }
-  }, [user, authLoading, roleLoading, hasPermission, requiredRole]);
+  }, [user, authLoading, roleLoading, hasPermission, requiredRole, showMessage]);
   
   if (loading) {
     return (
