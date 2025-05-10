@@ -32,25 +32,22 @@ export const uploadFileToStorage = async (
     
     console.log(`Uploading ${file.name} to ${bucketName}/${filePath}`);
 
-    // Upload file to storage
+    // Upload file to storage without using the problematic onUploadProgress option
     const { data, error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: true,
-        onUploadProgress: progress => {
-          if (onProgress) {
-            const { bytesUploaded, totalBytes } = progress;
-            const progressPercent = Math.round((bytesUploaded / totalBytes) * 100);
-            
-            onProgress({
-              progress: progressPercent,
-              bytesUploaded,
-              totalBytes
-            });
-          }
-        }
+        upsert: true
       });
+
+    // If there's a progress callback, simulate progress update when complete
+    if (onProgress) {
+      onProgress({
+        progress: 100,
+        bytesUploaded: file.size,
+        totalBytes: file.size
+      });
+    }
 
     if (uploadError) {
       console.error("Error uploading file:", uploadError);
