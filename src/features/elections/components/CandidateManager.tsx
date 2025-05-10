@@ -1,4 +1,3 @@
-
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,8 +114,10 @@ const CandidateManager = forwardRef(({
       
       if (error) throw error;
 
-      const processedCandidates = data.map(candidate => mapDbCandidateToCandidate(candidate));
-      setCandidates(processedCandidates);
+      if (data) {
+        const processedCandidates = data.map(candidate => mapDbCandidateToCandidate(candidate));
+        setCandidates(processedCandidates);
+      }
     } catch (error) {
       console.error("Error fetching candidates:", error);
       toast.error("Failed to load candidates");
@@ -247,7 +248,9 @@ const CandidateManager = forwardRef(({
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     getCandidatesForNewElection: () => {
-      return candidates.map(c => ({
+      return candidates.filter(candidate => 
+        candidate.name && candidate.position
+      ).map(c => ({
         name: c.name,
         bio: c.bio,
         position: c.position,

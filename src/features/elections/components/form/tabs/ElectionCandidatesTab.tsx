@@ -16,8 +16,8 @@ const ElectionCandidatesTab: ForwardRefRenderFunction<any, ElectionCandidatesTab
   // Use forwardRef to expose the CandidateManager ref to parent
   useImperativeHandle(ref, () => ({
     getCandidatesForNewElection: () => {
-      if (ref && 'current' in ref && ref.current) {
-        return ref.current.getCandidatesForNewElection?.();
+      if (ref && 'current' in ref && ref.current && ref.current.getCandidatesForNewElection) {
+        return ref.current.getCandidatesForNewElection();
       }
       return [];
     }

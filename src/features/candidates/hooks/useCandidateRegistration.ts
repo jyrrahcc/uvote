@@ -21,6 +21,11 @@ export const useCandidateRegistration = ({
   const { isVoter } = useRole();
   
   const registerCandidate = async (formData: CandidateFormData) => {
+    if (!electionId || !userId) {
+      toast.error("Missing election or user information");
+      return null;
+    }
+
     try {
       // Check if user has voter role first
       if (!canRegisterAsCandidate(isVoter)) {
@@ -36,12 +41,13 @@ export const useCandidateRegistration = ({
         created_by: userId,
       };
       
+      // Call the service function to create the candidate
       const newCandidate = await createCandidate(candidateData);
       
       toast.success("Successfully registered as a candidate");
       
       // Call the success callback if provided
-      if (onSuccess) {
+      if (onSuccess && typeof onSuccess === 'function') {
         onSuccess(newCandidate);
       }
       

@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -167,36 +168,41 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         electionId = editingElectionId;
         
         // Handle updating candidates for existing election
-        if (candidateManagerRef.current) {
-          const candidatesData = candidateManagerRef.current.getCandidatesForNewElection?.();
-          console.log("Candidates to update for existing election:", candidatesData);
-          
-          if (candidatesData && candidatesData.length > 0) {
-            // First delete existing candidates
-            const { error: deleteError } = await supabase
-              .from('candidates')
-              .delete()
-              .eq('election_id', electionId);
-              
-            if (deleteError) {
-              console.error("Error deleting existing candidates:", deleteError);
-              toast.error(`Failed to update candidates: ${deleteError.message}`);
-            } else {
-              // Then insert new candidates
-              const candidatesToInsert = candidatesData.map((candidate: any) => ({
-                ...candidate,
-                election_id: electionId,
-              }));
-              
-              const { error: insertError } = await supabase
+        if (candidateManagerRef.current && candidateManagerRef.current.getCandidatesForNewElection) {
+          try {
+            const candidatesData = candidateManagerRef.current.getCandidatesForNewElection();
+            console.log("Candidates to update for existing election:", candidatesData);
+            
+            if (candidatesData && candidatesData.length > 0) {
+              // First delete existing candidates
+              const { error: deleteError } = await supabase
                 .from('candidates')
-                .insert(candidatesToInsert);
-              
-              if (insertError) {
-                console.error("Error adding updated candidates:", insertError);
-                toast.error(`Failed to update candidates: ${insertError.message}`);
+                .delete()
+                .eq('election_id', electionId);
+                
+              if (deleteError) {
+                console.error("Error deleting existing candidates:", deleteError);
+                toast.error(`Failed to update candidates: ${deleteError.message}`);
+              } else {
+                // Then insert new candidates
+                const candidatesToInsert = candidatesData.map((candidate: any) => ({
+                  ...candidate,
+                  election_id: electionId,
+                }));
+                
+                const { error: insertError } = await supabase
+                  .from('candidates')
+                  .insert(candidatesToInsert);
+                
+                if (insertError) {
+                  console.error("Error adding updated candidates:", insertError);
+                  toast.error(`Failed to update candidates: ${insertError.message}`);
+                }
               }
             }
+          } catch (error) {
+            console.error("Error handling candidates:", error);
+            toast.error("Failed to update candidates");
           }
         }
         
@@ -220,26 +226,31 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         electionId = newElection[0].id;
         
         // If there are candidates to add, add them now
-        if (candidateManagerRef.current && electionId) {
-          const candidatesData = candidateManagerRef.current.getCandidatesForNewElection?.();
-          console.log("Candidates to add for new election:", candidatesData);
-          
-          if (candidatesData && candidatesData.length > 0) {
-            const candidatesToInsert = candidatesData.map((candidate: any) => ({
-              ...candidate,
-              election_id: electionId,
-            }));
+        if (candidateManagerRef.current && electionId && candidateManagerRef.current.getCandidatesForNewElection) {
+          try {
+            const candidatesData = candidateManagerRef.current.getCandidatesForNewElection();
+            console.log("Candidates to add for new election:", candidatesData);
             
-            const { error: candidatesError } = await supabase
-              .from('candidates')
-              .insert(candidatesToInsert);
-            
-            if (candidatesError) {
-              console.error("Error adding candidates:", candidatesError);
-              toast.error(`Failed to add candidates: ${candidatesError.message}`);
-            } else {
-              console.log("Successfully added candidates to new election");
+            if (candidatesData && candidatesData.length > 0) {
+              const candidatesToInsert = candidatesData.map((candidate: any) => ({
+                ...candidate,
+                election_id: electionId,
+              }));
+              
+              const { error: candidatesError } = await supabase
+                .from('candidates')
+                .insert(candidatesToInsert);
+              
+              if (candidatesError) {
+                console.error("Error adding candidates:", candidatesError);
+                toast.error(`Failed to add candidates: ${candidatesError.message}`);
+              } else {
+                console.log("Successfully added candidates to new election");
+              }
             }
+          } catch (error) {
+            console.error("Error handling candidates:", error);
+            toast.error("Failed to add candidates");
           }
         }
         
