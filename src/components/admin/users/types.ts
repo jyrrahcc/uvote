@@ -10,4 +10,5 @@ export interface UserProfile {
   is_verified?: boolean;
   roles: string[];
   created_at: string;
+  image_url?: string;
 }

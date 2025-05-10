@@ -35,20 +35,20 @@ const UserProfileDialog = ({
         
         <div className="flex flex-col items-center justify-center space-y-4 py-4">
           <Avatar className="h-24 w-24">
-            <AvatarImage src={selectedUser.avatarUrl} />
+            <AvatarImage src={selectedUser.image_url} />
             <AvatarFallback>
               <User className="h-12 w-12 text-muted-foreground" />
             </AvatarFallback>
           </Avatar>
           
           <div className="text-center">
-            <h3 className="text-lg font-semibold">{selectedUser.firstName} {selectedUser.lastName}</h3>
+            <h3 className="text-lg font-semibold">{selectedUser.first_name} {selectedUser.last_name}</h3>
             <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
           </div>
 
           <div className="flex items-center space-x-2">
-            <Badge variant={selectedUser.isVerified ? "default" : "outline"}>
-              {selectedUser.isVerified ? "Verified" : "Not Verified"}
+            <Badge variant={selectedUser.is_verified ? "default" : "outline"}>
+              {selectedUser.is_verified ? "Verified" : "Not Verified"}
             </Badge>
             
             {selectedUser.roles.map((role) => (
@@ -61,7 +61,7 @@ const UserProfileDialog = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium">Student ID</p>
-              <p className="text-sm text-muted-foreground">{selectedUser.studentId || "Not provided"}</p>
+              <p className="text-sm text-muted-foreground">{selectedUser.student_id || "Not provided"}</p>
             </div>
             <div>
               <p className="text-sm font-medium">Department</p>
@@ -69,19 +69,19 @@ const UserProfileDialog = ({
             </div>
             <div>
               <p className="text-sm font-medium">Year Level</p>
-              <p className="text-sm text-muted-foreground">{selectedUser.yearLevel || "Not provided"}</p>
+              <p className="text-sm text-muted-foreground">{selectedUser.year_level || "Not provided"}</p>
             </div>
             <div>
               <p className="text-sm font-medium">Created At</p>
               <p className="text-sm text-muted-foreground">
-                {new Date(selectedUser.createdAt).toLocaleDateString()}
+                {new Date(selectedUser.created_at).toLocaleDateString()}
               </p>
             </div>
           </div>
         </div>
         
         <div className="flex justify-between pt-4">
-          {!selectedUser.isVerified ? (
+          {!selectedUser.is_verified ? (
             <Button 
               onClick={() => onVerifyProfile(selectedUser.id, true)} 
               disabled={isProcessing}

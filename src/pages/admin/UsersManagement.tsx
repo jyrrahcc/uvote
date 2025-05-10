@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +44,7 @@ const UsersManagement = () => {
       // Get all user profiles with more detailed information
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified');
+        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified, image_url');
       
       if (error) throw error;
 
@@ -323,7 +322,7 @@ const UsersManagement = () => {
 
       {/* Profile Dialog */}
       <UserProfileDialog
-        isOpen={profileDialogOpen}
+        open={profileDialogOpen}
         onClose={() => setProfileDialogOpen(false)}
         selectedUser={selectedUser}
         onVerifyProfile={handleVerifyProfile}
