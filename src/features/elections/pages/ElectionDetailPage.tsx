@@ -1,12 +1,14 @@
 
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { useElection } from "@/features/elections/hooks/useElection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import ElectionStatusAlert from "@/features/elections/components/ElectionStatusAlert";
 import ElectionMetadata from "@/features/elections/components/position-details/ElectionMetadata";
 import ElectionHeader from "@/features/elections/components/position-details/ElectionHeader";
@@ -145,11 +147,6 @@ const ElectionDetailPage = () => {
       </div>
     );
   }
-
-  // Import these components here to avoid circular dependency issues
-  import { Link } from "react-router-dom";
-  import { Button } from "@/components/ui/button";
-  import { ArrowLeft } from "lucide-react";
 
   // Render election details
   return (

@@ -1,149 +1,113 @@
-import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+
+import React from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { useUser } from "@/features/auth/context/UserContext";
-import { User, Calendar, Check, ArrowRight } from "lucide-react";
+import { CheckCircle, XCircle, User } from "lucide-react";
+import { UserProfile } from "./types";
 
 interface UserProfileDialogProps {
-  userId: string;
   open: boolean;
-  setOpen: (open: boolean) => void;
-  onUsersChange: () => void;
+  onClose: () => void;
+  selectedUser: UserProfile;
+  onVerifyProfile: (userId: string, isVerified: boolean) => Promise<void>;
+  isProcessing: boolean;
 }
 
-const UserProfileDialog = ({
-  userId,
-  open,
-  setOpen,
-  onUsersChange,
+const UserProfileDialog = ({ 
+  open, 
+  onClose, 
+  selectedUser,
+  onVerifyProfile,
+  isProcessing
 }: UserProfileDialogProps) => {
-  const [studentId, setStudentId] = useState("");
-  const [department, setDepartment] = useState("");
-  const [yearLevel, setYearLevel] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
-  const { user } = useUser();
-
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          student_id: studentId,
-          department: department,
-          year_level: yearLevel,
-        })
-        .eq("id", userId);
-
-      if (error) {
-        console.error("Error updating user profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update user profile.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "User profile updated successfully.",
-      });
-      onUsersChange();
-      setOpen(false);
-    } catch (error) {
-      console.error("Unexpected error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  if (!selectedUser) {
+    return null;
+  }
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="outline">
-          Edit User Profile
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Edit User Profile</AlertDialogTitle>
-          <AlertDialogDescription>
-            Update the user&apos;s student information.
-            <div className="mt-4">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-blue-500" />
-                <p className="text-sm text-muted-foreground">
-                  Student information will be verified by an administrator
-                </p>
-              </div>
-            </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="studentId" className="text-right">
-              Student ID
-            </Label>
-            <Input
-              id="studentId"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              className="col-span-3"
-            />
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>User Profile</DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex flex-col items-center justify-center space-y-4 py-4">
+          <Avatar className="h-24 w-24">
+            <AvatarImage src={selectedUser.avatarUrl} />
+            <AvatarFallback>
+              <User className="h-12 w-12 text-muted-foreground" />
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="text-center">
+            <h3 className="text-lg font-semibold">{selectedUser.firstName} {selectedUser.lastName}</h3>
+            <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="department" className="text-right">
-              Department
-            </Label>
-            <Input
-              id="department"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="yearLevel" className="text-right">
-              Year Level
-            </Label>
-            <Input
-              id="yearLevel"
-              value={yearLevel}
-              onChange={(e) => setYearLevel(e.target.value)}
-              className="col-span-3"
-            />
+
+          <div className="flex items-center space-x-2">
+            <Badge variant={selectedUser.isVerified ? "default" : "outline"}>
+              {selectedUser.isVerified ? "Verified" : "Not Verified"}
+            </Badge>
+            
+            {selectedUser.roles.map((role) => (
+              <Badge key={role} variant="secondary">{role}</Badge>
+            ))}
           </div>
         </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction disabled={isSubmitting} onClick={handleSubmit}>
-            {isSubmitting ? "Submitting..." : "Submit"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium">Student ID</p>
+              <p className="text-sm text-muted-foreground">{selectedUser.studentId || "Not provided"}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Department</p>
+              <p className="text-sm text-muted-foreground">{selectedUser.department || "Not provided"}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Year Level</p>
+              <p className="text-sm text-muted-foreground">{selectedUser.yearLevel || "Not provided"}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Created At</p>
+              <p className="text-sm text-muted-foreground">
+                {new Date(selectedUser.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-between pt-4">
+          {!selectedUser.isVerified ? (
+            <Button 
+              onClick={() => onVerifyProfile(selectedUser.id, true)} 
+              disabled={isProcessing}
+              className="gap-2"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Verify Profile
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => onVerifyProfile(selectedUser.id, false)} 
+              disabled={isProcessing}
+              variant="destructive"
+              className="gap-2"
+            >
+              <XCircle className="h-4 w-4" />
+              Revoke Verification
+            </Button>
+          )}
+          
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
