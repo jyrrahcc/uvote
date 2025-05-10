@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -37,6 +36,7 @@ const VotingForm = ({
   const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
   const [confirmVoteOpen, setConfirmVoteOpen] = useState(false);
   const { isVoter } = useRole();
+  const [validationError, setValidationError] = useState<string | null>(null);
   
   // Group candidates by position
   const positionGroups = useMemo(() => {
@@ -70,12 +70,22 @@ const VotingForm = ({
   
   // Navigation functions
   const goToNextPosition = () => {
+    setValidationError(null);
+    
+    // Check if a selection has been made for the current position
+    const currentSelection = form.getValues()[currentPosition];
+    if (!currentSelection) {
+      setValidationError(`Please select a candidate or choose to abstain for the ${currentPosition} position before proceeding.`);
+      return;
+    }
+    
     if (currentPositionIndex < positions.length - 1) {
       setCurrentPositionIndex(prev => prev + 1);
     }
   };
   
   const goToPreviousPosition = () => {
+    setValidationError(null);
     if (currentPositionIndex > 0) {
       setCurrentPositionIndex(prev => prev - 1);
     }
@@ -87,12 +97,31 @@ const VotingForm = ({
   // Add an abstain option for the current position
   const handleAbstain = () => {
     form.setValue(currentPosition, "abstain");
+    setValidationError(null);
     if (currentPositionIndex < positions.length - 1) {
       goToNextPosition();
     }
   };
   
+  // Check if all positions have a selection before submitting
+  const validateAllSelections = () => {
+    const values = form.getValues();
+    const missingSelections = positions.filter(position => !values[position]);
+    
+    if (missingSelections.length > 0) {
+      setValidationError(`Please make a selection for all positions before submitting your vote. Missing: ${missingSelections.join(', ')}`);
+      return false;
+    }
+    
+    return true;
+  };
+  
   const handleVote = async (data: VotingSelections) => {
+    // Validate all positions have a selection
+    if (!validateAllSelections()) {
+      return;
+    }
+    
     if (!userId) {
       toast.error("You need to be logged in to vote");
       return;
@@ -130,11 +159,25 @@ const VotingForm = ({
         .map(([position, candidateId]) => ({
           election_id: electionId,
           candidate_id: candidateId,
-          user_id: userId
+          user_id: userId,
+          position: position // Add position for better tracking
         }));
       
+      // First create a "vote marker" record to track that the user has voted in this election
+      // This should be done regardless of whether they vote for candidates or abstain for all positions
+      const { error: markerError } = await supabase
+        .from('votes')
+        .insert([{
+          election_id: electionId,
+          user_id: userId,
+          candidate_id: null, // null candidate_id indicates this is just a marker
+          position: '_voted_marker' // Special position name to mark that user has participated
+        }]);
+      
+      if (markerError) throw markerError;
+      
+      // Now insert actual candidate votes if there are any
       if (votes.length > 0) {
-        // Insert all votes
         const { error: voteError } = await supabase
           .from('votes')
           .insert(votes);
@@ -142,27 +185,13 @@ const VotingForm = ({
         if (voteError) throw voteError;
       }
       
-      // Even if no candidates were selected (all abstained), mark the user as having voted
-      const { error: userVoteStatusError } = await supabase
-        .from('votes')
-        .insert([{
-          election_id: electionId,
-          user_id: userId,
-          candidate_id: null // null candidate_id indicates an abstention for all positions or a marker that user has voted
-        }]);
-      
-      if (userVoteStatusError) throw userVoteStatusError;
-      
       toast.success("Your votes have been recorded successfully", {
         description: "Thank you for participating in this election"
       });
       
       // Update parent component that user has voted
-      if (votes.length > 0) {
-        onSelect(votes[0].candidate_id);
-      } else {
-        onSelect("abstained");
-      }
+      onSelect(votes.length > 0 ? votes[0].candidate_id : "abstained");
+      
     } catch (error) {
       console.error("Error submitting votes:", error);
       toast.error("Failed to submit your votes");
@@ -250,6 +279,12 @@ const VotingForm = ({
                     {currentPositionIndex + 1}/{positions.length}
                   </div>
                 </div>
+                
+                {validationError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                    {validationError}
+                  </div>
+                )}
                 
                 <div className="border rounded-md p-4 bg-slate-50">
                   <FormField
@@ -339,6 +374,7 @@ const VotingForm = ({
                     <Button
                       type="button"
                       onClick={goToNextPosition}
+                      disabled={!form.getValues()[currentPosition]}
                     >
                       Next <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>

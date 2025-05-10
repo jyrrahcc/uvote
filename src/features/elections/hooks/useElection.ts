@@ -86,9 +86,6 @@ export const useElection = (electionId: string | undefined) => {
           console.error("Error fetching votes:", votesError);
         }
 
-        // Check if current user has voted - this needs to be checked when user is logged in
-        // The VotingPage component will handle checking if the current user has voted
-
         // Calculate voting statistics
         const stats = calculateVotingStats(transformedElection, votesData || []);
 
@@ -123,7 +120,7 @@ export const useElection = (electionId: string | undefined) => {
       return stats;
     }
 
-    // Count unique voters
+    // Count unique voters - look for vote marker records
     const uniqueVoters = new Set<string>();
     
     // Position vote counts
@@ -134,11 +131,13 @@ export const useElection = (electionId: string | undefined) => {
       // Skip if vote data is malformed
       if (!vote || !vote.user_id) return;
       
-      // Count unique voters
-      uniqueVoters.add(vote.user_id);
+      // If this is a vote marker (position is '_voted_marker'), count it for unique voters
+      if (vote.position === '_voted_marker') {
+        uniqueVoters.add(vote.user_id);
+      }
       
-      // Count votes per position if position exists in vote
-      if (vote && typeof vote.position === 'string') {
+      // Count votes per position if position exists in vote and isn't a marker
+      if (vote && typeof vote.position === 'string' && vote.position !== '_voted_marker') {
         if (!positionVoteCounts[vote.position]) {
           positionVoteCounts[vote.position] = 0;
         }
