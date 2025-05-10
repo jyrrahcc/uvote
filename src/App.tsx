@@ -32,6 +32,7 @@ import VotingPage from "./features/elections/pages/VotingPage";
 import ResultsPage from "./features/elections/pages/ResultsPage";
 import CandidatesPage from "./features/candidates/pages/CandidatesPage";
 import MyApplicationsPage from "./features/candidates/pages/MyApplicationsPage";
+import ElectionDetailPage from "./features/elections/pages/ElectionDetailPage";
 
 // Import other pages
 import Security from "./pages/Security";
@@ -94,6 +95,7 @@ const App = () => {
                   <Route element={<DashboardLayout />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/elections" element={<Elections />} />
+                    <Route path="/elections/details/:electionId" element={<ElectionDetailPage />} />
                     <Route path="/elections/:electionId" element={<VotingPage />} />
                     <Route path="/elections/:electionId/results" element={<ResultsPage />} />
                     <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />

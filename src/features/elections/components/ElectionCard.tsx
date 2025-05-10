@@ -147,8 +147,8 @@ const ElectionCard = ({ election, isAccessVerified = false }: ElectionCardProps)
           className="w-full"
           asChild
         >
-          <Link to={`/elections/${election.id}`}>
-            {election.status === "completed" ? "View Results" : "View Election"} 
+          <Link to={`/elections/details/${election.id}`}>
+            View Election Details
             <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </Button>
