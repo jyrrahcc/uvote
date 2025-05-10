@@ -159,12 +159,15 @@ export const useVotingForm = ({
       // Check if user has already voted
       const { data: existingVote, error: checkError } = await supabase
         .from('votes')
-        .select('*')
+        .select('id')
         .eq('election_id', electionId)
         .eq('user_id', userId)
         .maybeSingle();
       
-      if (checkError) throw checkError;
+      if (checkError) {
+        console.error("Error checking existing votes:", checkError);
+        throw new Error("Failed to verify voting eligibility");
+      }
       
       if (existingVote) {
         toast.error("You have already voted in this election");
@@ -178,21 +181,23 @@ export const useVotingForm = ({
           election_id: electionId,
           candidate_id: candidateId,
           user_id: userId,
-          position: position // Add position for better tracking
+          position // Add position for better tracking
         }));
       
       // First create a "vote marker" record to track that the user has voted in this election
-      // This should be done regardless of whether they vote for candidates or abstain for all positions
       const { error: markerError } = await supabase
         .from('votes')
         .insert([{
           election_id: electionId,
           user_id: userId,
           candidate_id: null, // null candidate_id indicates this is just a marker
-          position: '_voted_marker' // Special position name to mark that user has participated
+          position: null // Changed from string to null to avoid issues with DB constraints
         }]);
       
-      if (markerError) throw markerError;
+      if (markerError) {
+        console.error("Error creating vote marker:", markerError);
+        throw new Error("Failed to record your participation");
+      }
       
       // Now insert actual candidate votes if there are any
       if (votes.length > 0) {
@@ -200,7 +205,10 @@ export const useVotingForm = ({
           .from('votes')
           .insert(votes);
         
-        if (voteError) throw voteError;
+        if (voteError) {
+          console.error("Error inserting candidate votes:", voteError);
+          throw new Error("Failed to record your candidate selections");
+        }
       }
       
       toast.success("Your votes have been recorded successfully", {
@@ -210,9 +218,9 @@ export const useVotingForm = ({
       // Update parent component that user has voted
       onVoteSubmitted(votes.length > 0 ? votes[0].candidate_id : "abstained");
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting votes:", error);
-      toast.error("Failed to submit your votes");
+      toast.error(error.message || "Failed to submit your votes");
     } finally {
       setVoteLoading(false);
     }
