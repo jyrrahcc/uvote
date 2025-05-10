@@ -30,7 +30,8 @@ const PositionNavigation = ({
         type="button"
         variant="outline"
         onClick={onPrevious}
-        disabled={currentPositionIndex === 0}
+        disabled={currentPositionIndex === 0 || isLoading}
+        className="transition-all duration-200"
       >
         <ChevronLeft className="mr-2 h-4 w-4" /> Previous
       </Button>
@@ -40,16 +41,26 @@ const PositionNavigation = ({
           type="button"
           onClick={onSubmit}
           disabled={isLoading || !canProceed}
-          className="gap-2"
+          className="gap-2 transition-all duration-200 bg-[#008f50] hover:bg-[#007a45]"
         >
-          {isLoading ? "Submitting..." : "Submit All Votes"}
-          {!isLoading && <Vote className="h-4 w-4" />}
+          {isLoading ? (
+            <>
+              <span className="animate-pulse">Submitting...</span>
+              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+            </>
+          ) : (
+            <>
+              Submit All Votes
+              <Vote className="h-4 w-4" />
+            </>
+          )}
         </Button>
       ) : (
         <Button
           type="button"
           onClick={onNext}
-          disabled={!canProceed}
+          disabled={!canProceed || isLoading}
+          className="transition-all duration-200"
         >
           Next <ChevronRight className="ml-2 h-4 w-4" />
         </Button>

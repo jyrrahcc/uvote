@@ -4,11 +4,22 @@ import { FormLabel, FormItem, FormControl } from "@/components/ui/form";
 import { RadioGroupItem } from "@/components/ui/radio-group";
 import { CircleX } from "lucide-react";
 
-const AbstainOption = () => {
+interface AbstainOptionProps {
+  onAbstain?: () => void;
+}
+
+const AbstainOption = ({ onAbstain }: AbstainOptionProps) => {
   return (
     <FormItem className="flex items-center space-x-3 space-y-0 mt-2">
       <FormControl>
-        <RadioGroupItem value="abstain" />
+        <RadioGroupItem 
+          value="abstain" 
+          onClick={() => {
+            if (onAbstain) {
+              setTimeout(() => onAbstain(), 100);
+            }
+          }}
+        />
       </FormControl>
       <FormLabel className="font-normal cursor-pointer flex items-center">
         <div className="flex items-center">

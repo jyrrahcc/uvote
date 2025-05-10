@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Vote } from "lucide-react";
+import { AlertTriangle, Vote, CheckCircle } from "lucide-react";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { useRole } from "@/features/auth/context/RoleContext";
@@ -35,6 +35,7 @@ const VotingForm = ({
   onSelect 
 }: VotingFormProps) => {
   const { isVoter } = useRole();
+  const [showSummary, setShowSummary] = useState(false);
   
   // Use the custom hook for form logic
   const {
@@ -48,16 +49,21 @@ const VotingForm = ({
     handleVote,
     goToNextPosition,
     goToPreviousPosition,
-    hasCurrentSelection
+    handleAbstain,
+    hasCurrentSelection,
+    selections
   } = useVotingForm({ 
     electionId, 
     candidates, 
     userId,
-    onVoteSubmitted: onSelect
+    onVoteSubmitted: (candidateId) => {
+      onSelect(candidateId);
+      setShowSummary(true);
+    }
   });
 
-  // If the user has already voted, show the results button
-  if (hasVoted) {
+  // If the user has already voted or just voted, show the results button
+  if (hasVoted || showSummary) {
     return <VoteSummary electionId={electionId} />;
   }
 
@@ -108,6 +114,11 @@ const VotingForm = ({
                   <h3 className="text-lg font-medium">
                     <span className="text-[#008f50]">Question {currentPositionIndex + 1}:</span> Who will you vote for {currentPosition}?
                   </h3>
+                  {selections[currentPosition] && (
+                    <span className="text-green-600 flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4" /> Selection made
+                    </span>
+                  )}
                 </div>
                 
                 <ValidationError error={validationError} />
@@ -129,10 +140,10 @@ const VotingForm = ({
                                   if (form.getValues()[currentPosition]) {
                                     goToNextPosition();
                                   }
-                                }, 300);
+                                }, 600);
                               }
                             }}
-                            defaultValue={field.value}
+                            value={field.value}
                             className="flex flex-col space-y-3 mt-4"
                           >
                             {currentCandidates.map((candidate) => (
@@ -143,7 +154,7 @@ const VotingForm = ({
                             ))}
                             
                             {/* Abstain option */}
-                            <AbstainOption />
+                            <AbstainOption onAbstain={handleAbstain} />
                           </RadioGroup>
                         </FormControl>
                       </FormItem>
@@ -172,7 +183,9 @@ const VotingForm = ({
       <CardFooter className="flex flex-col bg-gray-50 border-t border-gray-100 pt-4">
         <VotingProgress 
           currentPosition={currentPositionIndex} 
-          totalPositions={positions.length} 
+          totalPositions={positions.length}
+          selections={selections}
+          positions={positions}
         />
       </CardFooter>
     </Card>

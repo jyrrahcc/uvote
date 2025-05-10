@@ -57,26 +57,22 @@ export const useVotingForm = ({
   
   // Update form whenever selections change
   useEffect(() => {
-    const currentValues = form.getValues();
-    
-    // Only update if there are actual changes
-    if (JSON.stringify(currentValues) !== JSON.stringify(selections)) {
-      Object.entries(selections).forEach(([position, value]) => {
-        form.setValue(position, value);
-      });
-    }
-  }, [selections, form]);
+    Object.entries(selections).forEach(([position, value]) => {
+      form.setValue(position, value);
+    });
+  }, [form]);
   
   const currentPosition = positions[currentPositionIndex];
   const currentCandidates = currentPosition ? positionGroups[currentPosition] : [];
   
   // When form values change, update our selections state
   useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (value[currentPosition]) {
+    const subscription = form.watch((formValues) => {
+      // Only update for the current position to avoid overwriting other positions
+      if (formValues[currentPosition]) {
         setSelections(prev => ({
           ...prev,
-          [currentPosition]: value[currentPosition] as string
+          [currentPosition]: formValues[currentPosition] as string
         }));
       }
     });
@@ -117,7 +113,9 @@ export const useVotingForm = ({
     setValidationError(null);
     
     if (currentPositionIndex < positions.length - 1) {
-      goToNextPosition();
+      setTimeout(() => {
+        goToNextPosition();
+      }, 300);
     }
   };
   
@@ -174,14 +172,14 @@ export const useVotingForm = ({
         return;
       }
       
-      // First create a "vote marker" record to track that the user has voted in this election
+      // First create a single vote marker record
       const { error: markerError } = await supabase
         .from('votes')
         .insert({
           election_id: electionId,
           user_id: userId,
-          candidate_id: null, // null candidate_id indicates this is just a marker
-          position: null // Use null instead of string to avoid DB constraint issues
+          candidate_id: null,
+          position: null
         });
       
       if (markerError) {
@@ -189,34 +187,38 @@ export const useVotingForm = ({
         throw new Error("Failed to record your participation");
       }
       
-      // Prepare votes data - filter out "abstain" values
-      const votes = Object.entries(data)
-        .filter(([position, candidateId]) => candidateId !== "abstain") // Skip abstained positions
-        .map(([position, candidateId]) => ({
-          election_id: electionId,
-          candidate_id: candidateId,
-          user_id: userId,
-          position // Add position for better tracking
-        }));
+      // Process each candidate vote separately to avoid batch failures
+      const votePromises = Object.entries(data)
+        .filter(([_, candidateId]) => candidateId !== "abstain") // Skip abstained positions
+        .map(async ([position, candidateId]) => {
+          const voteData = {
+            election_id: electionId,
+            candidate_id: candidateId,
+            user_id: userId,
+            position
+          };
+          
+          const { error } = await supabase
+            .from('votes')
+            .insert(voteData);
+            
+          if (error) {
+            console.error(`Error recording vote for ${position}:`, error);
+            throw new Error(`Failed to record your vote for ${position}`);
+          }
+          
+          return candidateId;
+        });
       
-      // Now insert actual candidate votes if there are any
-      if (votes.length > 0) {
-        const { error: voteError } = await supabase
-          .from('votes')
-          .insert(votes);
-        
-        if (voteError) {
-          console.error("Error inserting candidate votes:", voteError);
-          throw new Error("Failed to record your candidate selections");
-        }
-      }
+      // Wait for all votes to be processed
+      await Promise.all(votePromises);
       
       toast.success("Your votes have been recorded successfully", {
         description: "Thank you for participating in this election"
       });
       
       // Update parent component that user has voted
-      onVoteSubmitted(votes.length > 0 ? votes[0].candidate_id : "abstained");
+      onVoteSubmitted(Object.values(data)[0]);
       
     } catch (error: any) {
       console.error("Error submitting votes:", error);
@@ -238,6 +240,7 @@ export const useVotingForm = ({
     goToNextPosition,
     goToPreviousPosition,
     handleAbstain,
-    hasCurrentSelection: !!form.getValues()[currentPosition],
+    hasCurrentSelection: !!selections[currentPosition],
+    selections,
   };
 };

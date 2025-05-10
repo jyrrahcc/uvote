@@ -1,15 +1,24 @@
 
 import React from "react";
 import { Progress } from "@/components/ui/progress";
+import { CheckCircle } from "lucide-react";
 
 interface VotingProgressProps {
   currentPosition: number;
   totalPositions: number;
+  selections?: Record<string, string>;
+  positions?: string[];
 }
 
-const VotingProgress = ({ currentPosition, totalPositions }: VotingProgressProps) => {
+const VotingProgress = ({ 
+  currentPosition, 
+  totalPositions,
+  selections = {},
+  positions = []
+}: VotingProgressProps) => {
   // Calculate progress percentage
-  const progressPercentage = ((currentPosition + 1) / totalPositions) * 100;
+  const completedSelections = Object.keys(selections).length;
+  const progressPercentage = (completedSelections / totalPositions) * 100;
   
   return (
     <>
@@ -25,17 +34,33 @@ const VotingProgress = ({ currentPosition, totalPositions }: VotingProgressProps
           className="h-2 w-full" 
         />
         
-        <div className="flex justify-center items-center gap-1 mt-1">
-          {Array.from({ length: totalPositions }).map((_, index) => (
-            <div 
-              key={index}
-              className={`w-2 h-2 rounded-full transition-all ${
-                index <= currentPosition 
-                  ? 'bg-[#008f50]' 
-                  : 'bg-gray-200'
-              }`}
-            />
-          ))}
+        <div className="flex justify-between items-center w-full mt-3 px-1">
+          <div className="text-xs text-muted-foreground">
+            {completedSelections}/{totalPositions} positions selected
+          </div>
+          
+          {positions.length > 0 && (
+            <div className="flex flex-wrap gap-2 justify-end">
+              {positions.map((position, index) => (
+                <div 
+                  key={position}
+                  className="flex items-center text-xs"
+                >
+                  <span className={`size-4 rounded-full flex items-center justify-center mr-1 ${
+                    selections[position] 
+                      ? 'bg-green-100 text-green-600' 
+                      : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {selections[position] ? (
+                      <CheckCircle className="h-3 w-3" />
+                    ) : (
+                      index + 1
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>
