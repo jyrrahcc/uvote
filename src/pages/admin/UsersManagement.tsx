@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -65,6 +64,7 @@ import {
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { DlsudProfile } from "@/types";
+import { canVerifyProfiles } from "@/utils/admin/roleUtils";
 
 interface UserProfile {
   id: string;
@@ -96,7 +96,7 @@ const UsersManagement = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   
-  const { assignRole, removeRole } = useRole();
+  const { assignRole, removeRole, isAdmin } = useRole();
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
@@ -196,6 +196,11 @@ const UsersManagement = () => {
   const handleVerifyProfile = async (userId: string, isVerified: boolean) => {
     if (isProcessing) return;
     
+    // Check if user has admin permission to verify profiles
+    if (!canVerifyProfiles(isAdmin)) {
+      return;
+    }
+    
     try {
       setIsProcessing(true);
       
@@ -216,6 +221,13 @@ const UsersManagement = () => {
         if (user && !user.roles.includes('voter')) {
           await assignRole(userId, 'voter');
         }
+      } 
+      // If revoking verification, remove voter role
+      else {
+        const user = users.find(u => u.id === userId);
+        if (user && user.roles.includes('voter')) {
+          await removeRole(userId, 'voter');
+        }
       }
       
       // Update local state
@@ -230,6 +242,10 @@ const UsersManagement = () => {
           if (!isVerified && !user.roles.includes('voter')) {
             updatedUser.roles = [...user.roles, 'voter'];
           }
+          // If revoking, remove voter role
+          else if (isVerified && user.roles.includes('voter')) {
+            updatedUser.roles = user.roles.filter(r => r !== 'voter');
+          }
           
           return updatedUser;
         }
@@ -240,13 +256,16 @@ const UsersManagement = () => {
       if (selectedUser && selectedUser.id === userId) {
         setSelectedUser({
           ...selectedUser,
-          is_verified: !isVerified
+          is_verified: !isVerified,
+          roles: !isVerified 
+            ? [...selectedUser.roles.filter(r => r !== 'voter'), 'voter'] 
+            : selectedUser.roles.filter(r => r !== 'voter')
         });
       }
       
       toast.success(
         isVerified 
-          ? "Profile verification revoked successfully" 
+          ? "Profile verification revoked and voter role removed successfully" 
           : "Profile verified and voter role assigned successfully"
       );
       

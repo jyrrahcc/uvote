@@ -8,12 +8,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, CheckCircle2, AlertCircle } from "lucide-react";
+import { InfoIcon, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { DlsudProfile } from "@/types";
+import { canVerifyProfiles } from "@/utils/admin/roleUtils";
 
 const DLSU_DEPARTMENTS = [
   "College of Business Administration and Accountancy",
@@ -29,7 +30,7 @@ const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"]
 
 const Profile = () => {
   const { user, signOut } = useAuth();
-  const { userRole } = useRole();
+  const { userRole, isAdmin } = useRole();
   const [profile, setProfile] = useState<DlsudProfile | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -37,12 +38,13 @@ const Profile = () => {
   const [department, setDepartment] = useState("");
   const [yearLevel, setYearLevel] = useState("");
   const [isVerified, setIsVerified] = useState(false);
+  const [isPendingVerification, setIsPendingVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const isProfileComplete = !!studentId && !!department && !!yearLevel && !!firstName && !!lastName;
+  const isProfileComplete = !!firstName && !!lastName && !!studentId && !!department && !!yearLevel;
 
   useEffect(() => {
     const getProfile = async () => {
@@ -67,6 +69,7 @@ const Profile = () => {
           setDepartment(data.department || "");
           setYearLevel(data.year_level || "");
           setIsVerified(data.is_verified || false);
+          setIsPendingVerification(!!data.student_id && !!data.department && !!data.year_level && !data.is_verified);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -99,6 +102,25 @@ const Profile = () => {
 
       if (error) throw error;
 
+      // Update local state
+      setProfile(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          first_name: firstName,
+          last_name: lastName,
+          student_id: studentId,
+          department: department,
+          year_level: yearLevel,
+          updated_at: new Date().toISOString()
+        };
+      });
+      
+      // Check if profile is now complete but not verified
+      if (isProfileComplete && !isVerified) {
+        setIsPendingVerification(true);
+      }
+
       toast.success("Profile updated successfully");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -108,31 +130,26 @@ const Profile = () => {
     }
   };
 
-  const handleVerifyProfile = async () => {
+  const handleSubmitForVerification = async () => {
     if (!isProfileComplete) {
-      toast.warning("Please complete your profile before verifying");
+      toast.warning("Please complete your profile before submitting for verification");
       return;
     }
 
-    setIsVerifying(true);
+    setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          is_verified: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      setIsVerified(true);
-      toast.success("Your profile has been verified successfully!");
+      // We're not actually updating anything in the database here
+      // We're just using this as a flag to indicate that the user has submitted their profile for verification
+      setIsPendingVerification(true);
+      
+      toast.success("Your profile has been submitted for verification!", {
+        description: "An administrator will review and verify your profile shortly."
+      });
     } catch (error) {
-      console.error("Error verifying profile:", error);
-      toast.error("Failed to verify profile");
+      console.error("Error submitting for verification:", error);
+      toast.error("Failed to submit profile for verification");
     } finally {
-      setIsVerifying(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -159,33 +176,33 @@ const Profile = () => {
         <div className="max-w-md mx-auto">
           <h1 className="text-3xl font-bold text-center mb-8">Your DLSU-D Profile</h1>
           
-          {!isVerified && (
-            <Alert className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Profile Verification Needed</AlertTitle>
-              <AlertDescription>
-                Complete your profile and verify it to participate in elections. 
-                You need to provide your student ID, department, and year level to gain voter privileges.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {isVerified && !userRole && (
+          {isPendingVerification && !isVerified && (
             <Alert className="mb-6 border-amber-500 bg-amber-50 text-amber-800">
-              <InfoIcon className="h-4 w-4 text-amber-600" />
-              <AlertTitle>Profile Verified - Awaiting Role Assignment</AlertTitle>
+              <Clock className="h-4 w-4 text-amber-600" />
+              <AlertTitle>Verification Pending</AlertTitle>
               <AlertDescription>
-                Your profile is verified. You will receive voter privileges shortly.
+                Your profile has been submitted for verification. An administrator will review your information and verify your profile shortly.
               </AlertDescription>
             </Alert>
           )}
           
-          {isVerified && userRole && (
+          {!isPendingVerification && !isVerified && (
+            <Alert className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Profile Verification Needed</AlertTitle>
+              <AlertDescription>
+                Complete your profile information and submit it for verification. 
+                You need to provide your student ID, department, and year level to be eligible for voter privileges.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isVerified && (
             <Alert className="mb-6 border-green-500 bg-green-50 text-green-800">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertTitle>Profile Verified</AlertTitle>
               <AlertDescription>
-                Your profile is verified and you can now participate in elections as a {userRole}.
+                Your profile has been verified. You now have voter privileges and can participate in elections.
               </AlertDescription>
             </Alert>
           )}
@@ -294,16 +311,27 @@ const Profile = () => {
                 
                 <div className="pt-2 flex flex-col space-y-2">
                   <Label className="font-semibold">Verification Status</Label>
-                  <div className={`px-3 py-2 rounded-md text-center ${isVerified ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                  <div className={`px-3 py-2 rounded-md text-center ${
+                    isVerified 
+                      ? 'bg-green-100 text-green-800' 
+                      : isPendingVerification 
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-gray-100 text-gray-800'
+                  }`}>
                     {isVerified ? (
                       <div className="flex items-center justify-center space-x-2">
                         <CheckCircle2 className="h-4 w-4" />
                         <span>Verified</span>
                       </div>
+                    ) : isPendingVerification ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <Clock className="h-4 w-4" />
+                        <span>Pending Verification</span>
+                      </div>
                     ) : (
                       <div className="flex items-center justify-center space-x-2">
                         <InfoIcon className="h-4 w-4" />
-                        <span>Not Verified</span>
+                        <span>Not Submitted</span>
                       </div>
                     )}
                   </div>
@@ -318,14 +346,14 @@ const Profile = () => {
                   {isSaving ? "Saving..." : "Save Changes"}
                 </Button>
                 
-                {!isVerified && (
+                {isProfileComplete && !isVerified && !isPendingVerification && (
                   <Button 
                     type="button"
-                    onClick={handleVerifyProfile}
+                    onClick={handleSubmitForVerification}
                     className="w-full bg-blue-600 hover:bg-blue-700" 
-                    disabled={isVerifying || !isProfileComplete}
+                    disabled={isSubmitting || !isProfileComplete}
                   >
-                    {isVerifying ? "Verifying..." : "Verify My Profile"}
+                    {isSubmitting ? "Submitting..." : "Submit for Verification"}
                   </Button>
                 )}
                 

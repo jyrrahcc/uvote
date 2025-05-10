@@ -21,7 +21,6 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined);
 export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasCheckedVerification, setHasCheckedVerification] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -29,7 +28,6 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
       if (!user) {
         setUserRole(null);
         setLoading(false);
-        setHasCheckedVerification(false);
         return;
       }
 
@@ -66,27 +64,6 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
           setUserRole('voter');
         } else {
           setUserRole(null);
-          
-          // Only check profile verification once per session
-          if (!hasCheckedVerification) {
-            setHasCheckedVerification(true);
-            
-            // Check if user profile is verified
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('is_verified')
-              .eq('id', user.id)
-              .single();
-              
-            if (profileError) {
-              console.error("Error checking user profile:", profileError);
-            } else if (profileData && profileData.is_verified) {
-              // If profile is verified but user doesn't have voter role, assign it
-              await assignRole(user.id, 'voter');
-              setUserRole('voter');
-              toast.success("Your account has been verified. You now have voter privileges.");
-            }
-          }
         }
       } catch (error) {
         console.error("Error fetching user role:", error);
@@ -107,12 +84,12 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
 
   const assignRole = async (userId: string, role: UserRole) => {
     try {
-      // Check if admin is assigning the role or it's a system assignment for verified users
+      // Check if admin is assigning the role
       const isAdminAction = userRole === 'admin';
       
       // For admin users, we check permission first
-      if (role === 'admin' && !isAdminAction) {
-        toast.error("You don't have permission to assign admin role");
+      if (!isAdminAction) {
+        toast.error("You don't have permission to assign roles");
         return;
       }
 
@@ -122,14 +99,10 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) throw error;
       
-      if (isAdminAction) {
-        toast.success(`User assigned ${role} role successfully`);
-      }
+      toast.success(`User assigned ${role} role successfully`);
     } catch (error) {
       console.error("Error assigning role:", error);
-      if (userRole === 'admin') {
-        toast.error("Failed to assign role. Please try again.");
-      }
+      toast.error("Failed to assign role. Please try again.");
     }
   };
 
@@ -165,9 +138,9 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
       
       toast.success(`User's ${role} role removed successfully`);
       
-      // Reset verification check flag if the current user's role was removed
-      if (userId === user?.id) {
-        setHasCheckedVerification(false);
+      // Update local state if current user's role was removed
+      if (userId === user?.id && role === userRole) {
+        setUserRole(null);
       }
     } catch (error) {
       console.error("Error removing role:", error);

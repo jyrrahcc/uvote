@@ -36,3 +36,19 @@ export const canVoteInElection = (isVoter: boolean, showMessage: boolean = true)
   }
   return isVoter;
 };
+
+/**
+ * Check if a user can verify or revoke profile verification 
+ * 
+ * @param isAdmin Whether the user has admin role
+ * @param showMessage Whether to show a toast message if not allowed
+ * @returns Boolean indicating if user can verify profiles
+ */
+export const canVerifyProfiles = (isAdmin: boolean, showMessage: boolean = true): boolean => {
+  if (!isAdmin && showMessage) {
+    toast.error("You don't have permission to verify profiles", {
+      description: "Only administrators can verify or revoke profile verification."
+    });
+  }
+  return isAdmin;
+};
