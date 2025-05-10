@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, CheckCircle2, AlertCircle } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { useRole } from "@/features/auth/context/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { DlsudProfile } from "@/types";
 
@@ -28,6 +29,7 @@ const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"]
 
 const Profile = () => {
   const { user, signOut } = useAuth();
+  const { userRole } = useRole();
   const [profile, setProfile] = useState<DlsudProfile | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -163,17 +165,27 @@ const Profile = () => {
               <AlertTitle>Profile Verification Needed</AlertTitle>
               <AlertDescription>
                 Complete your profile and verify it to participate in elections. 
-                You need to provide your student ID, department, and year level.
+                You need to provide your student ID, department, and year level to gain voter privileges.
               </AlertDescription>
             </Alert>
           )}
 
-          {isVerified && (
+          {isVerified && !userRole && (
+            <Alert className="mb-6 border-amber-500 bg-amber-50 text-amber-800">
+              <InfoIcon className="h-4 w-4 text-amber-600" />
+              <AlertTitle>Profile Verified - Awaiting Role Assignment</AlertTitle>
+              <AlertDescription>
+                Your profile is verified. You will receive voter privileges shortly.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {isVerified && userRole && (
             <Alert className="mb-6 border-green-500 bg-green-50 text-green-800">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertTitle>Profile Verified</AlertTitle>
               <AlertDescription>
-                Your profile is verified and you can now participate in elections.
+                Your profile is verified and you can now participate in elections as a {userRole}.
               </AlertDescription>
             </Alert>
           )}

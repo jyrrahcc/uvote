@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { createCandidate } from "../services/candidateService";
 import { CandidateFormData } from "../schemas/candidateFormSchema";
+import { useRole } from "@/features/auth/context/RoleContext";
 
 interface UseCandidateRegistrationProps {
   electionId: string;
@@ -16,9 +17,16 @@ export const useCandidateRegistration = ({
   onSuccess
 }: UseCandidateRegistrationProps) => {
   const [loading, setLoading] = useState(false);
+  const { isVoter } = useRole();
   
   const registerCandidate = async (formData: CandidateFormData) => {
     try {
+      // Check if user has voter role first
+      if (!isVoter) {
+        toast.error("You must verify your profile to register as a candidate");
+        throw new Error("Profile verification required");
+      }
+      
       setLoading(true);
       
       // Create the candidate with the provided data
@@ -40,7 +48,9 @@ export const useCandidateRegistration = ({
       return newCandidate;
     } catch (error) {
       console.error("Error registering candidate:", error);
-      toast.error("Failed to register as a candidate");
+      if (!(error instanceof Error && error.message === "Profile verification required")) {
+        toast.error("Failed to register as a candidate");
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -49,6 +59,7 @@ export const useCandidateRegistration = ({
   
   return {
     registerCandidate,
-    loading
+    loading,
+    canRegister: isVoter
   };
 };

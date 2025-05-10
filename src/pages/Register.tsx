@@ -18,7 +18,8 @@ const Register = () => {
               <h1 className="text-3xl font-bold">Join uVote</h1>
             </div>
             <p className="text-center text-white/90">
-              Create your account to participate in secure and transparent elections
+              Create your account to participate in secure and transparent elections.
+              After registration, complete your profile and verify it to gain voter privileges.
             </p>
           </div>
           
