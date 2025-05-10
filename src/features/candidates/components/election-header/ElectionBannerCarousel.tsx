@@ -33,10 +33,6 @@ const ElectionBannerCarousel = ({ bannerUrls, title }: ElectionBannerCarouselPro
   
   if (!hasBanners) return null;
   
-  console.log("Rendering banner carousel with URLs:", bannerUrls);
-  console.log("Current banner index:", currentBannerIndex);
-  console.log("Current banner URL:", currentBanner);
-  
   return (
     <div className="relative w-full h-[300px] overflow-hidden rounded-lg mb-6">
       <img 
