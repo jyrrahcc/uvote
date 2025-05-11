@@ -86,10 +86,9 @@ export const useVotingForm = ({
           .select('*')
           .eq('election_id', electionId)
           .eq('user_id', userId)
-          .is('position', null) // Check for the marker record
           .maybeSingle();
         
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error("Error checking existing vote:", error);
         }
         

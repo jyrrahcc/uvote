@@ -57,32 +57,17 @@ export const useVoteSubmission = ({
         .select('id')
         .eq('election_id', electionId)
         .eq('user_id', userId)
-        .is('position', null) // Look for the marker record
         .maybeSingle();
       
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         console.error("Error checking existing votes:", checkError);
         throw new Error("Failed to verify voting eligibility");
       }
       
+      // If user has already voted (any record exists with their user_id and election_id), don't allow another vote
       if (existingVote) {
         toast.error("You have already voted in this election");
         return false;
-      }
-      
-      // Create a marker record to indicate that the user has voted
-      const { error: markerError } = await supabase
-        .from('votes')
-        .insert({
-          election_id: electionId,
-          user_id: userId,
-          candidate_id: Object.values(data)[0] !== "abstain" ? Object.values(data)[0] : null,
-          position: null
-        });
-      
-      if (markerError) {
-        console.error("Error creating vote marker:", markerError);
-        throw new Error("Failed to record your participation");
       }
       
       // Process each position vote separately
@@ -91,7 +76,6 @@ export const useVoteSubmission = ({
         const voteRecord = {
           election_id: electionId,
           user_id: userId,
-          position: position,
           candidate_id: candidateId === "abstain" ? null : candidateId
         };
         
@@ -119,14 +103,8 @@ export const useVoteSubmission = ({
         onVoteSubmitted(firstNonAbstainVote);
         return true;
       } catch (error) {
-        // If any vote fails, try to clean up the marker to allow user to try again
-        await supabase
-          .from('votes')
-          .delete()
-          .eq('election_id', electionId)
-          .eq('user_id', userId)
-          .is('position', null);
-          
+        // If any vote fails, log the error
+        console.error("Error processing votes:", error);
         throw error; // Re-throw to be caught by outer catch
       }
     } catch (error: any) {
