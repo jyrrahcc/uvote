@@ -8,13 +8,14 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Shield, UserCheck, User, Info, Check, X } from "lucide-react";
+import { ArrowUpDown, Shield, UserCheck, User, Info, Check, X, UserCog } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { UserProfile } from "./types";
+import UserMenuDropdown from "./UserMenuDropdown";
 
 interface UserListProps {
   users: UserProfile[];
@@ -84,6 +85,7 @@ const UserList = ({
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
+                      <AvatarImage src={user.image_url || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
                         {getUserInitials(user.first_name, user.last_name, user.email)}
                       </AvatarFallback>
@@ -162,15 +164,12 @@ const UserList = ({
                         <span className="sr-only">View Profile</span>
                       </Button>
                       
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        disabled={isProcessing}
-                        onClick={() => onToggleMenu(user.id)}
-                      >
-                        <User className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
+                      <UserMenuDropdown 
+                        user={user}
+                        onVerify={(userId, isVerified) => {}}
+                        onRoleAction={(userId, role, action) => {}}
+                        isProcessing={isProcessing}
+                      />
                     </div>
                   ) : (
                     <Badge variant="outline" className="bg-primary-foreground/5">

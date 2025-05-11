@@ -43,10 +43,10 @@ const UsersManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      // Get all user profiles with more detailed information, but avoid requesting image_url since it doesn't exist
+      // Get all user profiles with more detailed information, including image_url
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified');
+        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified, image_url');
       
       if (error) {
         throw error;
@@ -64,10 +64,8 @@ const UsersManagement = () => {
           .select('role')
           .eq('user_id', profile.id);
         
-        // Set default image placeholder
         return {
           ...profile,
-          image_url: null, // Add a null or empty image_url since it's expected in the UserProfile type
           roles: roleData?.map(r => r.role) || []
         };
       }));

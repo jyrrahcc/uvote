@@ -26,6 +26,17 @@ const UserProfileDialog = ({
     return null;
   }
 
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    if (selectedUser.first_name && selectedUser.last_name) {
+      return `${selectedUser.first_name.charAt(0)}${selectedUser.last_name.charAt(0)}`;
+    }
+    if (selectedUser.email) {
+      return selectedUser.email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -36,8 +47,8 @@ const UserProfileDialog = ({
         <div className="flex flex-col items-center justify-center space-y-4 py-4">
           <Avatar className="h-24 w-24">
             <AvatarImage src={selectedUser.image_url || undefined} />
-            <AvatarFallback>
-              <User className="h-12 w-12 text-muted-foreground" />
+            <AvatarFallback className="bg-primary/10 text-primary">
+              {getUserInitials()}
             </AvatarFallback>
           </Avatar>
           
