@@ -38,12 +38,7 @@ export async function checkUserEligibility(
       return { isEligible: false, reason: "You must have voter privileges to participate in this election" };
     }
     
-    // If the election doesn't restrict voting, user with voter role is eligible
-    if (!election.restrictVoting) {
-      return { isEligible: true, reason: null };
-    }
-    
-    // Get user profile for department and year level checks
+    // Get user profile for department and year level checks - we need to do this BEFORE checking if election restricts voting
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('department, year_level')
@@ -53,6 +48,12 @@ export async function checkUserEligibility(
     if (profileError || !profile) {
       console.error("Error fetching user profile:", profileError);
       return { isEligible: false, reason: "Could not verify user profile" };
+    }
+    
+    // If the election doesn't restrict voting, user with voter role is eligible
+    // We moved this check AFTER getting the user profile to ensure we have their information
+    if (!election.restrictVoting) {
+      return { isEligible: true, reason: null };
     }
     
     const userDepartment = profile.department || '';
