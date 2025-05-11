@@ -32,6 +32,11 @@ const UserMenuDropdown = ({
   onRoleAction,
   isProcessing
 }: UserMenuDropdownProps) => {
+  const handleVerify = () => {
+    console.log("UserMenuDropdown - handleVerify:", user.id, user.is_verified);
+    onVerify(user.id, user.is_verified || false);
+  };
+  
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -50,7 +55,7 @@ const UserMenuDropdown = ({
         
         {user.is_verified ? (
           <DropdownMenuItem
-            onClick={() => onVerify(user.id, true)}
+            onClick={handleVerify}
             disabled={isProcessing}
           >
             <X className="mr-2 h-4 w-4 text-amber-600" />
@@ -58,7 +63,7 @@ const UserMenuDropdown = ({
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem
-            onClick={() => onVerify(user.id, false)}
+            onClick={handleVerify}
             disabled={isProcessing}
           >
             <Check className="mr-2 h-4 w-4 text-green-600" />

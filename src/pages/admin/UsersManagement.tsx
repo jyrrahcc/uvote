@@ -19,7 +19,8 @@ const UsersManagement = () => {
     setPageSize,
     currentPage,
     setCurrentPage,
-    fetchUsers 
+    fetchUsers,
+    refreshUsers
   } = useUsersList();
   
   const { user: currentUser } = useAuth();
@@ -54,35 +55,51 @@ const UsersManagement = () => {
 
   // Custom handler for verifying profiles that updates the selectedUser state
   const handleVerifyProfileWithUpdate = async (userId: string, isVerified: boolean) => {
+    console.log("UsersManagement - handleVerifyProfileWithUpdate:", userId, isVerified);
     await handleVerifyProfile(userId, isVerified);
     
-    // After verification, update the selectedUser state if they're the one being verified
-    if (selectedUser && selectedUser.id === userId) {
-      // Find the updated user in the users array
-      const updatedUser = users.find(user => user.id === userId);
-      if (updatedUser) {
-        // Update the selected user with the new data
-        setSelectedUser({
-          ...updatedUser,
-          is_verified: !isVerified // Toggle the verification status
-        });
-      }
-    }
+    // After verification, refresh the users list to get the updated data from the database
+    setTimeout(() => {
+      refreshUsers();
+      
+      // After refreshing data, update the selectedUser state if they're the one being verified
+      setTimeout(() => {
+        if (selectedUser && selectedUser.id === userId) {
+          // Find the updated user in the users array
+          const updatedUser = users.find(user => user.id === userId);
+          if (updatedUser) {
+            console.log("Updating selected user with fresh data:", updatedUser);
+            // Update the selected user with the new data
+            setSelectedUser({
+              ...updatedUser
+            });
+          }
+        }
+      }, 300);
+    }, 500);
   };
 
   // Custom handler for toggling roles that updates the selectedUser state  
   const handleToggleRoleWithUpdate = async (userId: string, role: string, action: 'add' | 'remove') => {
     await handleToggleRole(userId, role, action);
     
-    // After role change, update the selectedUser state if they're the one being updated
-    if (selectedUser && selectedUser.id === userId) {
-      // Find the updated user in the users array
-      const updatedUser = users.find(user => user.id === userId);
-      if (updatedUser) {
-        // Update the selected user with the new data
-        setSelectedUser(updatedUser);
-      }
-    }
+    // After role change, refresh the data
+    setTimeout(() => {
+      refreshUsers();
+      
+      // After refreshing data, update the selectedUser state if they're the one being updated
+      setTimeout(() => {
+        if (selectedUser && selectedUser.id === userId) {
+          // Find the updated user in the users array
+          const updatedUser = users.find(user => user.id === userId);
+          if (updatedUser) {
+            console.log("Updating selected user with fresh data after role change:", updatedUser);
+            // Update the selected user with the new data
+            setSelectedUser(updatedUser);
+          }
+        }
+      }, 300);
+    }, 500);
   };
 
   return (

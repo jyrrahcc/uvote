@@ -52,6 +52,8 @@ export const useUsersList = () => {
         return;
       }
 
+      console.log("Fetched profiles:", profiles);
+
       // For each user, get their roles
       const usersWithRoles = await Promise.all(profiles.map(async (profile) => {
         const { data: roleData } = await supabase
@@ -65,6 +67,7 @@ export const useUsersList = () => {
         };
       }));
       
+      console.log("Users with roles:", usersWithRoles);
       setUsers(usersWithRoles);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -72,6 +75,12 @@ export const useUsersList = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Force refresh function to reload user data
+  const refreshUsers = () => {
+    fetchUserCount();
+    fetchUsers(currentPage, pageSize);
   };
 
   useEffect(() => {
@@ -87,6 +96,7 @@ export const useUsersList = () => {
     setUsers,
     loading,
     fetchUsers,
+    refreshUsers,
     totalUsers,
     pageSize,
     setPageSize,

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { UserProfile } from "@/components/admin/users/types";
 import UserProfileDialog from "@/components/admin/users/UserProfileDialog";
 import RoleConfirmDialog from "@/components/admin/users/RoleConfirmDialog";
@@ -30,6 +30,11 @@ export const UserDialogs: React.FC<UserDialogsProps> = ({
   onCancelRoleDialog,
   onConfirmRoleAction
 }) => {
+  const handleVerifyProfile = async (userId: string, isVerified: boolean) => {
+    console.log("UserDialogs - handleVerifyProfile:", userId, isVerified);
+    await onVerifyProfile(userId, isVerified);
+  };
+  
   return (
     <>
       {/* Profile Dialog */}
@@ -38,7 +43,7 @@ export const UserDialogs: React.FC<UserDialogsProps> = ({
           open={profileDialogOpen}
           onClose={onCloseProfileDialog}
           selectedUser={selectedUser}
-          onVerifyProfile={onVerifyProfile}
+          onVerifyProfile={handleVerifyProfile}
           isProcessing={isProcessing}
         />
       )}

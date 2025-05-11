@@ -38,6 +38,7 @@ const UserProfileDialog = ({
   };
 
   const handleVerifyProfile = async () => {
+    console.log("Verifying profile", selectedUser.id, "Current status:", selectedUser.is_verified);
     await onVerifyProfile(selectedUser.id, selectedUser.is_verified || false);
   };
 

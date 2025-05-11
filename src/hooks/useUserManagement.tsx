@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,16 +21,24 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
     try {
       setIsProcessing(true);
       
+      console.log(`Updating verification status for user ${userId}: setting to ${!isVerified}`);
+      
       // Update profile verification status
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('profiles')
         .update({ 
           is_verified: !isVerified,
           updated_at: new Date().toISOString() 
         })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Database update error:", error);
+        throw error;
+      }
+      
+      console.log("Database update response:", data);
       
       // If verifying, assign voter role if not already assigned
       if (!isVerified) {
