@@ -18,6 +18,7 @@ export const useCandidates = (electionId?: string, userId?: string) => {
   const [userHasRegistered, setUserHasRegistered] = useState(false);
   const [userHasApplied, setUserHasApplied] = useState(false);
   const [isUserEligible, setIsUserEligible] = useState(false);
+  const [eligibilityReason, setEligibilityReason] = useState<string | null>(null);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -56,6 +57,7 @@ export const useCandidates = (electionId?: string, userId?: string) => {
         // Use centralized eligibility checker
         const eligibilityResult = await checkUserEligibility(userId, electionData);
         setIsUserEligible(eligibilityResult.isEligible);
+        setEligibilityReason(eligibilityResult.reason);
         
         if (!eligibilityResult.isEligible && eligibilityResult.reason) {
           console.log("User is not eligible:", eligibilityResult.reason);
@@ -106,6 +108,7 @@ export const useCandidates = (electionId?: string, userId?: string) => {
     userHasRegistered,
     userHasApplied,
     isUserEligible,
+    eligibilityReason,
     handleDeleteCandidate,
     handleCandidateAdded,
     handleApplicationSubmitted
