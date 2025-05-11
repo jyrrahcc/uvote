@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DlsudProfile } from "@/types";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileForm from "@/components/profile/ProfileForm";
+import ProfileImageUpload from "@/components/profile/ProfileImageUpload";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -20,6 +20,7 @@ const Profile = () => {
   const [studentId, setStudentId] = useState("");
   const [department, setDepartment] = useState("");
   const [yearLevel, setYearLevel] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [isPendingVerification, setIsPendingVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +53,7 @@ const Profile = () => {
           setStudentId(data.student_id || "");
           setDepartment(data.department || "");
           setYearLevel(data.year_level || "");
+          setImageUrl(data.image_url || null);
           setIsVerified(data.is_verified || false);
           setIsPendingVerification(!!data.student_id && !!data.department && !!data.year_level && !data.is_verified);
         }
@@ -110,6 +112,11 @@ const Profile = () => {
     navigate("/login");
   };
 
+  const handleImageUpdate = (url: string) => {
+    setImageUrl(url);
+    setProfile(prev => prev ? { ...prev, image_url: url } : null);
+  };
+
   if (isLoading) {
     return (
       <PageLayout>
@@ -136,6 +143,10 @@ const Profile = () => {
           
           <Card>
             <CardHeader>
+              <ProfileImageUpload 
+                profile={profile}
+                onImageUpdate={handleImageUpdate}
+              />
               <CardTitle>Personal Information</CardTitle>
               <CardDescription>Update your DLSU-D student details</CardDescription>
             </CardHeader>
