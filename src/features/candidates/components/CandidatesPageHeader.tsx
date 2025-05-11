@@ -85,6 +85,16 @@ const CandidatesPageHeader = ({
     return null;
   };
 
+  const handleOpenDialog = (type: 'add' | 'register' | 'apply') => {
+    setDialogType(type);
+    setIsDialogOpen(true);
+  };
+
+  const handleApplicationSuccess = () => {
+    handleApplicationSubmitted();
+    setIsDialogOpen(false);
+  };
+
   return (
     <div className="flex flex-col md:flex-row md:items-start justify-between mb-6">
       <div>
@@ -117,7 +127,7 @@ const CandidatesPageHeader = ({
       <div className="flex flex-col mt-4 md:mt-0 md:items-end space-y-2">
         {isAdmin ? (
           <Button 
-            onClick={() => { setDialogType('add'); setIsDialogOpen(true); }}
+            onClick={() => handleOpenDialog('add')}
             className="bg-[#008f50] hover:bg-[#007a45]"
           >
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -126,7 +136,7 @@ const CandidatesPageHeader = ({
         ) : (
           canApplyAsCandidate() && (
             <Button 
-              onClick={() => { setDialogType('apply'); setIsDialogOpen(true); }}
+              onClick={() => handleOpenDialog('apply')}
               className="bg-[#008f50] hover:bg-[#007a45]"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -187,7 +197,8 @@ const CandidatesPageHeader = ({
               electionId={electionId}
               userId={userId || ''}
               onClose={() => setIsDialogOpen(false)}
-              onApplicationSubmitted={handleApplicationSubmitted}
+              onCancel={() => setIsDialogOpen(false)}
+              onApplicationSubmitted={handleApplicationSuccess}
             />
           </DialogContent>
         )}

@@ -2,6 +2,9 @@
 import { useState, useEffect } from "react";
 import { 
   Dialog, 
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -46,6 +49,10 @@ const ApplyAsCandidateDialog = ({
     onApplicationSubmitted();
     setHasApplied(true);
   };
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+  };
   
   if (loading) {
     return <div className="h-9 w-[150px] bg-muted/20 animate-pulse rounded-md"></div>;
@@ -73,10 +80,27 @@ const ApplyAsCandidateDialog = ({
   }
   
   return (
-    <Button onClick={() => onApplicationSubmitted()}>
-      <Plus className="mr-2 h-4 w-4" />
-      Apply as Candidate
-    </Button>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Apply as Candidate
+        </Button>
+      </DialogTrigger>
+      
+      <DialogContent className="sm:max-w-[550px]">
+        <DialogHeader>
+          <DialogTitle>Apply as Candidate</DialogTitle>
+        </DialogHeader>
+        <CandidateApplicationForm
+          electionId={electionId}
+          userId={userId}
+          onClose={() => setIsOpen(false)}
+          onCancel={() => setIsOpen(false)}
+          onApplicationSubmitted={handleSuccess}
+        />
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -49,6 +49,13 @@ const CandidateRegistrationDialog = ({
     setIsOpen(false);
   };
 
+  const handleApplicationSuccess = () => {
+    if (onApplicationSubmitted) {
+      onApplicationSubmitted();
+    }
+    handleClose();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {isAdmin && (
@@ -108,7 +115,7 @@ const CandidateRegistrationDialog = ({
             userId={userId}
             onClose={handleClose}
             onCancel={handleClose}
-            onApplicationSubmitted={onApplicationSubmitted}
+            onApplicationSubmitted={handleApplicationSuccess}
           />
         </DialogContent>
       )}
