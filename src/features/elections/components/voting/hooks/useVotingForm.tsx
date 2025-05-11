@@ -8,6 +8,7 @@ import { useVotingSelections, VotingSelections } from "./useVotingSelections";
 import { usePositionNavigation } from "./usePositionNavigation";
 import { useVoteSubmission } from "./useVoteSubmission";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UseVotingFormProps {
   electionId: string;
@@ -35,6 +36,7 @@ export const useVotingForm = ({
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
   const [hasVotedPositions, setHasVotedPositions] = useState<string[]>([]);
   const eligibilityChecked = useRef(false);
+  const votesChecked = useRef(false);
   
   // Get candidate groups by position
   const { positionGroups, positions } = useCandidateGroups(candidates);
@@ -58,6 +60,7 @@ export const useVotingForm = ({
   // Handle voting selections
   const {
     selections,
+    setSelections,
     handleAbstain,
     hasCurrentSelection
   } = useVotingSelections({ 
@@ -82,34 +85,52 @@ export const useVotingForm = ({
   // Check if user has already voted for any positions - only run once
   useEffect(() => {
     const checkExistingVotes = async () => {
-      if (!userId || !electionId || eligibilityChecked.current) return;
+      if (!userId || !electionId || votesChecked.current) return;
       
       try {
         setIsCheckingEligibility(true);
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data: existingVotes, error } = await supabase
-          .from('votes')
-          .select('position')
-          .eq('election_id', electionId)
-          .eq('user_id', userId);
         
-        if (error) {
-          console.error("Error checking existing votes:", error);
+        // First check if user has a vote record for this election
+        const { data: voteData, error: voteError } = await supabase
+          .from('votes')
+          .select('id')
+          .match({ user_id: userId, election_id: electionId })
+          .maybeSingle();
+        
+        if (voteError && voteError.code !== 'PGRST116') {
+          console.error("Error checking existing votes:", voteError);
+          setIsCheckingEligibility(false);
           return;
         }
         
-        if (existingVotes && existingVotes.length > 0) {
-          const votedPositions = existingVotes.map(vote => vote.position).filter(Boolean);
-          setHasVotedPositions(votedPositions);
-          console.log("Positions already voted for:", votedPositions);
+        // If user has voted, check which positions they've voted for
+        if (voteData) {
+          const { data: voteCandidates, error: candidatesError } = await supabase
+            .from('vote_candidates')
+            .select('position')
+            .eq('vote_id', voteData.id);
           
-          // Filter out positions that have already been voted for
-          const remainingPositionsToVote = positions.filter(pos => !votedPositions.includes(pos));
+          if (candidatesError) {
+            console.error("Error checking voted positions:", candidatesError);
+            setIsCheckingEligibility(false);
+            return;
+          }
           
-          // If all positions have been voted for, show message
-          if (remainingPositionsToVote.length === 0) {
-            console.log("User has voted for all positions");
-            onVoteSubmitted("already-voted"); // Trigger the completed state
+          if (voteCandidates && voteCandidates.length > 0) {
+            const votedPositions = voteCandidates.map(vote => vote.position);
+            setHasVotedPositions(votedPositions);
+            console.log("Positions already voted for:", votedPositions);
+            
+            // Pre-fill selections with the existing votes
+            const prefilledSelections: VotingSelections = {};
+            
+            // If all positions have been voted for, show message
+            if (positions.every(pos => votedPositions.includes(pos))) {
+              console.log("User has voted for all positions");
+              onVoteSubmitted("already-voted"); // Trigger the completed state
+            }
+            
+            setSelections(prefilledSelections);
           }
         } else {
           console.log("User has not voted for any positions yet");
@@ -118,13 +139,13 @@ export const useVotingForm = ({
       } catch (error) {
         console.error("Error checking existing votes:", error);
       } finally {
-        eligibilityChecked.current = true;
+        votesChecked.current = true;
         setIsCheckingEligibility(false);
       }
     };
     
     checkExistingVotes();
-  }, [userId, electionId, positions, onVoteSubmitted]);
+  }, [userId, electionId, positions, onVoteSubmitted, setSelections]);
   
   // Handle form submission
   const handleVote = async (data: VotingSelections) => {

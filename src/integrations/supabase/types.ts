@@ -294,39 +294,65 @@ export type Database = {
         }
         Relationships: []
       }
-      votes: {
+      vote_candidates: {
         Row: {
           candidate_id: string | null
-          election_id: string | null
           id: string
-          position: string | null
-          timestamp: string | null
-          user_id: string | null
+          position: string
+          timestamp: string
+          vote_id: string
         }
         Insert: {
           candidate_id?: string | null
-          election_id?: string | null
           id?: string
-          position?: string | null
-          timestamp?: string | null
-          user_id?: string | null
+          position: string
+          timestamp?: string
+          vote_id: string
         }
         Update: {
           candidate_id?: string | null
-          election_id?: string | null
           id?: string
-          position?: string | null
-          timestamp?: string | null
-          user_id?: string | null
+          position?: string
+          timestamp?: string
+          vote_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "votes_candidate_id_fkey"
+            foreignKeyName: "vote_candidates_candidate_id_fkey"
             columns: ["candidate_id"]
             isOneToOne: false
             referencedRelation: "candidates"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vote_candidates_vote_id_fkey"
+            columns: ["vote_id"]
+            isOneToOne: false
+            referencedRelation: "votes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      votes: {
+        Row: {
+          election_id: string | null
+          id: string
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          election_id?: string | null
+          id?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          election_id?: string | null
+          id?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
           {
             foreignKeyName: "votes_election_id_fkey"
             columns: ["election_id"]

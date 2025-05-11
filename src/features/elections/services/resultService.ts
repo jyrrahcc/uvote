@@ -15,10 +15,10 @@ export const fetchElectionResults = async (electionId: string): Promise<Election
     
     if (candidatesError) throw candidatesError;
     
-    // Get vote counts for each candidate
+    // Get vote counts for each candidate from the new vote_candidates table
     const candidatesWithVotes = await Promise.all(candidates.map(async (candidate) => {
       const { count, error: countError } = await supabase
-        .from('votes')
+        .from('vote_candidates')
         .select('*', { count: 'exact' })
         .eq('candidate_id', candidate.id);
       

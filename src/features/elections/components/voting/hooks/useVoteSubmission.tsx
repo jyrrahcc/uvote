@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/features/auth/context/RoleContext";
 
 export interface VotingSelections {
   [position: string]: string;
@@ -38,7 +37,7 @@ export const useVoteSubmission = ({
     return { valid: true, errorMessage: null };
   };
   
-  // Submit votes to the database
+  // Submit votes to the database using the new schema
   const submitVotes = async (data: VotingSelections, positions: string[]) => {
     // Validate user authentication
     if (!userId) {
@@ -50,34 +49,50 @@ export const useVoteSubmission = ({
       setVoteLoading(true);
       console.log("Submitting votes for positions:", positions);
       
-      // Prepare all vote records at once for bulk insert
-      const voteRecords = positions.map(position => ({
-        election_id: electionId,
-        user_id: userId,
-        candidate_id: data[position] === "abstain" ? null : data[position],
-        position: position
-      }));
-      
-      // Skip if no votes to submit
-      if (voteRecords.length === 0) {
+      // Skip if no positions to vote for
+      if (positions.length === 0) {
         toast.info("No positions available to vote for");
         return false;
       }
       
-      // Insert all votes in a single operation
-      const { error: insertError } = await supabase
+      // First, create a single vote record for this election
+      const { data: voteData, error: voteError } = await supabase
         .from('votes')
-        .insert(voteRecords);
+        .upsert([{
+          election_id: electionId,
+          user_id: userId,
+          timestamp: new Date().toISOString()
+        }], { onConflict: 'user_id,election_id', returning: true });
+      
+      if (voteError) {
+        console.error("Error creating vote record:", voteError);
+        toast.error("Failed to record your vote. Please try again.");
+        return false;
+      }
+      
+      if (!voteData || voteData.length === 0) {
+        toast.error("Failed to create vote record");
+        return false;
+      }
+      
+      const voteId = voteData[0].id;
+      
+      // Now create vote_candidate records for each position
+      const voteCandidateRecords = positions.map(position => ({
+        vote_id: voteId,
+        candidate_id: data[position] === "abstain" ? null : data[position],
+        position: position,
+        timestamp: new Date().toISOString()
+      }));
+      
+      // Insert all vote candidates in a single operation
+      const { error: insertError } = await supabase
+        .from('vote_candidates')
+        .upsert(voteCandidateRecords, { onConflict: 'vote_id,position' });
         
       if (insertError) {
-        console.error("Error inserting votes:", insertError);
-        
-        // Check if it's a unique constraint violation
-        if (insertError.code === '23505') {
-          toast.error("You have already voted for one or more of these positions");
-        } else {
-          toast.error("Failed to record your votes. Please try again.");
-        }
+        console.error("Error inserting vote candidates:", insertError);
+        toast.error("Failed to record your selections. Please try again.");
         return false;
       }
       

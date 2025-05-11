@@ -26,15 +26,19 @@ const PositionNavigation = ({
 }: PositionNavigationProps) => {
   return (
     <div className="flex justify-between pt-4">
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onPrevious}
-        disabled={currentPositionIndex === 0 || isLoading}
-        className="transition-all duration-200"
-      >
-        <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-      </Button>
+      {currentPositionIndex > 0 && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onPrevious}
+          disabled={isLoading}
+          className="transition-all duration-200"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+        </Button>
+      )}
+      
+      {currentPositionIndex === 0 && <div></div>}
       
       {isLastPosition ? (
         <Button
@@ -50,7 +54,7 @@ const PositionNavigation = ({
             </div>
           ) : (
             <>
-              Submit Vote
+              Submit All Votes
               <Vote className="h-4 w-4" />
             </>
           )}
@@ -58,9 +62,9 @@ const PositionNavigation = ({
       ) : (
         <Button
           type="button"
-          onClick={onNext}
+          onClick={canProceed ? onNext : undefined}
           disabled={!canProceed || isLoading}
-          className="transition-all duration-200"
+          className={`transition-all duration-200 ${canProceed ? '' : 'opacity-70'}`}
         >
           Next <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
