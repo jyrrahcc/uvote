@@ -11,6 +11,7 @@ interface PositionNavigationProps {
   onSubmit: () => void;
   isLoading: boolean;
   canProceed: boolean;
+  isLastPosition: boolean;
 }
 
 const PositionNavigation = ({
@@ -20,10 +21,9 @@ const PositionNavigation = ({
   onNext,
   onSubmit,
   isLoading,
-  canProceed
+  canProceed,
+  isLastPosition
 }: PositionNavigationProps) => {
-  const isLastPosition = currentPositionIndex === totalPositions - 1;
-  
   return (
     <div className="flex justify-between pt-4">
       <Button
@@ -33,7 +33,7 @@ const PositionNavigation = ({
         disabled={currentPositionIndex === 0 || isLoading}
         className="transition-all duration-200"
       >
-        <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+        <ChevronLeft className="h-4 w-4 mr-1" /> Previous
       </Button>
       
       {isLastPosition ? (
@@ -44,13 +44,13 @@ const PositionNavigation = ({
           className="gap-2 transition-all duration-200 bg-[#008f50] hover:bg-[#007a45]"
         >
           {isLoading ? (
-            <>
-              <span className="animate-pulse">Submitting...</span>
+            <div className="flex items-center gap-2">
+              <span>Submitting</span>
               <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-            </>
+            </div>
           ) : (
             <>
-              Submit All Votes
+              Submit Vote
               <Vote className="h-4 w-4" />
             </>
           )}
@@ -62,7 +62,7 @@ const PositionNavigation = ({
           disabled={!canProceed || isLoading}
           className="transition-all duration-200"
         >
-          Next <ChevronRight className="ml-2 h-4 w-4" />
+          Next <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       )}
     </div>

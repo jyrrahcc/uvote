@@ -1,6 +1,6 @@
 
 import { useForm } from "react-hook-form";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Candidate } from "@/types";
 import { useCandidateGroups } from "./useCandidateGroups";
@@ -34,6 +34,7 @@ export const useVotingForm = ({
   const [eligibilityError, setEligibilityError] = useState<string | null>(null);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
   const [hasVotedPositions, setHasVotedPositions] = useState<string[]>([]);
+  const eligibilityChecked = useRef(false);
   
   // Get candidate groups by position
   const { positionGroups, positions } = useCandidateGroups(candidates);
@@ -78,10 +79,10 @@ export const useVotingForm = ({
   // Get candidates for the current position
   const currentCandidates = currentPosition ? positionGroups[currentPosition] || [] : [];
   
-  // Check if user has already voted for any positions
+  // Check if user has already voted for any positions - only run once
   useEffect(() => {
     const checkExistingVotes = async () => {
-      if (!userId || !electionId) return;
+      if (!userId || !electionId || eligibilityChecked.current) return;
       
       try {
         setIsCheckingEligibility(true);
@@ -98,7 +99,7 @@ export const useVotingForm = ({
         }
         
         if (existingVotes && existingVotes.length > 0) {
-          const votedPositions = existingVotes.map(vote => vote.position);
+          const votedPositions = existingVotes.map(vote => vote.position).filter(Boolean);
           setHasVotedPositions(votedPositions);
           console.log("Positions already voted for:", votedPositions);
           
@@ -117,6 +118,7 @@ export const useVotingForm = ({
       } catch (error) {
         console.error("Error checking existing votes:", error);
       } finally {
+        eligibilityChecked.current = true;
         setIsCheckingEligibility(false);
       }
     };
@@ -144,7 +146,17 @@ export const useVotingForm = ({
     console.log("Submitting votes with data:", data);
     
     // Submit votes to database
-    await submitVotes(data, positionsToVoteFor.length > 0 ? positionsToVoteFor : positions);
+    const success = await submitVotes(data, positionsToVoteFor.length > 0 ? positionsToVoteFor : positions);
+    if (success) {
+      // Update voted positions locally to prevent re-voting
+      const newVotedPositions = [...hasVotedPositions];
+      positionsToVoteFor.forEach(pos => {
+        if (!newVotedPositions.includes(pos)) {
+          newVotedPositions.push(pos);
+        }
+      });
+      setHasVotedPositions(newVotedPositions);
+    }
   };
   
   return {

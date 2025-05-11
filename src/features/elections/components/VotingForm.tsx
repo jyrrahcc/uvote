@@ -7,6 +7,8 @@ import { useRole } from "@/features/auth/context/RoleContext";
 import { Candidate } from "@/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 // Import custom components
 import VotingProgress from "./voting/VotingProgress";
@@ -64,15 +66,6 @@ const VotingForm = ({
     }
   });
 
-  // Log the current state for debugging
-  console.log({
-    hasVoted,
-    showSummary,
-    isVoter,
-    eligibilityError,
-    selections
-  });
-
   // If the user has already voted or just voted, show the results button
   if (hasVoted || showSummary) {
     return <VoteSummary electionId={electionId} />;
@@ -125,7 +118,7 @@ const VotingForm = ({
     );
   }
 
-  // If no more positions to vote for, show thank you message
+  // If no positions to vote for, show thank you message
   if (positions.length === 0) {
     return (
       <Card className="mb-6 shadow-lg border-green-100 transition-all duration-300">
@@ -142,14 +135,19 @@ const VotingForm = ({
           </div>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <VoteSummary electionId={electionId} />
+          <Button 
+            onClick={() => setShowSummary(true)}
+            variant="outline"
+            className="mt-2"
+          >
+            View Results
+          </Button>
         </CardFooter>
       </Card>
     );
   }
 
   const handleSubmit = form.handleSubmit((data) => {
-    console.log("Submitting vote with data:", data);
     handleVote(data);
   });
 
@@ -161,7 +159,7 @@ const VotingForm = ({
           Cast Your Vote
         </CardTitle>
         <CardDescription>
-          Select your preferred candidate for each position
+          Select your candidate for each position ({currentPositionIndex + 1} of {positions.length})
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
@@ -190,6 +188,16 @@ const VotingForm = ({
             )}
           </form>
         </Form>
+
+        {positions.length > 1 && (
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <div className="flex justify-between text-sm text-gray-500 mb-1">
+              <span>Position {currentPositionIndex + 1} of {positions.length}</span>
+              <span>{Math.round(((currentPositionIndex + 1) / positions.length) * 100)}% complete</span>
+            </div>
+            <Progress value={((currentPositionIndex + 1) / positions.length) * 100} className="h-2" />
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex flex-col bg-gray-50 border-t border-gray-100 pt-4">
         <VotingProgress 

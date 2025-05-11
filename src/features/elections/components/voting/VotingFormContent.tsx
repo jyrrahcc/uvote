@@ -1,7 +1,7 @@
 
 import React from "react";
 import { UseFormReturn } from "react-hook-form";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { CheckCircle } from "lucide-react";
 
@@ -44,43 +44,37 @@ const VotingFormContent = ({
   hasCurrentSelection,
   selections
 }: VotingFormContentProps) => {
+  const isLastPosition = currentPositionIndex === positions.length - 1;
+  
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">
-          <span className="text-[#008f50]">Question {currentPositionIndex + 1}:</span> Who will you vote for {currentPosition}?
+          <span className="text-[#008f50]">Select for:</span> {currentPosition}
         </h3>
         {selections[currentPosition] && (
           <span className="text-green-600 flex items-center gap-1">
-            <CheckCircle className="h-4 w-4" /> Selection made
+            <CheckCircle className="h-4 w-4" /> Selected
           </span>
         )}
       </div>
       
       <ValidationError error={validationError} />
       
-      <div className="border rounded-md p-6 bg-slate-50 shadow-inner">
+      <div className="border rounded-md p-4 bg-slate-50">
         <FormField
           control={form.control}
           name={currentPosition}
           render={({ field }) => (
             <FormItem className="space-y-1">
-              <FormLabel className="text-base">Select a candidate:</FormLabel>
               <FormControl>
                 <RadioGroup
                   onValueChange={(value) => {
                     field.onChange(value);
-                    // Automatically advance after short delay when option selected
-                    if (currentPositionIndex < positions.length - 1) {
-                      setTimeout(() => {
-                        if (form.getValues()[currentPosition]) {
-                          goToNextPosition();
-                        }
-                      }, 600);
-                    }
+                    // Don't auto-advance to give users time to confirm their selection
                   }}
                   value={field.value}
-                  className="flex flex-col space-y-3 mt-4"
+                  className="flex flex-col space-y-3 mt-2"
                 >
                   {currentCandidates.map((candidate) => (
                     <CandidateOption 
@@ -106,6 +100,7 @@ const VotingFormContent = ({
         onSubmit={handleSubmit}
         isLoading={voteLoading}
         canProceed={hasCurrentSelection}
+        isLastPosition={isLastPosition}
       />
     </div>
   );
