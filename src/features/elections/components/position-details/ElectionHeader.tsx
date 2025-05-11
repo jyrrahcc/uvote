@@ -10,14 +10,19 @@ import { useRole } from "@/features/auth/context/RoleContext";
 interface ElectionHeaderProps {
   election: Election;
   hasVoted?: boolean;
+  isVoter?: boolean; // Add the isVoter prop to the interface
 }
 
 const ElectionHeader = ({ 
   election, 
-  hasVoted = false
+  hasVoted = false,
+  isVoter: isVoterProp // Rename to avoid conflict with the hook
 }: ElectionHeaderProps) => {
   const { isCandidacyPeriodActive } = useCandidacyPeriod(election);
   const { isVoter } = useRole();
+  
+  // Use the prop if provided, otherwise use the value from the hook
+  const userIsVoter = isVoterProp !== undefined ? isVoterProp : isVoter;
   
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -39,7 +44,7 @@ const ElectionHeader = ({
       
       <div className="flex items-center gap-2">
         {/* File Candidacy button (only shown during candidacy period and for eligible voters) */}
-        {isCandidacyPeriodActive && isVoter && (
+        {isCandidacyPeriodActive && userIsVoter && (
           <Button variant="outline" className="flex items-center gap-2" asChild>
             <Link to={`/elections/${election.id}/candidates`}>
               <FileText className="h-4 w-4" />
@@ -57,7 +62,7 @@ const ElectionHeader = ({
                 <span>You have voted</span>
               </Badge>
             ) : (
-              isVoter && (
+              userIsVoter && (
                 <Button className="flex items-center gap-2" asChild>
                   <Link to={`/elections/${election.id}`}>
                     <Vote className="h-4 w-4" />
