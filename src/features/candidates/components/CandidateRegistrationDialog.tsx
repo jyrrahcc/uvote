@@ -1,30 +1,30 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 import CandidateRegistrationForm from "./CandidateRegistrationForm";
 import CandidateApplicationForm from "./CandidateApplicationForm";
 
 interface CandidateRegistrationDialogProps {
-  isAdmin: boolean;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  isAdmin: boolean;
   canRegister: boolean;
   userHasRegistered: boolean;
   userHasApplied: boolean;
   isUserEligible: boolean;
   electionId: string;
   userId: string;
-  onCandidateAdded: (candidate: any) => void;
-  onApplicationSubmitted: () => void;
+  onCandidateAdded?: (candidate: any) => void;
+  onApplicationSubmitted?: () => void;
+  eligibilityReason?: string | null;
 }
 
 const CandidateRegistrationDialog = ({
-  isAdmin,
   isOpen,
   setIsOpen,
+  isAdmin,
   canRegister,
   userHasRegistered,
   userHasApplied,
@@ -32,93 +32,88 @@ const CandidateRegistrationDialog = ({
   electionId,
   userId,
   onCandidateAdded,
-  onApplicationSubmitted
+  onApplicationSubmitted,
+  eligibilityReason
 }: CandidateRegistrationDialogProps) => {
-  const navigate = useNavigate();
-  
-  if (!userId) {
-    // Redirect to login if not logged in
-    if (isOpen) {
-      navigate("/login");
-      setIsOpen(false);
+  const getDialogTitle = () => {
+    if (isAdmin) {
+      return "Add New Candidate";
     }
-    return null;
-  }
-  
-  const handleClose = () => {
-    setIsOpen(false);
+    return "Register as Candidate";
   };
 
-  const handleApplicationSuccess = () => {
-    if (onApplicationSubmitted) {
-      onApplicationSubmitted();
+  const getDialogDescription = () => {
+    if (isAdmin) {
+      return "Add a new candidate to the election.";
     }
-    handleClose();
+    return "Submit your application to be a candidate in this election.";
+  };
+
+  const renderContent = () => {
+    // If user has already registered or applied and is not admin
+    if ((userHasRegistered || userHasApplied) && !isAdmin) {
+      return (
+        <Alert className="mt-2 bg-blue-50 border-blue-100">
+          <AlertTriangle className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            {userHasRegistered
+              ? "You are already registered as a candidate for this election."
+              : "You have already submitted an application for this election. Your application is being reviewed."}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    // If user is not eligible and not admin
+    if (!isUserEligible && !isAdmin) {
+      return (
+        <Alert className="mt-2 bg-red-50 border-red-100">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            {eligibilityReason || "You are not eligible to register as a candidate for this election."}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    // For admin - direct registration form
+    if (isAdmin) {
+      return (
+        <CandidateRegistrationForm
+          electionId={electionId}
+          userId={userId}
+          onSuccess={onCandidateAdded}
+          onCancel={() => setIsOpen(false)}
+          onClose={() => setIsOpen(false)}
+        />
+      );
+    }
+
+    // For eligible users - application form or registration form based on election policy
+    return (
+      <CandidateApplicationForm
+        electionId={electionId}
+        userId={userId}
+        onSuccess={onCandidateAdded}
+        onApplicationSubmitted={onApplicationSubmitted}
+        onCancel={() => setIsOpen(false)}
+        onClose={() => setIsOpen(false)}
+        isUserEligible={isUserEligible}
+        eligibilityReason={eligibilityReason}
+      />
+    );
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {isAdmin && (
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle>Register as Candidate</DialogTitle>
-          </DialogHeader>
-          <CandidateRegistrationForm
-            electionId={electionId}
-            userId={userId}
-            onSuccess={onCandidateAdded}
-            onClose={handleClose}
-          />
-        </DialogContent>
-      )}
-      
-      {!isAdmin && userHasRegistered && (
-        <DialogContent>
-          <Alert variant="default" className="mx-auto">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              You have already registered as a candidate for this election.
-            </AlertDescription>
-          </Alert>
-        </DialogContent>
-      )}
-      
-      {!isAdmin && userHasApplied && (
-        <DialogContent>
-          <Alert variant="default" className="mx-auto">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              You have already submitted an application for this election.
-            </AlertDescription>
-          </Alert>
-        </DialogContent>
-      )}
-      
-      {!isAdmin && !isUserEligible && (
-        <DialogContent>
-          <Alert variant="destructive" className="mx-auto">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              You are not eligible to register as a candidate for this election.
-            </AlertDescription>
-          </Alert>
-        </DialogContent>
-      )}
-      
-      {!isAdmin && !userHasRegistered && !userHasApplied && isUserEligible && (
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle>Apply as Candidate</DialogTitle>
-          </DialogHeader>
-          <CandidateApplicationForm
-            electionId={electionId}
-            userId={userId}
-            onClose={handleClose}
-            onCancel={handleClose}
-            onApplicationSubmitted={handleApplicationSuccess}
-          />
-        </DialogContent>
-      )}
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{getDialogTitle()}</DialogTitle>
+          <DialogDescription>{getDialogDescription()}</DialogDescription>
+        </DialogHeader>
+        
+        {renderContent()}
+      </DialogContent>
     </Dialog>
   );
 };

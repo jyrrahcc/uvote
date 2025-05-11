@@ -19,6 +19,8 @@ interface CandidateApplicationFormProps {
   onSuccess?: () => void;
   onApplicationSubmitted?: () => void;
   onCancel?: () => void;
+  isUserEligible?: boolean;
+  eligibilityReason?: string | null;
 }
 
 const CandidateApplicationForm = ({ 
@@ -27,7 +29,9 @@ const CandidateApplicationForm = ({
   onClose, 
   onSuccess,
   onApplicationSubmitted,
-  onCancel
+  onCancel,
+  isUserEligible: initialEligibility,
+  eligibilityReason: initialEligibilityReason
 }: CandidateApplicationFormProps) => {
   const {
     name,
@@ -47,13 +51,16 @@ const CandidateApplicationForm = ({
     userProfile,
     validationError,
     isEligible,
+    eligibilityReason,
     handleSubmit
   } = useApplicationForm({
     electionId,
     userId,
     onSuccess,
     onApplicationSubmitted,
-    onClose
+    onClose,
+    initialEligibility,
+    initialEligibilityReason
   });
 
   // If user is not eligible, show eligibility message instead of the form
@@ -63,7 +70,7 @@ const CandidateApplicationForm = ({
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Not Eligible</AlertTitle>
         <AlertDescription>
-          {validationError || "You are not eligible to apply for candidacy in this election."}
+          {eligibilityReason || validationError || "You are not eligible to apply for candidacy in this election."}
         </AlertDescription>
       </Alert>
     );

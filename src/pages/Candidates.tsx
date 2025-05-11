@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -36,7 +37,7 @@ const Candidates = () => {
 
   const canRegisterAsCandidate = () => {
     return !isAdmin && user && !userHasRegistered && !userHasApplied && 
-      election?.status === 'upcoming' && isUserEligible;
+      election?.status === 'upcoming' && isUserEligible === true;
   };
 
   if (loading) {

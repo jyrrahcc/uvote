@@ -36,18 +36,15 @@ export const fetchUserApplications = async (userId: string): Promise<CandidateAp
   }
 };
 
-export const checkUserEligibilityForElection = async (userId: string, election: Election): Promise<boolean> => {
+export const checkUserEligibilityForElection = async (userId: string, election: Election): Promise<{isEligible: boolean; reason: string | null}> => {
   try {
     // Use the centralized eligibility checker
-    const { isEligible } = await checkUserEligibility(userId, election);
-    return isEligible;
+    return await checkUserEligibility(userId, election);
   } catch (error) {
     console.error("Error checking user eligibility:", error);
-    return false;
+    return { isEligible: false, reason: "Error checking eligibility" };
   }
 };
-
-// Add the missing functions below
 
 export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
   try {
@@ -123,6 +120,45 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
     if (error) throw error;
   } catch (error) {
     console.error("Error deleting application:", error);
+    throw error;
+  }
+};
+
+export const submitCandidateApplication = async (applicationData: Omit<CandidateApplication, 'id'>): Promise<CandidateApplication> => {
+  try {
+    // Check eligibility first
+    const { data: electionData, error: electionError } = await supabase
+      .from('elections')
+      .select('*')
+      .eq('id', applicationData.election_id)
+      .single();
+      
+    if (electionError) throw electionError;
+    
+    const election = mapDbElectionToElection(electionData);
+    const eligibilityResult = await checkUserEligibility(applicationData.user_id, election);
+    
+    if (!eligibilityResult.isEligible) {
+      throw new Error(eligibilityResult.reason || "You are not eligible to apply for this election");
+    }
+    
+    // If eligible, proceed with submission
+    const { data, error } = await supabase
+      .from('candidate_applications')
+      .insert({
+        ...applicationData,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return mapDbCandidateApplicationToCandidateApplication(data);
+  } catch (error) {
+    console.error("Error submitting application:", error);
     throw error;
   }
 };
