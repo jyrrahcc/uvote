@@ -16,7 +16,7 @@ interface CandidateApplicationFormProps {
   userId?: string;
   open?: boolean;
   onClose?: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (candidate?: any) => void;  // Updated type to match how it's called
   onApplicationSubmitted?: () => void;
   onCancel?: () => void;
   isUserEligible?: boolean;

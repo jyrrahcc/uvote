@@ -97,8 +97,8 @@ const CandidateRegistrationDialog = ({
       <CandidateApplicationForm
         electionId={electionId}
         userId={userId}
-        onSuccess={() => {
-          if (onCandidateAdded) onCandidateAdded({});
+        onSuccess={(candidate: any) => {
+          if (onCandidateAdded) onCandidateAdded(candidate);
           setIsOpen(false);
         }}
         onApplicationSubmitted={() => {

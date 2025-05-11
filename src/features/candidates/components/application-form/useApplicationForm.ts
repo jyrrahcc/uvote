@@ -9,7 +9,7 @@ import { checkUserEligibility } from "@/utils/eligibilityUtils";
 interface UseApplicationFormProps {
   electionId: string;
   userId: string;
-  onSuccess?: () => void;
+  onSuccess?: (candidate?: any) => void;  // Updated type to accept optional parameter
   onApplicationSubmitted?: () => void;
   onClose?: () => void;
   initialEligibility?: boolean;
@@ -139,7 +139,7 @@ export const useApplicationForm = ({
         onApplicationSubmitted();
       }
       if (onSuccess) {
-        onSuccess();
+        onSuccess({});
       }
       if (onClose) {
         onClose();
