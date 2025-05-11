@@ -44,7 +44,7 @@ const ElectionHeader = ({ election, hasVoted, isVoter }: ElectionHeaderProps) =>
           </Button>
         )}
         
-        {/* Vote button (only shown during active elections) */}
+        {/* Vote button (only shown during active elections and for eligible voters) */}
         {election.status === "active" && (
           <>
             {hasVoted ? (
@@ -53,12 +53,14 @@ const ElectionHeader = ({ election, hasVoted, isVoter }: ElectionHeaderProps) =>
                 <span>You have voted</span>
               </Badge>
             ) : (
-              <Button className="flex items-center gap-2" asChild>
-                <Link to={`/elections/${election.id}`}>
-                  <Vote className="h-4 w-4" />
-                  <span>Cast Your Vote</span>
-                </Link>
-              </Button>
+              isVoter && (
+                <Button className="flex items-center gap-2" asChild>
+                  <Link to={`/elections/${election.id}/vote`}>
+                    <Vote className="h-4 w-4" />
+                    <span>Cast Your Vote</span>
+                  </Link>
+                </Button>
+              )
             )}
           </>
         )}

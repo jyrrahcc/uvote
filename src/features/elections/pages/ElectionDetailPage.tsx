@@ -14,6 +14,8 @@ import ElectionMetadata from "@/features/elections/components/position-details/E
 import ElectionHeader from "@/features/elections/components/position-details/ElectionHeader";
 import ElectionOverviewTab from "@/features/elections/components/position-details/ElectionOverviewTab";
 import CandidatesTab from "@/features/elections/components/position-details/CandidatesTab";
+import VoterEligibilityAlert from "@/features/elections/components/VoterEligibilityAlert";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 /**
  * Election Detail Page - Displays full information about a specific election
@@ -34,6 +36,32 @@ const ElectionDetailPage = () => {
   } = useElection(electionId);
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [positionVotes, setPositionVotes] = useState<Record<string, any>>({});
+  const [isEligible, setIsEligible] = useState<boolean>(true);
+  const [eligibilityReason, setEligibilityReason] = useState<string | null>(null);
+
+  // Check if the user is eligible to participate in this election
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!user || !election || !election.restrictVoting) {
+        // If no user, no election, or the election doesn't restrict voting,
+        // then don't check eligibility
+        setIsEligible(true);
+        return;
+      }
+      
+      try {
+        const { isEligible, reason } = await checkUserEligibility(user.id, election);
+        setIsEligible(isEligible);
+        setEligibilityReason(reason);
+      } catch (error) {
+        console.error("Error checking eligibility:", error);
+        setIsEligible(false);
+        setEligibilityReason("Could not verify your eligibility");
+      }
+    };
+    
+    checkEligibility();
+  }, [user, election]);
 
   // Fetch live vote counts for each position when the election is active
   useEffect(() => {
@@ -155,7 +183,7 @@ const ElectionDetailPage = () => {
       <ElectionHeader 
         election={election} 
         hasVoted={hasVoted} 
-        isVoter={isVoter} 
+        isVoter={isVoter && isEligible}  // Only show voting options if eligible
       />
       
       {/* Election title and description */}
@@ -169,6 +197,14 @@ const ElectionDetailPage = () => {
       {/* Status alerts for non-active elections */}
       {election.status !== "active" && (
         <ElectionStatusAlert election={election} status={election.status} />
+      )}
+
+      {/* Eligibility alert when user is not eligible */}
+      {!isEligible && user && election.restrictVoting && (
+        <VoterEligibilityAlert 
+          election={election} 
+          reason={eligibilityReason}
+        />
       )}
       
       {/* Election banner if available */}
