@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -145,7 +144,7 @@ const VotingPage = () => {
   }
   
   // Show verification required message if user is not a voter
-  if (!isVoter) {
+  if (!isVoter && !isAdmin) {
     // Pass false to prevent duplicate toast notifications
     // The toast will already be shown by RoleProtectedRoute
     return <VoterVerification isVoter={isVoter} showToast={false} />;
@@ -156,7 +155,7 @@ const VotingPage = () => {
     return (
       <VoterAccessRestriction 
         election={election} 
-        reason={eligibilityReason || "You are not eligible to vote in this election."}
+        reason={eligibilityReason}
       />
     );
   }

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 export interface VotingSelections {
   [position: string]: string;
@@ -47,17 +48,32 @@ export const useVoteSubmission = ({
       return false;
     }
     
-    // Check if user has voter role first - simplify eligibility check
-    if (!isVoter && !isAdmin) {
-      toast.error("You need voter privileges to vote", {
-        description: "Only users with voter role can cast votes in elections."
-      });
-      return false;
-    }
-    
     try {
       setVoteLoading(true);
       console.log("Submitting votes:", data);
+      
+      // Verify eligibility one more time before submitting
+      const { data: electionData, error: electionError } = await supabase
+        .from('elections')
+        .select('*')
+        .eq('id', electionId)
+        .single();
+      
+      if (electionError) {
+        throw new Error("Failed to verify eligibility: could not fetch election details");
+      }
+      
+      // Only check comprehensive eligibility if not an admin
+      if (!isAdmin) {
+        const { isEligible, reason } = await checkUserEligibility(userId, electionData);
+        
+        if (!isEligible) {
+          toast.error("Not eligible to vote", {
+            description: reason || "You are not eligible to vote in this election"
+          });
+          return false;
+        }
+      }
       
       // Check if user has already voted
       const { data: existingVote, error: checkError } = await supabase
@@ -68,7 +84,7 @@ export const useVoteSubmission = ({
         .is('position', null) // Look for the marker record
         .maybeSingle();
       
-      if (checkError) {
+      if (checkError && checkError.code !== 'PGRST116') {
         console.error("Error checking existing votes:", checkError);
         throw new Error("Failed to verify voting eligibility");
       }

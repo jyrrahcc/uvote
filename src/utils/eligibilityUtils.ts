@@ -21,12 +21,26 @@ export async function checkUserEligibility(
       .select('role')
       .eq('user_id', userId);
       
-    if (!roleError && userRoles) {
-      const roles = userRoles.map(ur => ur.role);
-      if (roles.includes('voter') || roles.includes('admin')) {
-        // User has voter or admin role, so they're eligible regardless of other checks
-        return { isEligible: true, reason: null };
-      }
+    if (roleError) {
+      console.error("Error checking user roles:", roleError);
+      return { isEligible: false, reason: "Failed to verify user roles" };
+    }
+    
+    // Admin users are always eligible regardless of other criteria
+    if (userRoles && userRoles.some(ur => ur.role === 'admin')) {
+      return { isEligible: true, reason: null };
+    }
+    
+    // Check if user has voter role
+    const hasVoterRole = userRoles && userRoles.some(ur => ur.role === 'voter');
+    
+    if (!hasVoterRole) {
+      return { isEligible: false, reason: "You must have voter privileges to participate in this election" };
+    }
+    
+    // If the election doesn't restrict voting, user with voter role is eligible
+    if (!election.restrictVoting) {
+      return { isEligible: true, reason: null };
     }
     
     // Get user profile for department and year level checks
@@ -40,26 +54,26 @@ export async function checkUserEligibility(
       console.error("Error fetching user profile:", profileError);
       return { isEligible: false, reason: "Could not verify user profile" };
     }
-
-    // If the election doesn't restrict voting, user is eligible
-    if (!election.restrictVoting) {
-      return { isEligible: true, reason: null };
-    }
     
     const userDepartment = profile.department || '';
     const userYearLevel = profile.year_level || '';
     
+    console.log("Eligibility check:", {
+      userDepartment,
+      userYearLevel,
+      electionDepartments: election.departments,
+      electionYearLevels: election.eligibleYearLevels
+    });
+    
     // Department eligibility check
-    const isDepartmentEligible = election.departments?.length 
-      ? election.departments.includes(userDepartment) || 
-        election.departments.includes("University-wide")
-      : true;
+    const isDepartmentEligible = !election.departments?.length || 
+      election.departments.includes(userDepartment) || 
+      election.departments.includes("University-wide");
     
     // Year level eligibility check
-    const isYearLevelEligible = election.eligibleYearLevels?.length
-      ? election.eligibleYearLevels.includes(userYearLevel) || 
-        election.eligibleYearLevels.includes("All Year Levels")
-      : true;
+    const isYearLevelEligible = !election.eligibleYearLevels?.length || 
+      election.eligibleYearLevels.includes(userYearLevel) || 
+      election.eligibleYearLevels.includes("All Year Levels");
     
     // Build appropriate reason message if not eligible
     let reason = null;

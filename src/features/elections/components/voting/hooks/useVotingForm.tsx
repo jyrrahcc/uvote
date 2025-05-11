@@ -9,6 +9,7 @@ import { useVotingSelections, VotingSelections } from "./useVotingSelections";
 import { usePositionNavigation } from "./usePositionNavigation";
 import { useVoteSubmission } from "./useVoteSubmission";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 interface UseVotingFormProps {
   electionId: string;
@@ -75,26 +76,46 @@ export const useVotingForm = ({
   // Get candidates for the current position
   const currentCandidates = currentPosition ? positionGroups[currentPosition] || [] : [];
   
-  // Check eligibility - simplified approach focusing on user role
+  // Check eligibility including department and year level
   useEffect(() => {
-    setIsCheckingEligibility(true);
-    
-    try {
-      // If user has admin or voter role, they are considered eligible
-      if (isAdmin || isVoter) {
-        console.log("User is eligible based on role:", { isAdmin, isVoter });
-        setEligibilityError(null);
-      } else {
-        console.log("User is not eligible: missing voter role");
-        setEligibilityError("You need voter privileges to participate in this election.");
+    const checkEligibility = async () => {
+      setIsCheckingEligibility(true);
+      
+      try {
+        // Get election details
+        const { data: electionData, error: electionError } = await supabase
+          .from('elections')
+          .select('*')
+          .eq('id', electionId)
+          .single();
+        
+        if (electionError) {
+          console.error("Error fetching election:", electionError);
+          setEligibilityError("Failed to check eligibility: could not fetch election details");
+          setIsCheckingEligibility(false);
+          return;
+        }
+        
+        // Check comprehensive eligibility
+        const { isEligible, reason } = await checkUserEligibility(userId, electionData);
+        
+        if (!isEligible && !isAdmin) {
+          setEligibilityError(reason || "You are not eligible to vote in this election");
+        } else {
+          setEligibilityError(null);
+        }
+      } catch (error) {
+        console.error("Error checking eligibility:", error);
+        setEligibilityError("Failed to check eligibility. Please try again later.");
+      } finally {
+        setIsCheckingEligibility(false);
       }
-    } catch (error) {
-      console.error("Error checking eligibility:", error);
-      setEligibilityError("Failed to check eligibility. Please try again later.");
-    } finally {
-      setIsCheckingEligibility(false);
+    };
+    
+    if (userId && electionId) {
+      checkEligibility();
     }
-  }, [isAdmin, isVoter]);
+  }, [userId, electionId, isAdmin]);
   
   // Check if user has already voted
   useEffect(() => {
@@ -125,9 +146,38 @@ export const useVotingForm = ({
   
   // Handle form submission
   const handleVote = async (data: VotingSelections) => {
-    // Simplified eligibility check based on role
-    if (!isVoter && !isAdmin) {
-      toast.error("You need voter privileges to vote");
+    if (!userId) {
+      toast.error("You need to be logged in to vote");
+      return;
+    }
+    
+    // Double check eligibility before submitting
+    try {
+      // Get election details
+      const { data: electionData, error: electionError } = await supabase
+        .from('elections')
+        .select('*')
+        .eq('id', electionId)
+        .single();
+      
+      if (electionError) {
+        console.error("Error fetching election:", electionError);
+        toast.error("Failed to verify eligibility", { 
+          description: "Could not fetch election details" 
+        });
+        return;
+      }
+      
+      // Check comprehensive eligibility one more time
+      const { isEligible, reason } = await checkUserEligibility(userId, electionData);
+      
+      if (!isEligible && !isAdmin) {
+        toast.error("Not eligible to vote", { description: reason || "You are not eligible to vote in this election" });
+        return;
+      }
+    } catch (error) {
+      console.error("Error verifying eligibility:", error);
+      toast.error("Failed to verify eligibility");
       return;
     }
     
