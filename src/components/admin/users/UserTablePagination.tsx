@@ -11,19 +11,19 @@ import {
 } from "@/components/ui/pagination";
 
 interface UserTablePaginationProps {
-  totalItems: number;
+  totalCount: number;
   pageSize: number;
   currentPage: number;
   onPageChange: (page: number) => void;
 }
 
 const UserTablePagination: React.FC<UserTablePaginationProps> = ({
-  totalItems,
+  totalCount,
   pageSize,
   currentPage,
   onPageChange
 }) => {
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const totalPages = Math.ceil(totalCount / pageSize);
   
   if (totalPages <= 1) return null;
   

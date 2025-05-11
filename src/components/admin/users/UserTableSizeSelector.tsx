@@ -9,21 +9,21 @@ import {
 } from "@/components/ui/select";
 
 interface UserTableSizeSelectorProps {
-  pageSize: number;
-  onPageSizeChange: (size: number) => void;
+  value: number;
+  onChange: (size: number) => void;
 }
 
-const UserTableSizeSelector: React.FC<UserTableSizeSelectorProps> = ({ pageSize, onPageSizeChange }) => {
+const UserTableSizeSelector: React.FC<UserTableSizeSelectorProps> = ({ value, onChange }) => {
   const handleValueChange = (value: string) => {
-    onPageSizeChange(parseInt(value));
+    onChange(parseInt(value));
   };
 
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-muted-foreground">Rows per page:</span>
-      <Select value={pageSize.toString()} onValueChange={handleValueChange}>
+      <Select value={value.toString()} onValueChange={handleValueChange}>
         <SelectTrigger className="w-[70px]">
-          <SelectValue placeholder={pageSize} />
+          <SelectValue placeholder={value} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="5">5</SelectItem>
