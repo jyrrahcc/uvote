@@ -1,21 +1,16 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, Vote, CheckCircle } from "lucide-react";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
-import { RadioGroup } from "@/components/ui/radio-group";
+import { Vote } from "lucide-react";
+import { Form } from "@/components/ui/form";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { Candidate } from "@/types";
 
 // Import custom components
-import CandidateOption from "./voting/CandidateOption";
-import AbstainOption from "./voting/AbstainOption";
-import PositionNavigation from "./voting/PositionNavigation";
-import ValidationError from "./voting/ValidationError";
 import VotingProgress from "./voting/VotingProgress";
 import VoteSummary from "./voting/VoteSummary";
+import VoterVerification from "./voting/VoterVerification";
+import VotingFormContent from "./voting/VotingFormContent";
 import { useVotingForm } from "./voting/hooks/useVotingForm";
 
 interface VotingFormProps {
@@ -68,31 +63,9 @@ const VotingForm = ({
     return <VoteSummary electionId={electionId} />;
   }
 
-  // If user doesn't have voter role, show an alert
+  // Display voter verification UI if user doesn't have voter role
   if (!isVoter) {
-    return (
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Verification Required</CardTitle>
-          <CardDescription>
-            You need to verify your profile to participate in elections.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center py-8">
-          <div className="rounded-full bg-amber-100 p-3 mb-4">
-            <AlertTriangle className="h-8 w-8 text-amber-600" />
-          </div>
-          <p className="text-center text-muted-foreground mb-4">
-            Only verified users with voter privileges can cast votes in elections.
-            Please complete your profile and verify it first.
-          </p>
-          
-          <Button asChild variant="default">
-            <Link to="/profile">Go to Profile</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
+    return <VoterVerification isVoter={isVoter} />;
   }
 
   const handleSubmit = form.handleSubmit((data) => {
@@ -115,69 +88,21 @@ const VotingForm = ({
         <Form {...form}>
           <form onSubmit={handleSubmit} className="space-y-6">
             {positions.length > 0 ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">
-                    <span className="text-[#008f50]">Question {currentPositionIndex + 1}:</span> Who will you vote for {currentPosition}?
-                  </h3>
-                  {selections[currentPosition] && (
-                    <span className="text-green-600 flex items-center gap-1">
-                      <CheckCircle className="h-4 w-4" /> Selection made
-                    </span>
-                  )}
-                </div>
-                
-                <ValidationError error={validationError} />
-                
-                <div className="border rounded-md p-6 bg-slate-50 shadow-inner">
-                  <FormField
-                    control={form.control}
-                    name={currentPosition}
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-base">Select a candidate:</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              // Automatically advance after short delay when option selected
-                              if (currentPositionIndex < positions.length - 1) {
-                                setTimeout(() => {
-                                  if (form.getValues()[currentPosition]) {
-                                    goToNextPosition();
-                                  }
-                                }, 600);
-                              }
-                            }}
-                            value={field.value}
-                            className="flex flex-col space-y-3 mt-4"
-                          >
-                            {currentCandidates.map((candidate) => (
-                              <CandidateOption 
-                                key={candidate.id} 
-                                candidate={candidate} 
-                              />
-                            ))}
-                            
-                            {/* Abstain option */}
-                            <AbstainOption onAbstain={handleAbstain} />
-                          </RadioGroup>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <PositionNavigation 
-                  currentPositionIndex={currentPositionIndex}
-                  totalPositions={positions.length}
-                  onPrevious={goToPreviousPosition}
-                  onNext={goToNextPosition}
-                  onSubmit={() => handleSubmit()}
-                  isLoading={voteLoading}
-                  canProceed={hasCurrentSelection}
-                />
-              </div>
+              <VotingFormContent 
+                form={form}
+                positions={positions}
+                currentPosition={currentPosition}
+                currentPositionIndex={currentPositionIndex}
+                currentCandidates={currentCandidates}
+                validationError={validationError}
+                voteLoading={voteLoading}
+                handleSubmit={handleSubmit}
+                goToNextPosition={goToNextPosition}
+                goToPreviousPosition={goToPreviousPosition}
+                handleAbstain={handleAbstain}
+                hasCurrentSelection={hasCurrentSelection}
+                selections={selections}
+              />
             ) : (
               <div className="text-center py-4">
                 <p>No positions available for voting.</p>
