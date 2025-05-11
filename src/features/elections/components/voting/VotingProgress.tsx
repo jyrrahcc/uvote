@@ -31,7 +31,7 @@ const VotingProgress = ({
         
         <Progress 
           value={progressPercentage} 
-          className="h-2 w-full" 
+          className="h-2 w-full"
         />
         
         <div className="flex justify-between items-center w-full mt-3 px-1">
@@ -44,19 +44,22 @@ const VotingProgress = ({
               {positions.map((position, index) => (
                 <div 
                   key={position}
-                  className="flex items-center text-xs"
+                  className={`text-xs px-2 py-1 rounded-full flex items-center ${
+                    index === currentPosition 
+                      ? 'bg-blue-100 text-blue-700 font-medium' 
+                      : selections[position] 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-gray-100 text-gray-500'
+                  }`}
                 >
-                  <span className={`size-4 rounded-full flex items-center justify-center mr-1 ${
-                    selections[position] 
-                      ? 'bg-green-100 text-green-600' 
-                      : 'bg-gray-100 text-gray-400'
-                  }`}>
-                    {selections[position] ? (
-                      <CheckCircle className="h-3 w-3" />
-                    ) : (
-                      index + 1
-                    )}
-                  </span>
+                  {selections[position] ? (
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                  ) : (
+                    <span className="size-3 rounded-full flex items-center justify-center mr-1 text-xs">
+                      {index + 1}
+                    </span>
+                  )}
+                  {position.split(' ').slice(-1)[0]}
                 </div>
               ))}
             </div>

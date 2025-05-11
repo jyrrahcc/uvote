@@ -52,23 +52,22 @@ export const useVotingForm = ({
   
   // Initialize form with any saved selections
   const form = useForm<VotingSelections>({
-    defaultValues: selections,
+    defaultValues: {},
   });
   
-  // Update form whenever selections change
+  // Update form when currentPosition changes for first render
   useEffect(() => {
     Object.entries(selections).forEach(([position, value]) => {
       form.setValue(position, value);
     });
-  }, [form]);
+  }, []);
   
-  const currentPosition = positions[currentPositionIndex];
-  const currentCandidates = currentPosition ? positionGroups[currentPosition] : [];
+  const currentPosition = positions[currentPositionIndex] || '';
+  const currentCandidates = currentPosition ? positionGroups[currentPosition] || [] : [];
   
   // When form values change, update our selections state
   useEffect(() => {
     const subscription = form.watch((formValues) => {
-      // Only update for the current position to avoid overwriting other positions
       if (formValues[currentPosition]) {
         setSelections(prev => ({
           ...prev,
@@ -112,6 +111,7 @@ export const useVotingForm = ({
     }));
     setValidationError(null);
     
+    // Automatically advance to next position after a short delay
     if (currentPositionIndex < positions.length - 1) {
       setTimeout(() => {
         goToNextPosition();
@@ -172,7 +172,7 @@ export const useVotingForm = ({
         return;
       }
       
-      // First create a single vote marker record
+      // Create a marker record to indicate that the user has voted
       const { error: markerError } = await supabase
         .from('votes')
         .insert({
@@ -187,27 +187,23 @@ export const useVotingForm = ({
         throw new Error("Failed to record your participation");
       }
       
-      // Process each candidate vote separately to avoid batch failures
+      // Process each candidate vote separately
       const votePromises = Object.entries(data)
         .filter(([_, candidateId]) => candidateId !== "abstain") // Skip abstained positions
         .map(async ([position, candidateId]) => {
-          const voteData = {
-            election_id: electionId,
-            candidate_id: candidateId,
-            user_id: userId,
-            position
-          };
-          
           const { error } = await supabase
             .from('votes')
-            .insert(voteData);
+            .insert({
+              election_id: electionId,
+              candidate_id: candidateId,
+              user_id: userId,
+              position: position
+            });
             
           if (error) {
             console.error(`Error recording vote for ${position}:`, error);
             throw new Error(`Failed to record your vote for ${position}`);
           }
-          
-          return candidateId;
         });
       
       // Wait for all votes to be processed
