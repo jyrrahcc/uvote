@@ -23,7 +23,7 @@ export const useVoteSubmission = ({
   onVoteSubmitted
 }: UseVoteSubmissionProps) => {
   const [voteLoading, setVoteLoading] = useState(false);
-  const { isVoter } = useRole();
+  const { isVoter, isAdmin } = useRole();
   
   // Check if all positions have a selection before submitting
   const validateAllSelections = (positions: string[], data: VotingSelections) => {
@@ -47,8 +47,8 @@ export const useVoteSubmission = ({
       return false;
     }
     
-    // Check if user has voter role first
-    if (!isVoter) {
+    // Check if user has voter role first - simplify eligibility check
+    if (!isVoter && !isAdmin) {
       toast.error("You need voter privileges to vote", {
         description: "Only users with voter role can cast votes in elections."
       });

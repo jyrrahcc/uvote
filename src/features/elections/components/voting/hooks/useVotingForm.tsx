@@ -3,12 +3,11 @@ import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Candidate, Election, mapDbElectionToElection } from "@/types";
+import { Candidate } from "@/types";
 import { useCandidateGroups } from "./useCandidateGroups";
 import { useVotingSelections, VotingSelections } from "./useVotingSelections";
 import { usePositionNavigation } from "./usePositionNavigation";
 import { useVoteSubmission } from "./useVoteSubmission";
-import { checkUserEligibility } from "@/utils/eligibilityUtils";
 import { useRole } from "@/features/auth/context/RoleContext";
 
 interface UseVotingFormProps {
@@ -76,68 +75,26 @@ export const useVotingForm = ({
   // Get candidates for the current position
   const currentCandidates = currentPosition ? positionGroups[currentPosition] || [] : [];
   
-  // Check user eligibility
+  // Check eligibility - simplified approach focusing on user role
   useEffect(() => {
-    if (!electionId || !userId) return;
+    setIsCheckingEligibility(true);
     
-    const checkEligibility = async () => {
-      setIsCheckingEligibility(true);
-      
-      try {
-        // Skip eligibility check if user is an admin
-        if (isAdmin) {
-          setEligibilityError(null);
-          setIsCheckingEligibility(false);
-          return;
-        }
-        
-        // If user has voter role, they are considered eligible
-        if (isVoter) {
-          setEligibilityError(null);
-          setIsCheckingEligibility(false);
-          return;
-        }
-        
-        // Get election details for restricted voting checks
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('*')
-          .eq('id', electionId)
-          .single();
-        
-        if (electionError) throw electionError;
-        
-        if (electionData) {
-          // Properly transform the DB election to application Election type
-          const election = mapDbElectionToElection(electionData);
-          
-          // If the election doesn't restrict voting, we don't need to check eligibility further
-          if (!election.restrictVoting) {
-            setEligibilityError(null);
-            setIsCheckingEligibility(false);
-            return;
-          }
-          
-          // Use centralized eligibility checker for restricted elections
-          const { isEligible, reason } = await checkUserEligibility(userId, election);
-          
-          if (!isEligible) {
-            setEligibilityError(reason || "You are not eligible to vote in this election.");
-            console.log("Setting eligibility error:", reason);
-          } else {
-            setEligibilityError(null);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking eligibility:", error);
-        setEligibilityError("Failed to check eligibility. Please try again later.");
-      } finally {
-        setIsCheckingEligibility(false);
+    try {
+      // If user has admin or voter role, they are considered eligible
+      if (isAdmin || isVoter) {
+        console.log("User is eligible based on role:", { isAdmin, isVoter });
+        setEligibilityError(null);
+      } else {
+        console.log("User is not eligible: missing voter role");
+        setEligibilityError("You need voter privileges to participate in this election.");
       }
-    };
-    
-    checkEligibility();
-  }, [electionId, userId, isAdmin, isVoter]);
+    } catch (error) {
+      console.error("Error checking eligibility:", error);
+      setEligibilityError("Failed to check eligibility. Please try again later.");
+    } finally {
+      setIsCheckingEligibility(false);
+    }
+  }, [isAdmin, isVoter]);
   
   // Check if user has already voted
   useEffect(() => {
@@ -145,13 +102,17 @@ export const useVotingForm = ({
       if (!userId || !electionId) return;
       
       try {
-        const { data: existingVote } = await supabase
+        const { data: existingVote, error } = await supabase
           .from('votes')
           .select('*')
           .eq('election_id', electionId)
           .eq('user_id', userId)
           .is('position', null) // Check for the marker record
           .maybeSingle();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking existing vote:", error);
+        }
         
         console.log("Existing vote check:", existingVote);
       } catch (error) {
@@ -164,15 +125,9 @@ export const useVotingForm = ({
   
   // Handle form submission
   const handleVote = async (data: VotingSelections) => {
-    // Check if user has voter role
-    if (!isVoter) {
+    // Simplified eligibility check based on role
+    if (!isVoter && !isAdmin) {
       toast.error("You need voter privileges to vote");
-      return;
-    }
-    
-    // Check eligibility only if it's a restricted election
-    if (eligibilityError) {
-      toast.error("You are not eligible to vote in this election");
       return;
     }
     

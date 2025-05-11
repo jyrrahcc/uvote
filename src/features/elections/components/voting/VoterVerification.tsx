@@ -12,12 +12,15 @@ interface VoterVerificationProps {
   showToast?: boolean;
 }
 
-const VoterVerification = ({ showToast = false }: VoterVerificationProps) => {
+const VoterVerification = ({ isVoter: isVoterProp, showToast = false }: VoterVerificationProps) => {
   // Use the role context to get the current voter status
-  const { isVoter } = useRole();
+  const { isVoter, isAdmin } = useRole();
   
-  // If the user has the voter role, don't show the verification message
-  if (isVoter) return null;
+  // Use the prop if provided, otherwise use the value from the hook
+  const userIsVoter = isVoterProp !== undefined ? isVoterProp : (isVoter || isAdmin);
+  
+  // If the user has the voter role or is an admin, don't show the verification message
+  if (userIsVoter) return null;
   
   // Show toast notification if requested
   React.useEffect(() => {

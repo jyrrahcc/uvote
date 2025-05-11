@@ -1,5 +1,5 @@
 
-import { Election, mapDbElectionToElection } from "@/types";
+import { Election } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -15,16 +15,18 @@ export async function checkUserEligibility(
   }
   
   try {
-    // First check if the user has the voter role
-    const { data: userRole, error: roleError } = await supabase
+    // First check if the user has the voter or admin role
+    const { data: userRoles, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
-      .single();
+      .eq('user_id', userId);
       
-    if (!roleError && userRole && userRole.role === 'voter') {
-      // User has voter role, so they're eligible regardless of other checks
-      return { isEligible: true, reason: null };
+    if (!roleError && userRoles) {
+      const roles = userRoles.map(ur => ur.role);
+      if (roles.includes('voter') || roles.includes('admin')) {
+        // User has voter or admin role, so they're eligible regardless of other checks
+        return { isEligible: true, reason: null };
+      }
     }
     
     // Get user profile for department and year level checks
