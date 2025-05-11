@@ -1,20 +1,9 @@
 
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Shield, UserCheck, User, Info, Check, X } from "lucide-react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { cn } from "@/lib/utils";
+import { Table, TableBody } from "@/components/ui/table";
 import { UserProfile } from "./types";
-import UserMenuDropdown from "./UserMenuDropdown";
+import UserListHeaders from "./table/UserListHeaders";
+import UserListRow from "./table/UserListRow";
+import EmptyUserList from "./table/EmptyUserList";
 
 interface UserListProps {
   users: UserProfile[];
@@ -37,169 +26,26 @@ const UserList = ({
   onViewProfile,
   onToggleMenu
 }: UserListProps) => {
-
-  // Get user initials
-  const getUserInitials = (first_name?: string, last_name?: string, email?: string) => {
-    if (first_name && last_name) {
-      return `${first_name.charAt(0)}${last_name.charAt(0)}`;
-    }
-    if (email) {
-      return email.charAt(0).toUpperCase();
-    }
-    return "U";
-  };
-
-  // Render sort indicator
-  const SortableHeader = ({ column, label }: { column: string, label: string }) => (
-    <div 
-      className="flex items-center space-x-1 cursor-pointer hover:text-primary transition-colors"
-      onClick={() => onSort(column)}
-    >
-      <span>{label}</span>
-      <ArrowUpDown className={cn(
-        "h-3 w-3 transition-opacity",
-        sortColumn === column ? "opacity-100" : "opacity-40"
-      )} />
-    </div>
-  );
-
   return (
     <div className="rounded-md border overflow-x-auto">
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead onClick={() => onSort("name")} className="cursor-pointer">
-              <SortableHeader column="name" label="Name" />
-            </TableHead>
-            <TableHead onClick={() => onSort("email")} className="cursor-pointer">
-              <SortableHeader column="email" label="Email" />
-            </TableHead>
-            <TableHead className="hidden md:table-cell cursor-pointer" onClick={() => onSort("department")}>
-              <SortableHeader column="department" label="Department" />
-            </TableHead>
-            <TableHead className="hidden lg:table-cell cursor-pointer" onClick={() => onSort("year_level")}>
-              <SortableHeader column="year_level" label="Year" />
-            </TableHead>
-            <TableHead>Roles</TableHead>
-            <TableHead>Verification</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
+        <UserListHeaders 
+          sortColumn={sortColumn} 
+          onSort={onSort} 
+        />
         <TableBody>
           {users.length > 0 ? (
             users.map(user => (
-              <TableRow key={user.id} className={cn(
-                user.id === currentUserId && "bg-muted/50"
-              )}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.image_url || undefined} />
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                        {getUserInitials(user.first_name, user.last_name, user.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">
-                        {user.first_name} {user.last_name}
-                      </div>
-                      {user.id === currentUserId && (
-                        <Badge variant="outline" className="text-xs bg-primary/5 text-primary/80">
-                          You
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell className="hidden md:table-cell">
-                  {user.department || "-"}
-                </TableCell>
-                <TableCell className="hidden lg:table-cell">
-                  {user.year_level || "-"}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1.5">
-                    {user.roles.includes('admin') && (
-                      <HoverCard>
-                        <HoverCardTrigger>
-                          <Badge variant="secondary" className="bg-primary/10 text-primary">
-                            <Shield className="h-3 w-3 mr-1" />
-                            Admin
-                          </Badge>
-                        </HoverCardTrigger>
-                        <HoverCardContent className="w-48">
-                          <p className="text-xs">Admin users can manage all aspects of the platform including elections and users.</p>
-                        </HoverCardContent>
-                      </HoverCard>
-                    )}
-                    {user.roles.includes('voter') && (
-                      <HoverCard>
-                        <HoverCardTrigger>
-                          <Badge variant="outline">
-                            <UserCheck className="h-3 w-3 mr-1" />
-                            Voter
-                          </Badge>
-                        </HoverCardTrigger>
-                        <HoverCardContent className="w-48">
-                          <p className="text-xs">Voters can participate in elections and view results.</p>
-                        </HoverCardContent>
-                      </HoverCard>
-                    )}
-                    {user.roles.length === 0 && (
-                      <Badge variant="outline" className="text-muted-foreground">
-                        No roles
-                      </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {user.is_verified ? (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      <Check className="h-3 w-3 mr-1" />
-                      Verified
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                      <Info className="h-3 w-3 mr-1" />
-                      Not Verified
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  {user.id !== currentUserId ? (
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onViewProfile(user)}
-                        title="View Profile"
-                      >
-                        <User className="h-4 w-4" />
-                        <span className="sr-only">View Profile</span>
-                      </Button>
-                      
-                      <UserMenuDropdown 
-                        user={user}
-                        onVerify={(userId, isVerified) => {}}
-                        onRoleAction={(userId, role, action) => {}}
-                        isProcessing={isProcessing}
-                      />
-                    </div>
-                  ) : (
-                    <Badge variant="outline" className="bg-primary-foreground/5">
-                      Current User
-                    </Badge>
-                  )}
-                </TableCell>
-              </TableRow>
+              <UserListRow
+                key={user.id}
+                user={user}
+                isCurrentUser={user.id === currentUserId}
+                isProcessing={isProcessing}
+                onViewProfile={onViewProfile}
+              />
             ))
           ) : (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
-                No users found
-              </TableCell>
-            </TableRow>
+            <EmptyUserList />
           )}
         </TableBody>
       </Table>
