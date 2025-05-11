@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { University } from 'lucide-react';
+import { Vote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
@@ -21,10 +21,10 @@ const Logo = ({ size = 'medium', className }: LogoProps) => {
 
   return (
     <div className={cn("flex items-center", className)}>
-      <University className={cn(sizeClass, "text-[#008f50]")} />
+      <Vote className={cn(sizeClass, "text-[#008f50]")} />
       {size !== 'small' && (
         <span className={cn("font-bold ml-2", textClass)}>
-          DLSU-D Voting
+          uVote
         </span>
       )}
     </div>
