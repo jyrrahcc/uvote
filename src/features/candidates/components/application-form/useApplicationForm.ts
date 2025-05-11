@@ -38,25 +38,31 @@ export const useApplicationForm = ({
   const [isEligible, setIsEligible] = useState(initialEligibility !== undefined ? initialEligibility : true);
   const [eligibilityReason, setEligibilityReason] = useState<string | null>(initialEligibilityReason || null);
   const [election, setElection] = useState<Election | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // Load user profile & election details
   useEffect(() => {
     const loadData = async () => {
       try {
+        setProfileLoading(true);
+        
         // Fetch user profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
-          .single();
+          .maybeSingle();
 
         if (profileError) {
-          throw profileError;
+          console.error("Profile fetch error:", profileError);
+          toast.error('Failed to load profile data');
         }
 
         if (profileData) {
           setUserProfile(profileData);
-          setName(`${profileData.first_name} ${profileData.last_name}`);
+          setName(`${profileData.first_name || ''} ${profileData.last_name || ''}`.trim());
+        } else {
+          console.warn("No profile data found for user:", userId);
         }
 
         // Fetch election details including available positions
@@ -64,9 +70,11 @@ export const useApplicationForm = ({
           .from('elections')
           .select('*')
           .eq('id', electionId)
-          .single();
+          .maybeSingle();
 
         if (electionError) {
+          console.error("Election fetch error:", electionError);
+          toast.error('Failed to load election data');
           throw electionError;
         }
 
@@ -86,11 +94,15 @@ export const useApplicationForm = ({
       } catch (error) {
         console.error('Error loading data:', error);
         toast.error('Failed to load necessary data for application');
+      } finally {
+        setProfileLoading(false);
       }
     };
 
     if (userId && electionId) {
       loadData();
+    } else {
+      setProfileLoading(false);
     }
   }, [userId, electionId, initialEligibility]);
 
@@ -173,5 +185,6 @@ export const useApplicationForm = ({
     isEligible,
     eligibilityReason,
     handleSubmit,
+    profileLoading,
   };
 };

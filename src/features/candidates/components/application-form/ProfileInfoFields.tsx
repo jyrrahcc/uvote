@@ -10,7 +10,7 @@ interface ProfileInfoFieldsProps {
     student_id?: string;
     department?: string;
     year_level?: string;
-  };
+  } | null;
 }
 
 const ProfileInfoFields = ({ 
@@ -33,7 +33,7 @@ const ProfileInfoFields = ({
         />
       </div>
       
-      {userProfile.student_id && (
+      {userProfile && userProfile.student_id && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="student_id" className="text-right">
             Student ID
@@ -47,7 +47,7 @@ const ProfileInfoFields = ({
         </div>
       )}
       
-      {userProfile.department && (
+      {userProfile && userProfile.department && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="department" className="text-right">
             Department
@@ -61,7 +61,7 @@ const ProfileInfoFields = ({
         </div>
       )}
       
-      {userProfile.year_level && (
+      {userProfile && userProfile.year_level && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="year_level" className="text-right">
             Year Level
