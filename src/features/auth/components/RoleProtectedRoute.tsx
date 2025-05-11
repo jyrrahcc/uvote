@@ -1,4 +1,3 @@
-
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useRole } from "../context/RoleContext";
@@ -19,6 +18,7 @@ export const RoleProtectedRoute = ({
   const { user, loading: authLoading } = useAuth();
   const { loading: roleLoading, checkRole } = useRole();
   const [accessChecked, setAccessChecked] = useState(false);
+  const [toastShown, setToastShown] = useState(false);
   
   const hasPermission = checkRole(requiredRole);
   const loading = authLoading || roleLoading;
@@ -36,20 +36,24 @@ export const RoleProtectedRoute = ({
     if (!loading) {
       setAccessChecked(true);
       
-      // Show access denied message if configured
-      if (!hasPermission && user && showMessage) {
+      // Show access denied message if configured, but only once
+      if (!hasPermission && user && showMessage && !toastShown) {
+        setToastShown(true); // Prevent showing toast multiple times
+        
         if (requiredRole === "voter") {
           toast.error("You need to verify your profile to access this feature", {
-            description: "Please complete your profile information and verify it first."
+            description: "Please complete your profile information and verify it first.",
+            id: "voter-access-required" // Add ID to prevent duplicate toasts
           });
         } else if (requiredRole === "admin") {
           toast.error("Administrative privileges required", {
-            description: "You don't have permission to access this area."
+            description: "You don't have permission to access this area.",
+            id: "admin-access-required" // Add ID to prevent duplicate toasts
           });
         }
       }
     }
-  }, [user, authLoading, roleLoading, hasPermission, requiredRole, showMessage]);
+  }, [user, authLoading, roleLoading, hasPermission, requiredRole, showMessage, toastShown]);
   
   if (loading) {
     return (

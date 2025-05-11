@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Vote } from "lucide-react";
@@ -64,8 +63,9 @@ const VotingForm = ({
   }
 
   // Display voter verification UI if user doesn't have voter role
+  // Set showToast to false to prevent duplicate notifications
   if (!isVoter) {
-    return <VoterVerification isVoter={isVoter} />;
+    return <VoterVerification isVoter={isVoter} showToast={false} />;
   }
 
   const handleSubmit = form.handleSubmit((data) => {

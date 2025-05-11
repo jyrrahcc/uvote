@@ -7,9 +7,10 @@ import { AlertTriangle } from "lucide-react";
 
 interface VoterVerificationProps {
   isVoter: boolean;
+  showToast?: boolean; // Add this prop to control toast display
 }
 
-const VoterVerification = ({ isVoter }: VoterVerificationProps) => {
+const VoterVerification = ({ isVoter, showToast = false }: VoterVerificationProps) => {
   if (isVoter) return null;
   
   return (

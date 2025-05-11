@@ -181,7 +181,9 @@ const VotingPage = () => {
   
   // Show verification required message if user is not a voter
   if (!isVoter) {
-    return <VoterVerification isVoter={isVoter} />;
+    // Pass false to prevent duplicate toast notifications
+    // The toast will already be shown by RoleProtectedRoute
+    return <VoterVerification isVoter={isVoter} showToast={false} />;
   }
   
   if (isEligible === false) {
