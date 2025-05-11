@@ -1,5 +1,7 @@
 
 import React from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 import {
   ApplicationFormActions,
   ProfileInfoFields,
@@ -43,6 +45,8 @@ const CandidateApplicationForm = ({
     setImageUploading,
     availablePositions,
     userProfile,
+    validationError,
+    isEligible,
     handleSubmit
   } = useApplicationForm({
     electionId,
@@ -51,6 +55,19 @@ const CandidateApplicationForm = ({
     onApplicationSubmitted,
     onClose
   });
+
+  // If user is not eligible, show eligibility message instead of the form
+  if (!isEligible) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Not Eligible</AlertTitle>
+        <AlertDescription>
+          {validationError || "You are not eligible to apply for candidacy in this election."}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -69,6 +86,7 @@ const CandidateApplicationForm = ({
       <BioTextarea
         bio={bio}
         setBio={setBio}
+        validationError={validationError || undefined}
       />
       
       <ImageUploader

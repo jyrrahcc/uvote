@@ -33,23 +33,39 @@ export const useApplicationForm = ({
     year_level?: string;
     student_id?: string;
   }>({});
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isEligible, setIsEligible] = useState(true);
+  const [electionDetails, setElectionDetails] = useState<{
+    departments?: string[];
+    eligibleYearLevels?: string[];
+    restrictVoting?: boolean;
+  }>({});
 
-  // Fetch election positions and user profile on mount
+  // Fetch election positions, user profile, and eligibility check on mount
   useEffect(() => {
     if (!electionId || !userId) return;
     
     const fetchData = async () => {
       try {
-        // Fetch election positions
+        // Fetch election details
         const { data: electionData, error: electionError } = await supabase
           .from('elections')
-          .select('positions')
+          .select('positions, departments, eligible_year_levels, restrict_voting')
           .eq('id', electionId)
           .single();
           
         if (electionError) throw electionError;
-        if (electionData?.positions) {
-          setAvailablePositions(electionData.positions);
+        
+        if (electionData) {
+          setElectionDetails({
+            departments: electionData.departments,
+            eligibleYearLevels: electionData.eligible_year_levels,
+            restrictVoting: electionData.restrict_voting
+          });
+          
+          if (electionData.positions) {
+            setAvailablePositions(electionData.positions);
+          }
         }
         
         // Fetch user profile
@@ -60,26 +76,81 @@ export const useApplicationForm = ({
           .single();
           
         if (profileError) throw profileError;
+        
         if (profileData) {
           setUserProfile(profileData);
           // Pre-fill name from profile
           if (profileData.first_name && profileData.last_name) {
             setName(`${profileData.first_name} ${profileData.last_name}`);
           }
+          
+          // Check eligibility
+          const eligibilityCheck = checkEligibility(profileData, electionData);
+          setIsEligible(eligibilityCheck.isEligible);
+          if (!eligibilityCheck.isEligible) {
+            setValidationError(eligibilityCheck.reason);
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+        toast.error("Failed to load election data");
       }
     };
     
     fetchData();
   }, [electionId, userId]);
 
+  const checkEligibility = (
+    profile: any, 
+    election: any
+  ): { isEligible: boolean; reason: string } => {
+    // If voting is not restricted, everyone is eligible
+    if (!election.restrict_voting) {
+      return { isEligible: true, reason: "" };
+    }
+    
+    let isEligible = true;
+    let reason = "";
+    
+    // Check department eligibility
+    const userDepartment = profile.department || "";
+    if (election.departments && election.departments.length > 0) {
+      const isDepartmentEligible = 
+        election.departments.includes(userDepartment) || 
+        election.departments.includes("University-wide");
+      
+      if (!isDepartmentEligible) {
+        isEligible = false;
+        reason = `This election is restricted to ${election.departments.join(", ")} departments, but your profile shows you're in ${userDepartment}`;
+      }
+    }
+    
+    // Check year level eligibility
+    const userYearLevel = profile.year_level || "";
+    if (isEligible && election.eligible_year_levels && election.eligible_year_levels.length > 0) {
+      const isYearEligible = 
+        election.eligible_year_levels.includes(userYearLevel) || 
+        election.eligible_year_levels.includes("All Year Levels");
+      
+      if (!isYearEligible) {
+        isEligible = false;
+        reason = `This election is restricted to ${election.eligible_year_levels.join(", ")} year levels, but your profile shows you're in ${userYearLevel}`;
+      }
+    }
+    
+    return { isEligible, reason };
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!userId) {
       toast.error("You must be logged in to submit an application");
+      return;
+    }
+    
+    if (!isEligible) {
+      toast.error("You are not eligible to participate in this election");
       return;
     }
     
@@ -125,9 +196,9 @@ export const useApplicationForm = ({
       
       // Handle closing
       if (onClose) onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting application:", error);
-      toast.error("Failed to submit application");
+      toast.error(error.message || "Failed to submit application");
     } finally {
       setSubmitting(false);
     }
@@ -150,6 +221,8 @@ export const useApplicationForm = ({
     setImageUploading,
     availablePositions,
     userProfile,
+    validationError,
+    isEligible,
     handleSubmit
   };
 };

@@ -92,12 +92,14 @@ export const useCandidates = (electionId?: string, userId?: string) => {
       
       // Check department eligibility
       const isDepartmentEligible = election.departments?.length 
-        ? election.departments.includes(profile.department || '')
+        ? election.departments.includes(profile.department || '') || 
+          election.departments.includes("University-wide")
         : true;
       
       // Check year level eligibility
       const isYearLevelEligible = election.eligibleYearLevels?.length
-        ? election.eligibleYearLevels.includes(profile.year_level || '')
+        ? election.eligibleYearLevels.includes(profile.year_level || '') ||
+          election.eligibleYearLevels.includes("All Year Levels")
         : true;
       
       // User is eligible if they match both department and year level criteria

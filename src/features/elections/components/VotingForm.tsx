@@ -1,9 +1,12 @@
+
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Vote } from "lucide-react";
 import { Form } from "@/components/ui/form";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { Candidate } from "@/types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 // Import custom components
 import VotingProgress from "./voting/VotingProgress";
@@ -40,6 +43,8 @@ const VotingForm = ({
     currentCandidates,
     voteLoading,
     validationError,
+    eligibilityError,
+    isCheckingEligibility,
     handleVote,
     goToNextPosition,
     goToPreviousPosition,
@@ -66,6 +71,48 @@ const VotingForm = ({
   // Set showToast to false to prevent duplicate notifications
   if (!isVoter) {
     return <VoterVerification isVoter={isVoter} showToast={false} />;
+  }
+  
+  // Show loading state while checking eligibility
+  if (isCheckingEligibility) {
+    return (
+      <Card className="mb-6 shadow-lg border-green-100 transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+          <CardTitle className="flex items-center gap-2">
+            <Vote className="h-5 w-5" />
+            Checking Eligibility
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center py-6">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <span className="ml-3 text-muted-foreground">Verifying your eligibility to vote...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // If user is not eligible to vote, show error message
+  if (eligibilityError) {
+    return (
+      <Card className="mb-6 shadow-lg border-red-100 transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b border-red-100">
+          <CardTitle className="flex items-center gap-2 text-red-700">
+            <AlertTriangle className="h-5 w-5" />
+            Not Eligible to Vote
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <Alert variant="destructive">
+            <AlertTitle>Access Restricted</AlertTitle>
+            <AlertDescription>
+              {eligibilityError}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
   }
 
   const handleSubmit = form.handleSubmit((data) => {
