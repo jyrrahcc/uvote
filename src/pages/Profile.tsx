@@ -14,7 +14,7 @@ import ProfileImageUpload from "@/components/profile/ProfileImageUpload";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
-  const { userRole } = useRole();
+  const { userRole, isVoter, refreshUserRole } = useRole();
   const [profile, setProfile] = useState<DlsudProfile | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -27,46 +27,70 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const getProfile = async () => {
-      if (!user) return;
+  // Function to fetch and update the profile
+  const getProfile = async () => {
+    if (!user) return;
+    
+    try {
+      // First check if the role has been updated
+      await refreshUserRole();
+      
+      // Then fetch the profile data
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
 
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (error) {
-          // If the profile doesn't exist yet, create it
-          if (error.code === 'PGRST116') {
-            await createNewProfile();
-            return;
-          }
-          throw error;
+      if (error) {
+        // If the profile doesn't exist yet, create it
+        if (error.code === 'PGRST116') {
+          await createNewProfile();
+          return;
         }
-
-        if (data) {
-          setProfile(data);
-          setFirstName(data.first_name || "");
-          setLastName(data.last_name || "");
-          setStudentId(data.student_id || "");
-          setDepartment(data.department || "");
-          setYearLevel(data.year_level || "");
-          setImageUrl(data.image_url || null);
-          setIsVerified(data.is_verified || false);
-          setIsPendingVerification(!!data.student_id && !!data.department && !!data.year_level && !data.is_verified);
-        }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        toast.error("Failed to load profile information");
-      } finally {
-        setIsLoading(false);
+        throw error;
       }
-    };
+
+      if (data) {
+        setProfile(data);
+        setFirstName(data.first_name || "");
+        setLastName(data.last_name || "");
+        setStudentId(data.student_id || "");
+        setDepartment(data.department || "");
+        setYearLevel(data.year_level || "");
+        setImageUrl(data.image_url || null);
+        setIsVerified(data.is_verified || false);
+        setIsPendingVerification(!!data.student_id && !!data.department && !!data.year_level && !data.is_verified);
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      toast.error("Failed to load profile information");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Set up subscription to profile changes
+  useEffect(() => {
+    if (!user) return;
 
     getProfile();
+
+    // Set up subscription to listen for changes to the profile
+    const channel = supabase
+      .channel('profile-changes')
+      .on('postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          console.log('Profile updated:', payload);
+          getProfile(); // Refresh the profile data
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   // Helper function to create a new profile if it doesn't exist
@@ -138,8 +162,8 @@ const Profile = () => {
       <div className="container mx-auto py-12 px-4">
         <div className="max-w-md mx-auto">
           <ProfileHeader 
-            isVerified={isVerified} 
-            isPendingVerification={isPendingVerification} 
+            isVerified={isVerified || isVoter} 
+            isPendingVerification={isPendingVerification && !isVoter} 
           />
           
           <Card>
@@ -164,8 +188,8 @@ const Profile = () => {
               setDepartment={setDepartment}
               yearLevel={yearLevel}
               setYearLevel={setYearLevel}
-              isVerified={isVerified}
-              isPendingVerification={isPendingVerification}
+              isVerified={isVerified || isVoter}
+              isPendingVerification={isPendingVerification && !isVoter}
               setIsPendingVerification={setIsPendingVerification}
               onSignOut={handleSignOut}
             />

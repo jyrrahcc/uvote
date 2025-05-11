@@ -14,6 +14,7 @@ type RoleContextType = {
   checkRole: (role: UserRole) => boolean;
   assignRole: (userId: string, role: UserRole) => Promise<void>;
   removeRole: (userId: string, role: UserRole) => Promise<void>;
+  refreshUserRole: () => Promise<void>;
 };
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
@@ -23,58 +24,62 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      if (!user) {
-        setUserRole(null);
+  const fetchUserRole = async () => {
+    if (!user) {
+      setUserRole(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // First check if user is admin
+      const { data: adminData, error: adminError } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+      
+      if (adminError) {
+        throw adminError;
+      }
+
+      if (adminData) {
+        setUserRole('admin');
         setLoading(false);
         return;
       }
 
-      try {
-        setLoading(true);
-        
-        // First check if user is admin
-        const { data: adminData, error: adminError } = await supabase.rpc('has_role', {
-          _user_id: user.id,
-          _role: 'admin'
-        });
-        
-        if (adminError) {
-          throw adminError;
-        }
-
-        if (adminData) {
-          setUserRole('admin');
-          setLoading(false);
-          return;
-        }
-
-        // Then check if user is voter
-        const { data: voterData, error: voterError } = await supabase.rpc('has_role', {
-          _user_id: user.id,
-          _role: 'voter'
-        });
-        
-        if (voterError) {
-          throw voterError;
-        }
-
-        if (voterData) {
-          setUserRole('voter');
-        } else {
-          setUserRole(null);
-        }
-      } catch (error) {
-        console.error("Error fetching user role:", error);
-        toast.error("Failed to fetch user role. Please try again later.");
-      } finally {
-        setLoading(false);
+      // Then check if user is voter
+      const { data: voterData, error: voterError } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'voter'
+      });
+      
+      if (voterError) {
+        throw voterError;
       }
-    };
 
+      if (voterData) {
+        setUserRole('voter');
+      } else {
+        setUserRole(null);
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      toast.error("Failed to fetch user role. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUserRole();
   }, [user]);
+
+  const refreshUserRole = async () => {
+    return fetchUserRole();
+  };
 
   const checkRole = (role: UserRole): boolean => {
     if (!userRole) return false;
@@ -158,6 +163,7 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
         checkRole,
         assignRole,
         removeRole,
+        refreshUserRole,
       }}
     >
       {children}

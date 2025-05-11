@@ -4,13 +4,20 @@ import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { useRole } from "@/features/auth/context/RoleContext";
 
 interface VoterVerificationProps {
-  isVoter: boolean;
-  showToast?: boolean; // Add this prop to control toast display
+  isVoter?: boolean; // Make this prop optional
+  showToast?: boolean;
 }
 
-const VoterVerification = ({ isVoter, showToast = false }: VoterVerificationProps) => {
+const VoterVerification = ({ isVoter: propsIsVoter, showToast = false }: VoterVerificationProps) => {
+  // Use the role context to get the current voter status
+  const { isVoter: contextIsVoter } = useRole();
+  
+  // Use the prop value if provided, otherwise use the context value
+  const isVoter = propsIsVoter !== undefined ? propsIsVoter : contextIsVoter;
+  
   if (isVoter) return null;
   
   return (
