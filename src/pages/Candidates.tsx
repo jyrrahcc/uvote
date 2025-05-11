@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -5,7 +6,7 @@ import { useRole } from "@/features/auth/context/RoleContext";
 import CandidatesList from "@/features/candidates/components/CandidatesList";
 import LoadingState from "@/features/candidates/components/LoadingState";
 import ErrorState from "@/features/candidates/components/ErrorState";
-import ElectionDetailsHeader from "@/features/candidates/components/ElectionDetailsHeader";
+import ElectionDetailsHeader from "@/features/candidates/components/election-header/ElectionDetailsHeader";
 import CandidateRegistrationDialog from "@/features/candidates/components/CandidateRegistrationDialog";
 import EmptyCandidatesList from "@/features/candidates/components/EmptyCandidatesList";
 import { useCandidates } from "@/features/candidates/hooks/useCandidates";
@@ -50,6 +51,7 @@ const Candidates = () => {
         loading={loading} 
         userHasApplied={userHasApplied}
         isUserEligible={isUserEligible}
+        onApplicationSubmitted={handleApplicationSubmitted}
       />
 
       <div className="flex flex-col md:flex-row justify-between items-start mb-8">

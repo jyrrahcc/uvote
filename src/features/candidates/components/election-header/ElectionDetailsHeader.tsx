@@ -20,13 +20,15 @@ interface ElectionDetailsHeaderProps {
   loading: boolean;
   userHasApplied?: boolean;
   isUserEligible?: boolean;
+  onApplicationSubmitted?: () => void;
 }
 
 const ElectionDetailsHeader = ({ 
   election, 
   loading,
   userHasApplied = false,
-  isUserEligible = true
+  isUserEligible = true,
+  onApplicationSubmitted
 }: ElectionDetailsHeaderProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -53,6 +55,11 @@ const ElectionDetailsHeader = ({
   const handleApplicationSubmitted = () => {
     setApplicationFormOpen(false);
     toast.success("Your application has been submitted for review");
+    
+    // Call the parent's onApplicationSubmitted if provided
+    if (onApplicationSubmitted) {
+      onApplicationSubmitted();
+    }
   };
 
   if (!election || loading) return null;
