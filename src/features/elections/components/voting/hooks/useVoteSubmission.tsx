@@ -62,7 +62,8 @@ export const useVoteSubmission = ({
           election_id: electionId,
           user_id: userId,
           timestamp: new Date().toISOString()
-        }], { onConflict: 'user_id,election_id', returning: true });
+        }], { onConflict: 'user_id,election_id' })
+        .select();
       
       if (voteError) {
         console.error("Error creating vote record:", voteError);

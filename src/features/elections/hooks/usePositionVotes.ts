@@ -17,12 +17,17 @@ export const usePositionVotes = (election: Election | null, candidates: Candidat
     if (!election || !electionId) return;
     
     try {
-      // Get votes grouped by candidate for this election
+      // Get votes with their candidates for this election
       const { data: votesData, error: votesError } = await supabase
-        .from("votes")
-        .select("candidate_id")
-        .eq("election_id", electionId)
-        .not("candidate_id", "is", null);
+        .from("vote_candidates")
+        .select(`
+          vote_id,
+          candidate_id,
+          position,
+          votes!inner (election_id)
+        `)
+        .eq("votes.election_id", electionId)
+        .not("position", "is", null);
 
       if (votesError) throw votesError;
 
@@ -41,25 +46,23 @@ export const usePositionVotes = (election: Election | null, candidates: Candidat
         
         // Count votes for each candidate
         votesData.forEach(vote => {
+          const position = vote.position;
+          
+          if (!votesByPosition[position]) {
+            votesByPosition[position] = {
+              position,
+              totalVotes: 0,
+              candidates: {}
+            };
+          }
+          
           if (vote.candidate_id) {
-            // Find candidate and their position
-            const candidate = candidates.find(c => c.id === vote.candidate_id);
-            if (candidate && candidate.position) {
-              if (!votesByPosition[candidate.position]) {
-                votesByPosition[candidate.position] = {
-                  position: candidate.position,
-                  totalVotes: 0,
-                  candidates: {}
-                };
-              }
-              
-              if (!votesByPosition[candidate.position].candidates[vote.candidate_id]) {
-                votesByPosition[candidate.position].candidates[vote.candidate_id] = 0;
-              }
-              
-              votesByPosition[candidate.position].candidates[vote.candidate_id]++;
-              votesByPosition[candidate.position].totalVotes++;
+            if (!votesByPosition[position].candidates[vote.candidate_id]) {
+              votesByPosition[position].candidates[vote.candidate_id] = 0;
             }
+            
+            votesByPosition[position].candidates[vote.candidate_id]++;
+            votesByPosition[position].totalVotes++;
           }
         });
       }

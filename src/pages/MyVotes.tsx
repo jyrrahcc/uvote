@@ -16,10 +16,8 @@ interface MyVote {
     title: string;
     status: string;
   };
-  candidate: {
-    id: string;
-    name: string;
-  };
+  candidateName: string;
+  candidateId: string | null;
 }
 
 const MyVotes = () => {
@@ -37,34 +35,54 @@ const MyVotes = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      // Get all votes by this user
+      const { data: userVotes, error: votesError } = await supabase
         .from('votes')
         .select(`
           id,
           timestamp,
-          elections!inner (id, title, status),
-          candidates!inner (id, name)
+          elections!inner (id, title, status)
         `)
         .eq('user_id', user!.id)
         .order('timestamp', { ascending: false });
       
-      if (error) throw error;
+      if (votesError) throw votesError;
       
-      const formattedVotes: MyVote[] = data.map(vote => ({
-        id: vote.id,
-        timestamp: vote.timestamp,
-        election: {
-          id: vote.elections.id,
-          title: vote.elections.title,
-          status: vote.elections.status
-        },
-        candidate: {
-          id: vote.candidates.id,
-          name: vote.candidates.name
+      // For each vote, get one candidate to display (preferably not an abstain)
+      const votesWithCandidates = await Promise.all(userVotes.map(async (vote) => {
+        // Get a candidate they voted for (first non-abstain one)
+        const { data: candidateVotes } = await supabase
+          .from('vote_candidates')
+          .select(`
+            candidate_id,
+            candidates (id, name)
+          `)
+          .eq('vote_id', vote.id)
+          .not('candidate_id', 'is', null)
+          .limit(1);
+          
+        let candidateName = "Abstained";
+        let candidateId = null;
+        
+        if (candidateVotes && candidateVotes.length > 0 && candidateVotes[0].candidates) {
+          candidateName = candidateVotes[0].candidates.name;
+          candidateId = candidateVotes[0].candidate_id;
         }
+        
+        return {
+          id: vote.id,
+          timestamp: vote.timestamp,
+          election: {
+            id: vote.elections.id,
+            title: vote.elections.title,
+            status: vote.elections.status
+          },
+          candidateName,
+          candidateId
+        };
       }));
       
-      setVotes(formattedVotes);
+      setVotes(votesWithCandidates);
     } catch (error) {
       console.error("Error fetching votes:", error);
       toast.error("Failed to fetch your votes");
@@ -91,7 +109,7 @@ const MyVotes = () => {
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Check className="h-4 w-4 mr-1 text-green-600" />
-                      <span>Voted for: <strong>{vote.candidate.name}</strong></span>
+                      <span>Voted for: <strong>{vote.candidateName}</strong></span>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Voted on {new Date(vote.timestamp).toLocaleString()}

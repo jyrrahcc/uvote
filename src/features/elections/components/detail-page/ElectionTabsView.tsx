@@ -1,36 +1,42 @@
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Election, Candidate } from "@/types";
-import ElectionOverviewTab from "@/features/elections/components/position-details/ElectionOverviewTab";
-import CandidatesTab from "@/features/elections/components/position-details/CandidatesTab";
+import { Candidate, Election } from "@/types";
+import ElectionOverviewTab from "../position-details/ElectionOverviewTab";
+import CandidatesTab from "../position-details/CandidatesTab";
 
 interface ElectionTabsViewProps {
   election: Election;
   candidates: Candidate[] | null;
   positionVotes: Record<string, any>;
   formatDate: (dateString: string) => string;
+  isUserEligible?: boolean;
 }
 
-const ElectionTabsView: React.FC<ElectionTabsViewProps> = ({ 
+const ElectionTabsView = ({ 
   election, 
   candidates, 
-  positionVotes, 
-  formatDate 
-}) => {
-  const [activeTab, setActiveTab] = useState<string>("overview");
-
+  positionVotes,
+  formatDate,
+  isUserEligible = true
+}: ElectionTabsViewProps) => {
+  const [activeTab, setActiveTab] = useState("overview");
+  
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-      <TabsList className="mb-6">
+    <Tabs 
+      defaultValue="overview" 
+      className="mt-6"
+      value={activeTab}
+      onValueChange={setActiveTab}
+    >
+      <TabsList className="mb-4">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="candidates">Candidates</TabsTrigger>
       </TabsList>
       
       <TabsContent value="overview">
         <ElectionOverviewTab 
-          election={election}
-          candidates={candidates}
+          election={election} 
           positionVotes={positionVotes}
           formatDate={formatDate}
         />
@@ -38,8 +44,9 @@ const ElectionTabsView: React.FC<ElectionTabsViewProps> = ({
       
       <TabsContent value="candidates">
         <CandidatesTab 
-          positions={election.positions}
+          election={election}
           candidates={candidates}
+          isUserEligible={isUserEligible}
         />
       </TabsContent>
     </Tabs>

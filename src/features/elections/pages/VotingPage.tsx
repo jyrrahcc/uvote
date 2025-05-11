@@ -69,10 +69,9 @@ const VotingPage = () => {
         if (user) {
           const { data: voteData, error: voteError } = await supabase
             .from('votes')
-            .select('*')
+            .select('id')
             .eq('election_id', electionId)
             .eq('user_id', user.id)
-            .is('position', null) // Check for the marker record
             .maybeSingle();
           
           if (voteError && voteError.code !== 'PGRST116') {
@@ -81,7 +80,18 @@ const VotingPage = () => {
           
           if (voteData) {
             setHasVoted(true);
-            setSelectedCandidateId(voteData.candidate_id);
+            // Get any candidate they voted for to display in UI
+            const { data: voteCandidateData } = await supabase
+              .from('vote_candidates')
+              .select('candidate_id')
+              .eq('vote_id', voteData.id)
+              .not('candidate_id', 'is', null)
+              .limit(1)
+              .maybeSingle();
+              
+            if (voteCandidateData && voteCandidateData.candidate_id) {
+              setSelectedCandidateId(voteCandidateData.candidate_id);
+            }
           }
         }
         

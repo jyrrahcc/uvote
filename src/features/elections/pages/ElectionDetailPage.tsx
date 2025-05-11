@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
@@ -39,18 +38,12 @@ const ElectionDetailPage = () => {
   const { positionVotes } = usePositionVotes(election, candidates, electionId);
   const [isEligible, setIsEligible] = useState<boolean>(true);
   const [eligibilityReason, setEligibilityReason] = useState<string | null>(null);
+  const [eligibilityChecked, setEligibilityChecked] = useState<boolean>(false);
 
   // Check if the user is eligible to participate in this election
   useEffect(() => {
     const checkEligibility = async () => {
-      if (!user || !election) {
-        setIsEligible(true);
-        return;
-      }
-      
-      if (!election.restrictVoting) {
-        // If the election doesn't restrict voting, the user is eligible
-        setIsEligible(true);
+      if (!user || !election || eligibilityChecked) {
         return;
       }
       
@@ -58,15 +51,17 @@ const ElectionDetailPage = () => {
         const { isEligible, reason } = await checkUserEligibility(user.id, election);
         setIsEligible(isEligible);
         setEligibilityReason(reason);
+        setEligibilityChecked(true);
       } catch (error) {
         console.error("Error checking eligibility:", error);
         setIsEligible(false);
         setEligibilityReason("Could not verify your eligibility");
+        setEligibilityChecked(true);
       }
     };
     
     checkEligibility();
-  }, [user, election]);
+  }, [user, election, eligibilityChecked]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -121,14 +116,15 @@ const ElectionDetailPage = () => {
       <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
       
       {/* Election metadata */}
-      <ElectionMetadata election={election} formatDate={formatDate} />
+      <ElectionMetadata election={election} formatDate={(date) => new Date(date).toLocaleDateString()} />
       
       {/* Tabs for Overview and Candidates */}
       <ElectionTabsView
         election={election}
         candidates={candidates}
         positionVotes={positionVotes}
-        formatDate={formatDate}
+        formatDate={(date) => new Date(date).toLocaleDateString()}
+        isUserEligible={isEligible}
       />
     </div>
   );
