@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -44,6 +43,9 @@ const Candidates = () => {
     return <ErrorState error={error} />;
   }
 
+  // Determine if election is active or upcoming for candidate applications
+  const isElectionActiveOrUpcoming = election?.status === 'active' || election?.status === 'upcoming';
+
   return (
     <div className="container mx-auto py-12 px-4">
       <ElectionDetailsHeader 
@@ -51,6 +53,7 @@ const Candidates = () => {
         loading={loading} 
         userHasApplied={userHasApplied}
         isUserEligible={isUserEligible}
+        onOpenDialog={() => setIsDialogOpen(true)} 
         onApplicationSubmitted={handleApplicationSubmitted}
       />
 
@@ -58,20 +61,6 @@ const Candidates = () => {
         <div className="flex-grow">
           {/* This div is just for spacing - keeping the header structure */}
         </div>
-        
-        <CandidateRegistrationDialog 
-          isAdmin={isAdmin}
-          isOpen={isDialogOpen}
-          setIsOpen={setIsDialogOpen}
-          canRegister={canRegisterAsCandidate()}
-          userHasRegistered={userHasRegistered}
-          userHasApplied={userHasApplied}
-          isUserEligible={isUserEligible}
-          electionId={electionId || ''}
-          userId={user?.id || ''}
-          onCandidateAdded={handleCandidateAdded}
-          onApplicationSubmitted={handleApplicationSubmitted}
-        />
       </div>
       
       <CandidatesList
@@ -88,6 +77,21 @@ const Candidates = () => {
           onRegister={() => setIsDialogOpen(true)}
         />
       )}
+
+      {/* Single instance of candidate registration dialog */}
+      <CandidateRegistrationDialog 
+        isAdmin={isAdmin}
+        isOpen={isDialogOpen}
+        setIsOpen={setIsDialogOpen}
+        canRegister={canRegisterAsCandidate()}
+        userHasRegistered={userHasRegistered}
+        userHasApplied={userHasApplied}
+        isUserEligible={isUserEligible}
+        electionId={electionId || ''}
+        userId={user?.id || ''}
+        onCandidateAdded={handleCandidateAdded}
+        onApplicationSubmitted={handleApplicationSubmitted}
+      />
     </div>
   );
 };
