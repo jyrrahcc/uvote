@@ -43,7 +43,7 @@ const UserList = ({
                 user={user}
                 isCurrentUser={user.id === currentUserId}
                 isProcessing={isProcessing}
-                onViewProfile={onViewProfile}
+                onViewProfile={() => onViewProfile(user)}
                 onVerify={onVerify}
                 onRoleAction={onRoleAction}
               />
