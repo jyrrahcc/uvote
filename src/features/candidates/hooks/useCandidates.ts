@@ -1,123 +1,137 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { Election, Candidate, mapDbElectionToElection, mapDbCandidateToCandidate } from "@/types";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Candidate, Election } from "@/types";
+import { fetchElectionDetails } from "@/features/elections/services/electionService";
+import { fetchCandidatesForElection, deleteCandidate } from "../services/candidateService";
+import { hasUserAppliedForElection } from "../services/candidateApplicationService";
 
-export const useCandidates = (electionId: string | undefined, userId: string | undefined) => {
+export const useCandidates = (electionId?: string, userId?: string) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [election, setElection] = useState<Election | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userHasRegistered, setUserHasRegistered] = useState(false);
-  const navigate = useNavigate();
-
+  const [userHasApplied, setUserHasApplied] = useState(false);
+  const [isUserEligible, setIsUserEligible] = useState(false);
+  const { user } = useAuth();
+  
   useEffect(() => {
     if (electionId) {
-      loadData();
+      fetchData();
     }
-  }, [electionId]);
-
-  const loadData = async () => {
-    if (!electionId) {
-      navigate('/elections');
-      return;
-    }
-
+  }, [electionId, userId]);
+  
+  const fetchData = async () => {
     try {
       setLoading(true);
-      setError(null);
       
       // Fetch election details
-      const { data: electionData, error: electionError } = await supabase
-        .from('elections')
-        .select('*')
-        .eq('id', electionId)
-        .single();
-      
-      if (electionError) {
-        throw new Error("Failed to load election details");
-      }
-      
-      if (!electionData) {
-        throw new Error("Election not found");
-      }
-      
-      const transformedElection = mapDbElectionToElection(electionData);
-      setElection(transformedElection);
+      const electionData = await fetchElectionDetails(electionId!);
+      setElection(electionData);
       
       // Fetch candidates
-      const { data: candidatesData, error: candidatesError } = await supabase
-        .from('candidates')
-        .select('*')
-        .eq('election_id', electionId);
+      const candidatesData = await fetchCandidatesForElection(electionId!);
+      setCandidates(candidatesData);
       
-      if (candidatesError) {
-        throw new Error("Failed to load candidates");
-      }
-      
-      // Map database candidates to our Candidate type
-      const transformedCandidates = candidatesData.map(mapDbCandidateToCandidate);
-      setCandidates(transformedCandidates);
-
-      // Check if current user has already registered as a candidate
+      // Check if user has already registered as a candidate
       if (userId) {
-        const { data, error: checkError } = await supabase
+        const { data } = await supabase
           .from('candidates')
           .select('id')
           .eq('election_id', electionId)
           .eq('created_by', userId)
           .maybeSingle();
         
-        if (!checkError || checkError.code !== 'PGRST116') {
-          setUserHasRegistered(!!data);
-        }
+        setUserHasRegistered(!!data);
+        
+        // Check if user has already applied to be a candidate
+        const hasApplied = await hasUserAppliedForElection(electionId!, userId);
+        setUserHasApplied(hasApplied);
+        
+        // Check user eligibility based on profile and election restrictions
+        await checkUserEligibility(electionData);
       }
-    } catch (error) {
-      console.error("Error loading data:", error);
-      setError(error instanceof Error ? error.message : "An unexpected error occurred");
-      toast.error("Failed to load election data");
+      
+      setError(null);
+    } catch (err: any) {
+      console.error("Error fetching candidates data:", err);
+      setError(err.message || "Failed to load candidates");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleDeleteCandidate = async (id: string) => {
+  
+  const checkUserEligibility = async (election: Election) => {
+    if (!userId || !election) {
+      setIsUserEligible(false);
+      return;
+    }
+    
     try {
-      const { error } = await supabase
-        .from('candidates')
-        .delete()
-        .eq('id', id);
+      // Get user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('department, year_level')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (!profile) {
+        setIsUserEligible(false);
+        return;
+      }
       
-      if (error) throw error;
+      // If election has no restrictions, everyone is eligible
+      if (!election.restrictVoting) {
+        setIsUserEligible(true);
+        return;
+      }
       
+      // Check department eligibility
+      const isDepartmentEligible = election.departments?.length 
+        ? election.departments.includes(profile.department || '')
+        : true;
+      
+      // Check year level eligibility
+      const isYearLevelEligible = election.eligibleYearLevels?.length
+        ? election.eligibleYearLevels.includes(profile.year_level || '')
+        : true;
+      
+      // User is eligible if they match both department and year level criteria
+      setIsUserEligible(isDepartmentEligible && isYearLevelEligible);
+      
+    } catch (error) {
+      console.error("Error checking eligibility:", error);
+      setIsUserEligible(false);
+    }
+  };
+
+  const handleDeleteCandidate = async (candidateId: string) => {
+    try {
+      await deleteCandidate(candidateId);
+      setCandidates(prev => prev.filter(c => c.id !== candidateId));
       toast.success("Candidate deleted successfully");
-      // Update local state
-      setCandidates(candidates.filter(candidate => candidate.id !== id));
     } catch (error) {
       console.error("Error deleting candidate:", error);
       toast.error("Failed to delete candidate");
     }
   };
 
-  const handleCandidateAdded = (newCandidateData: any) => {
-    console.log("Candidate added:", newCandidateData);
-    
-    // Make sure to transform the new candidate data to match our Candidate type
-    let newCandidate: Candidate[] = [];
-    
-    if (Array.isArray(newCandidateData)) {
-      newCandidate = newCandidateData.map(mapDbCandidateToCandidate);
-    } else {
-      newCandidate = [mapDbCandidateToCandidate(newCandidateData)];
-    }
-    
-    setCandidates(prev => [...prev, ...newCandidate]);
-    
-    setUserHasRegistered(true);
+  const handleCandidateAdded = (newCandidate: any) => {
+    setCandidates(prev => [...prev, newCandidate]);
     setIsDialogOpen(false);
+    if (!user?.id) return;
+    setUserHasRegistered(true);
+    toast.success("Successfully added candidate");
+  };
+  
+  const handleApplicationSubmitted = () => {
+    setUserHasApplied(true);
+    setIsDialogOpen(false);
+    toast.success("Your application has been submitted");
   };
 
   return {
@@ -128,7 +142,10 @@ export const useCandidates = (electionId: string | undefined, userId: string | u
     isDialogOpen,
     setIsDialogOpen,
     userHasRegistered,
+    userHasApplied,
+    isUserEligible,
     handleDeleteCandidate,
-    handleCandidateAdded
+    handleCandidateAdded,
+    handleApplicationSubmitted
   };
 };

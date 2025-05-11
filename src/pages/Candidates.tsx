@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -23,12 +24,16 @@ const Candidates = () => {
     isDialogOpen,
     setIsDialogOpen,
     userHasRegistered,
+    userHasApplied,
+    isUserEligible,
     handleDeleteCandidate,
-    handleCandidateAdded
+    handleCandidateAdded,
+    handleApplicationSubmitted
   } = useCandidates(electionId, user?.id);
 
   const canRegisterAsCandidate = () => {
-    return !isAdmin && user && !userHasRegistered && election?.status === 'upcoming';
+    return !isAdmin && user && !userHasRegistered && !userHasApplied && 
+      election?.status === 'upcoming' && isUserEligible;
   };
 
   if (loading) {
@@ -41,7 +46,12 @@ const Candidates = () => {
 
   return (
     <div className="container mx-auto py-12 px-4">
-      <ElectionDetailsHeader election={election} loading={loading} />
+      <ElectionDetailsHeader 
+        election={election} 
+        loading={loading} 
+        userHasApplied={userHasApplied}
+        isUserEligible={isUserEligible}
+      />
 
       <div className="flex flex-col md:flex-row justify-between items-start mb-8">
         <div className="flex-grow">
@@ -54,9 +64,12 @@ const Candidates = () => {
           setIsOpen={setIsDialogOpen}
           canRegister={canRegisterAsCandidate()}
           userHasRegistered={userHasRegistered}
+          userHasApplied={userHasApplied}
+          isUserEligible={isUserEligible}
           electionId={electionId || ''}
           userId={user?.id || ''}
           onCandidateAdded={handleCandidateAdded}
+          onApplicationSubmitted={handleApplicationSubmitted}
         />
       </div>
       

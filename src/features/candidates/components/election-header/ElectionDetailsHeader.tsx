@@ -18,14 +18,20 @@ import { useCandidacyPeriod } from "./useCandidacyPeriod";
 interface ElectionDetailsHeaderProps {
   election: Election | null;
   loading: boolean;
+  userHasApplied?: boolean;
+  isUserEligible?: boolean;
 }
 
-const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps) => {
+const ElectionDetailsHeader = ({ 
+  election, 
+  loading,
+  userHasApplied = false,
+  isUserEligible = true
+}: ElectionDetailsHeaderProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useRole();
   const [applicationFormOpen, setApplicationFormOpen] = useState(false);
-  const [userHasApplied, setUserHasApplied] = useState(false);
 
   const { isCandidacyPeriodActive } = useCandidacyPeriod(election);
 
@@ -36,16 +42,22 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
       return;
     }
     
+    if (!isUserEligible) {
+      toast.error("You are not eligible to apply for this election");
+      return;
+    }
+    
     setApplicationFormOpen(true);
   };
 
   const handleApplicationSubmitted = () => {
     setApplicationFormOpen(false);
-    setUserHasApplied(true);
     toast.success("Your application has been submitted for review");
   };
 
   if (!election || loading) return null;
+  
+  const canApplyAsCandidate = isCandidacyPeriodActive && !userHasApplied && isUserEligible && !isAdmin;
   
   return (
     <div className="space-y-4">
@@ -64,6 +76,7 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
         isCandidacyPeriodActive={isCandidacyPeriodActive}
         isAdmin={isAdmin}
         userHasApplied={userHasApplied}
+        canApply={isUserEligible}
         onApply={handleApplyAsCandidate}
       />
       
