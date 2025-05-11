@@ -86,16 +86,18 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
     }
   };
 
-  const handleToggleRole = async (userId: string, role: "admin" | "voter", hasRole: boolean) => {
-    if (isProcessing) return; // Prevent multiple clicks
+  const handleToggleRole = async (userId: string, role: string, action: 'add' | 'remove') => {
+    if (isProcessing) return;
+    
+    const hasRole = action === 'remove';
     
     try {
       setIsProcessing(true);
       
       if (hasRole) {
-        await removeRole(userId, role);
+        await removeRole(userId, role as "admin" | "voter");
       } else {
-        await assignRole(userId, role);
+        await assignRole(userId, role as "admin" | "voter");
       }
       
       // Update local state
@@ -107,10 +109,29 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
           } else if (!updatedRoles.includes(role)) {
             updatedRoles.push(role);
           }
-          return { ...user, roles: updatedRoles };
+          
+          // If adding voter role, also mark as verified
+          const updatedUser = { 
+            ...user, 
+            roles: updatedRoles 
+          };
+          
+          if (role === 'voter' && !hasRole) {
+            updatedUser.is_verified = true;
+          }
+          
+          return updatedUser;
         }
         return user;
       }));
+      
+      // If adding voter role, update profile verification status
+      if (role === 'voter' && !hasRole) {
+        await supabase
+          .from('profiles')
+          .update({ is_verified: true })
+          .eq('id', userId);
+      }
       
       toast.success(
         hasRole 

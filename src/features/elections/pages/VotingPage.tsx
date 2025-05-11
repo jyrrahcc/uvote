@@ -12,12 +12,13 @@ import VotingForm from "../components/VotingForm";
 import PrivateElectionAccess from "../components/voting/PrivateElectionAccess";
 import ElectionLoading from "../components/voting/ElectionLoading";
 import VoterAccessRestriction from "../components/voting/VoterAccessRestriction";
+import VoterVerification from "../components/voting/VoterVerification";
 
 const VotingPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isAdmin } = useRole();
+  const { isAdmin, isVoter } = useRole();
   
   const [election, setElection] = useState<Election | null>(null);
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
@@ -176,6 +177,11 @@ const VotingPage = () => {
   
   if (!election) {
     return <div>Election not found</div>;
+  }
+  
+  // Show verification required message if user is not a voter
+  if (!isVoter) {
+    return <VoterVerification isVoter={isVoter} />;
   }
   
   if (isEligible === false) {
