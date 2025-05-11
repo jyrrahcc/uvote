@@ -14,14 +14,16 @@ import FormActions from "./form-sections/FormActions";
 interface CandidateRegistrationFormProps {
   electionId: string;
   userId: string;
-  onCandidateAdded: (candidate: any) => void;
-  onClose: () => void;
+  onSuccess?: (candidate: any) => void;
+  onCancel?: () => void;
+  onClose?: () => void;
 }
 
 const CandidateRegistrationForm = ({ 
   electionId,
   userId,
-  onCandidateAdded, 
+  onSuccess,
+  onCancel,
   onClose 
 }: CandidateRegistrationFormProps) => {
   const { user } = useAuth();
@@ -29,8 +31,12 @@ const CandidateRegistrationForm = ({
     electionId,
     userId,
     onSuccess: (candidate) => {
-      onCandidateAdded(candidate);
-      onClose();
+      if (onSuccess) {
+        onSuccess(candidate);
+      }
+      if (onClose) {
+        onClose();
+      }
     }
   });
   
@@ -53,6 +59,14 @@ const CandidateRegistrationForm = ({
     await registerCandidate(values);
   };
 
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else if (onClose) {
+      onClose();
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-4">
@@ -60,7 +74,7 @@ const CandidateRegistrationForm = ({
         <AcademicInfoFields form={form} />
         <BioField form={form} />
         <PosterUploadField form={form} />
-        <FormActions loading={loading} onClose={onClose} />
+        <FormActions loading={loading} onClose={handleCancel} />
       </form>
     </Form>
   );

@@ -1,5 +1,5 @@
 
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -59,26 +59,32 @@ const CandidateRegistrationDialog = ({
           onCancel={handleClose}
         />
       ) : userHasRegistered ? (
-        <Alert variant="default" className="max-w-md mx-auto">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            You have already registered as a candidate for this election.
-          </AlertDescription>
-        </Alert>
+        <DialogContent>
+          <Alert variant="default" className="mx-auto">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              You have already registered as a candidate for this election.
+            </AlertDescription>
+          </Alert>
+        </DialogContent>
       ) : userHasApplied ? (
-        <Alert variant="default" className="max-w-md mx-auto">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            You have already submitted an application for this election.
-          </AlertDescription>
-        </Alert>
+        <DialogContent>
+          <Alert variant="default" className="mx-auto">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              You have already submitted an application for this election.
+            </AlertDescription>
+          </Alert>
+        </DialogContent>
       ) : !isUserEligible ? (
-        <Alert variant="destructive" className="max-w-md mx-auto">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            You are not eligible to register as a candidate for this election.
-          </AlertDescription>
-        </Alert>
+        <DialogContent>
+          <Alert variant="destructive" className="mx-auto">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              You are not eligible to register as a candidate for this election.
+            </AlertDescription>
+          </Alert>
+        </DialogContent>
       ) : (
         <CandidateApplicationForm
           electionId={electionId}
