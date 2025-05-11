@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -59,7 +60,10 @@ const Profile = () => {
         setYearLevel(data.year_level || "");
         setImageUrl(data.image_url || null);
         setIsVerified(data.is_verified || false);
-        setIsPendingVerification(!!data.student_id && !!data.department && !!data.year_level && !data.is_verified);
+        
+        // Important fix: Only consider it pending if not verified AND not a voter already
+        // This ensures that users with voter role don't see the "pending" status
+        setIsPendingVerification(!!data.student_id && !!data.department && !!data.year_level && !data.is_verified && !isVoter);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -90,7 +94,7 @@ const Profile = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, isVoter]); // Add isVoter to dependency array to ensure profile is refreshed when role changes
 
   // Helper function to create a new profile if it doesn't exist
   const createNewProfile = async () => {
@@ -162,7 +166,7 @@ const Profile = () => {
         <div className="max-w-md mx-auto">
           <ProfileHeader 
             isVerified={isVerified} 
-            isPendingVerification={isPendingVerification && !isVoter} 
+            isPendingVerification={isPendingVerification}
             isVoter={isVoter}
           />
           
@@ -188,8 +192,8 @@ const Profile = () => {
               setDepartment={setDepartment}
               yearLevel={yearLevel}
               setYearLevel={setYearLevel}
-              isVerified={isVerified || isVoter}
-              isPendingVerification={isPendingVerification && !isVoter}
+              isVerified={isVerified || isVoter} // Consider verified if user has voter role
+              isPendingVerification={isPendingVerification}
               setIsPendingVerification={setIsPendingVerification}
               onSignOut={handleSignOut}
             />
