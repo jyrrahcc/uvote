@@ -168,7 +168,7 @@ const CandidatesPageHeader = ({
             <CandidateRegistrationForm 
               electionId={electionId}
               userId={userId || ''}
-              onCandidateAdded={handleCandidateAdded}
+              onSuccess={handleCandidateAdded}
               onClose={() => setIsDialogOpen(false)}
             />
           </DialogContent>
