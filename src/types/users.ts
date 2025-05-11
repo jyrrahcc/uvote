@@ -41,7 +41,7 @@ export interface DlsudProfile {
   department?: string;
   year_level?: string;
   is_verified?: boolean;
-  image_url?: string; // Added image_url field
+  image_url?: string;
 }
 
 /**
