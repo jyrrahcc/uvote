@@ -1,49 +1,62 @@
 
 import React from "react";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { University } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { AlertTriangle } from "lucide-react";
 import { Election } from "@/types";
-import ElectionHeader from "../ElectionHeader";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import VoterEligibilityAlert from "../VoterEligibilityAlert";
+import ElectionBanner from "../detail-page/ElectionBanner";
+import ElectionTitleSection from "../detail-page/ElectionTitleSection";
 
 interface VoterAccessRestrictionProps {
   election: Election;
-  reason?: string | null;
+  reason: string | null;
 }
 
 const VoterAccessRestriction = ({ election, reason }: VoterAccessRestrictionProps) => {
+  const navigate = useNavigate();
+  
   return (
     <div className="container mx-auto py-12 px-4">
-      <div className="flex items-center mb-6">
-        <University className="h-7 w-7 mr-2 text-[#008f50]" />
-        <h1 className="text-2xl font-bold">{election.department || "University-wide"} Election</h1>
-      </div>
+      <Button 
+        variant="ghost" 
+        className="mb-6" 
+        onClick={() => navigate('/elections')}
+      >
+        <span className="flex items-center">
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          Back to Elections
+        </span>
+      </Button>
       
-      <ElectionHeader election={election} hasVoted={false} isVoter={false} />
+      <ElectionTitleSection title={election.title} description={election.description} />
       
-      <Alert className="mb-6 bg-red-50 border-red-200">
-        <AlertTitle className="text-red-700">Access Restricted</AlertTitle>
-        <AlertDescription className="text-red-600">
-          <p>{reason || "You are not eligible to vote in this election. Please contact the election administrator if you believe this is an error."}</p>
+      <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
+      
+      <Card className="mt-8 border-red-200 bg-red-50/30">
+        <CardHeader className="bg-red-50 border-b border-red-100">
+          <CardTitle className="flex items-center text-red-700">
+            <AlertTriangle className="h-5 w-5 mr-2" />
+            Access Restricted
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <VoterEligibilityAlert 
+            election={election}
+            reason={reason}
+          />
           
-          {!reason && election.restrictVoting && (
-            <div className="mt-4">
-              <h4 className="font-medium mb-1">Eligibility Requirements:</h4>
-              
-              {election.departments && election.departments.length > 0 && (
-                <p className="mt-2">
-                  <span className="font-medium">Department:</span> {election.departments.join(', ')}
-                </p>
-              )}
-              
-              {election.eligibleYearLevels && election.eligibleYearLevels.length > 0 && (
-                <p>
-                  <span className="font-medium">Year Level:</span> {election.eligibleYearLevels.join(', ')}
-                </p>
-              )}
-            </div>
-          )}
-        </AlertDescription>
-      </Alert>
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/elections')}
+            >
+              Return to Elections
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

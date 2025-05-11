@@ -3,7 +3,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { checkUserEligibility } from "@/utils/eligibilityUtils";
 import { Election, mapDbElectionToElection } from "@/types";
 
 export interface VotingSelections {
@@ -52,32 +51,6 @@ export const useVoteSubmission = ({
     try {
       setVoteLoading(true);
       console.log("Submitting votes:", data);
-      
-      // Verify eligibility one more time before submitting
-      const { data: electionData, error: electionError } = await supabase
-        .from('elections')
-        .select('*')
-        .eq('id', electionId)
-        .single();
-      
-      if (electionError) {
-        throw new Error("Failed to verify eligibility: could not fetch election details");
-      }
-      
-      // Transform raw database election to Election type with correct status typing
-      const election = mapDbElectionToElection(electionData);
-      
-      // Only check comprehensive eligibility if not an admin
-      if (!isAdmin) {
-        const { isEligible, reason } = await checkUserEligibility(userId, election);
-        
-        if (!isEligible) {
-          toast.error("Not eligible to vote", {
-            description: reason || "You are not eligible to vote in this election"
-          });
-          return false;
-        }
-      }
       
       // Check if user has already voted
       const { data: existingVote, error: checkError } = await supabase

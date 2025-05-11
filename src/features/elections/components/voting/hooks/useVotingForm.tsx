@@ -154,39 +154,6 @@ export const useVotingForm = ({
       return;
     }
     
-    // Double check eligibility before submitting
-    try {
-      // Get election details
-      const { data: electionData, error: electionError } = await supabase
-        .from('elections')
-        .select('*')
-        .eq('id', electionId)
-        .single();
-      
-      if (electionError) {
-        console.error("Error fetching election:", electionError);
-        toast.error("Failed to verify eligibility", { 
-          description: "Could not fetch election details" 
-        });
-        return;
-      }
-      
-      // Transform raw database election to Election type with correct status typing
-      const election = mapDbElectionToElection(electionData);
-      
-      // Check comprehensive eligibility one more time
-      const { isEligible, reason } = await checkUserEligibility(userId, election);
-      
-      if (!isEligible && !isAdmin) {
-        toast.error("Not eligible to vote", { description: reason || "You are not eligible to vote in this election" });
-        return;
-      }
-    } catch (error) {
-      console.error("Error verifying eligibility:", error);
-      toast.error("Failed to verify eligibility");
-      return;
-    }
-    
     // Validate all positions have a selection
     const validation = validateAllSelections(positions, data);
     if (!validation.valid) {
