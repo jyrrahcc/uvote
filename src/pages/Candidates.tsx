@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -114,6 +113,7 @@ const Candidates = () => {
         userId={user?.id || ''}
         onCandidateAdded={handleCandidateAdded}
         onApplicationSubmitted={handleApplicationSubmitted}
+        eligibilityReason={eligibilityReason}
       />
     </div>
   );

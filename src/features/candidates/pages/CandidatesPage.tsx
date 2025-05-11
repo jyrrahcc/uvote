@@ -6,6 +6,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { useCandidates } from "../hooks/useCandidates";
 import CandidatesPageHeader from "../components/CandidatesPageHeader";
 import CandidatesTabView from "../components/CandidatesTabView";
+import VoterEligibilityAlert from "@/features/elections/components/VoterEligibilityAlert";
 
 const CandidatesPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
@@ -23,6 +24,7 @@ const CandidatesPage = () => {
     userHasRegistered,
     userHasApplied,
     isUserEligible,
+    eligibilityReason,
     handleDeleteCandidate,
     handleCandidateAdded,
     handleApplicationSubmitted
@@ -31,6 +33,33 @@ const CandidatesPage = () => {
   const isElectionActiveOrUpcoming = () => {
     return election?.status === 'active' || election?.status === 'upcoming';
   };
+
+  // Show eligibility restriction message if not eligible and not admin
+  if (!isUserEligible && !isAdmin && election?.restrictVoting) {
+    return (
+      <div className="space-y-6">
+        <CandidatesPageHeader
+          election={election}
+          isAdmin={isAdmin}
+          isDialogOpen={false}
+          setIsDialogOpen={() => {}}
+          electionId={electionId || ''}
+          userId={user?.id}
+          userHasRegistered={false}
+          userHasApplied={false}
+          isUserEligible={false}
+          handleCandidateAdded={() => {}}
+          isElectionActiveOrUpcoming={isElectionActiveOrUpcoming}
+          handleApplicationSubmitted={() => {}}
+        />
+        
+        <VoterEligibilityAlert 
+          election={election}
+          reason={eligibilityReason}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

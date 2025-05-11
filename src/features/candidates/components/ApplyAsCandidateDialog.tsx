@@ -8,41 +8,61 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, FileCheck } from "lucide-react";
+import { Plus, FileCheck, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { hasUserAppliedForElection } from "../services/candidateApplicationService";
 import CandidateApplicationForm from "./CandidateApplicationForm";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { Election } from "@/types";
 
 interface ApplyAsCandidateDialogProps {
   electionId: string;
   electionActive: boolean;
   onApplicationSubmitted: () => void;
+  election: Election | null;
+  isUserEligible?: boolean;
+  eligibilityReason?: string | null;
 }
 
 const ApplyAsCandidateDialog = ({
   electionId,
   electionActive,
-  onApplicationSubmitted
+  onApplicationSubmitted,
+  election,
+  isUserEligible: initialEligibility,
+  eligibilityReason: initialEligibilityReason
 }: ApplyAsCandidateDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isUserEligible, setIsUserEligible] = useState(initialEligibility !== undefined ? initialEligibility : true);
+  const [eligibilityReason, setEligibilityReason] = useState<string | null>(initialEligibilityReason || null);
   const { user } = useAuth();
   const userId = user?.id || '';
   
   useEffect(() => {
-    const checkApplicationStatus = async () => {
+    const checkApplicationAndEligibility = async () => {
       if (userId && electionId) {
         setLoading(true);
+        
+        // Check if user has applied
         const applied = await hasUserAppliedForElection(electionId, userId);
         setHasApplied(applied);
+        
+        // Check eligibility if not provided externally
+        if (initialEligibility === undefined && election) {
+          const eligibilityResult = await checkUserEligibility(userId, election);
+          setIsUserEligible(eligibilityResult.isEligible);
+          setEligibilityReason(eligibilityResult.reason);
+        }
+        
         setLoading(false);
       }
     };
     
-    checkApplicationStatus();
-  }, [electionId, userId]);
+    checkApplicationAndEligibility();
+  }, [electionId, userId, election, initialEligibility, initialEligibilityReason]);
   
   const handleSuccess = () => {
     setIsOpen(false);
@@ -79,6 +99,17 @@ const ApplyAsCandidateDialog = ({
     );
   }
   
+  if (!isUserEligible) {
+    return (
+      <Alert className="max-w-xs bg-amber-50 border-amber-200">
+        <AlertTriangle className="h-4 w-4 text-amber-500" />
+        <AlertDescription className="text-amber-700">
+          {eligibilityReason || "You are not eligible to apply for this election based on department or year level requirements."}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -98,6 +129,8 @@ const ApplyAsCandidateDialog = ({
           onClose={() => setIsOpen(false)}
           onCancel={() => setIsOpen(false)}
           onApplicationSubmitted={handleSuccess}
+          isUserEligible={isUserEligible}
+          eligibilityReason={eligibilityReason}
         />
       </DialogContent>
     </Dialog>
