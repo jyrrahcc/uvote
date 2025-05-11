@@ -7,9 +7,11 @@ import { useNavigate } from "react-router-dom";
 
 interface ElectionHeaderProps {
   election: Election;
+  hasVoted?: boolean; // Added hasVoted prop to the interface
+  isVoter?: boolean; // Added isVoter prop to the interface
 }
 
-const ElectionHeader = ({ election }: ElectionHeaderProps) => {
+const ElectionHeader = ({ election, hasVoted = false, isVoter = false }: ElectionHeaderProps) => {
   const navigate = useNavigate();
   
   return (

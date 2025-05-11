@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Candidate } from "@/types";
+import { Candidate, mapDbElectionToElection } from "@/types";
 import { useCandidateGroups } from "./useCandidateGroups";
 import { useVotingSelections, VotingSelections } from "./useVotingSelections";
 import { usePositionNavigation } from "./usePositionNavigation";
@@ -96,8 +96,11 @@ export const useVotingForm = ({
           return;
         }
         
+        // Transform raw database election to Election type with correct status typing
+        const election = mapDbElectionToElection(electionData);
+        
         // Check comprehensive eligibility
-        const { isEligible, reason } = await checkUserEligibility(userId, electionData);
+        const { isEligible, reason } = await checkUserEligibility(userId, election);
         
         if (!isEligible && !isAdmin) {
           setEligibilityError(reason || "You are not eligible to vote in this election");
@@ -168,8 +171,11 @@ export const useVotingForm = ({
         return;
       }
       
+      // Transform raw database election to Election type with correct status typing
+      const election = mapDbElectionToElection(electionData);
+      
       // Check comprehensive eligibility one more time
-      const { isEligible, reason } = await checkUserEligibility(userId, electionData);
+      const { isEligible, reason } = await checkUserEligibility(userId, election);
       
       if (!isEligible && !isAdmin) {
         toast.error("Not eligible to vote", { description: reason || "You are not eligible to vote in this election" });

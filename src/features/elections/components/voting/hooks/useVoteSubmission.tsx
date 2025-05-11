@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { Election, mapDbElectionToElection } from "@/types";
 
 export interface VotingSelections {
   [position: string]: string;
@@ -63,9 +64,12 @@ export const useVoteSubmission = ({
         throw new Error("Failed to verify eligibility: could not fetch election details");
       }
       
+      // Transform raw database election to Election type with correct status typing
+      const election = mapDbElectionToElection(electionData);
+      
       // Only check comprehensive eligibility if not an admin
       if (!isAdmin) {
-        const { isEligible, reason } = await checkUserEligibility(userId, electionData);
+        const { isEligible, reason } = await checkUserEligibility(userId, election);
         
         if (!isEligible) {
           toast.error("Not eligible to vote", {
