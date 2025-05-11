@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -162,8 +161,9 @@ const Profile = () => {
       <div className="container mx-auto py-12 px-4">
         <div className="max-w-md mx-auto">
           <ProfileHeader 
-            isVerified={isVerified || isVoter} 
+            isVerified={isVerified} 
             isPendingVerification={isPendingVerification && !isVoter} 
+            isVoter={isVoter}
           />
           
           <Card>

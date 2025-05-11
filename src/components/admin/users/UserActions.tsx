@@ -11,13 +11,17 @@ interface UserActionsProps {
   isCurrentUser: boolean;
   isProcessing: boolean;
   onViewProfile: (user: UserProfile) => void;
+  onVerify: (userId: string, isVerified: boolean) => Promise<void>;
+  onRoleAction: (userId: string, role: string, action: 'add' | 'remove') => Promise<void>;
 }
 
 const UserActions: React.FC<UserActionsProps> = ({
   user,
   isCurrentUser,
   isProcessing,
-  onViewProfile
+  onViewProfile,
+  onVerify,
+  onRoleAction
 }) => {
   if (isCurrentUser) {
     return (
@@ -41,8 +45,8 @@ const UserActions: React.FC<UserActionsProps> = ({
       
       <UserMenuDropdown 
         user={user}
-        onVerify={(userId, isVerified) => {}}
-        onRoleAction={(userId, role, action) => {}}
+        onVerify={onVerify}
+        onRoleAction={onRoleAction}
         isProcessing={isProcessing}
       />
     </div>

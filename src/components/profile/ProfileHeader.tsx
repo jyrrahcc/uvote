@@ -5,14 +5,18 @@ import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 interface ProfileHeaderProps {
   isVerified: boolean;
   isPendingVerification: boolean;
+  isVoter: boolean;
 }
 
-const ProfileHeader = ({ isVerified, isPendingVerification }: ProfileHeaderProps) => {
+const ProfileHeader = ({ isVerified, isPendingVerification, isVoter }: ProfileHeaderProps) => {
+  // Consider user verified if either the is_verified flag is true or they have voter role
+  const isEffectivelyVerified = isVerified || isVoter;
+  
   return (
     <>
       <h1 className="text-3xl font-bold text-center mb-8">Your DLSU-D Profile</h1>
       
-      {isPendingVerification && !isVerified && (
+      {isPendingVerification && !isEffectivelyVerified && (
         <Alert className="mb-6 border-amber-500 bg-amber-50 text-amber-800">
           <Clock className="h-4 w-4 text-amber-600" />
           <AlertTitle>Verification Pending</AlertTitle>
@@ -22,7 +26,7 @@ const ProfileHeader = ({ isVerified, isPendingVerification }: ProfileHeaderProps
         </Alert>
       )}
       
-      {!isPendingVerification && !isVerified && (
+      {!isPendingVerification && !isEffectivelyVerified && (
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Profile Verification Needed</AlertTitle>
@@ -33,7 +37,7 @@ const ProfileHeader = ({ isVerified, isPendingVerification }: ProfileHeaderProps
         </Alert>
       )}
 
-      {isVerified && (
+      {isEffectivelyVerified && (
         <Alert className="mb-6 border-green-500 bg-green-50 text-green-800">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertTitle>Profile Verified</AlertTitle>

@@ -37,9 +37,13 @@ const UserProfileDialog = ({
     return "U";
   };
 
+  // Check if user is verified based on either is_verified flag or voter role
+  const hasVoterRole = selectedUser.roles.includes('voter');
+  const isEffectivelyVerified = selectedUser.is_verified || hasVoterRole;
+
   const handleVerifyProfile = async () => {
-    console.log("Verifying profile", selectedUser.id, "Current status:", selectedUser.is_verified);
-    await onVerifyProfile(selectedUser.id, selectedUser.is_verified || false);
+    console.log("Verifying profile", selectedUser.id, "Current status:", isEffectivelyVerified);
+    await onVerifyProfile(selectedUser.id, isEffectivelyVerified);
   };
 
   return (
@@ -63,8 +67,8 @@ const UserProfileDialog = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            <Badge variant={selectedUser.is_verified ? "default" : "outline"}>
-              {selectedUser.is_verified ? "Verified" : "Not Verified"}
+            <Badge variant={isEffectivelyVerified ? "default" : "outline"}>
+              {isEffectivelyVerified ? "Verified" : "Not Verified"}
             </Badge>
             
             {selectedUser.roles.map((role) => (
@@ -97,7 +101,7 @@ const UserProfileDialog = ({
         </div>
         
         <div className="flex justify-between pt-4">
-          {!selectedUser.is_verified ? (
+          {!isEffectivelyVerified ? (
             <Button 
               onClick={handleVerifyProfile} 
               disabled={isProcessing}

@@ -15,13 +15,17 @@ interface UserListRowProps {
   isCurrentUser: boolean;
   isProcessing: boolean;
   onViewProfile: (user: UserProfile) => void;
+  onVerify: (userId: string, isVerified: boolean) => Promise<void>;
+  onRoleAction: (userId: string, role: string, action: 'add' | 'remove') => Promise<void>;
 }
 
 const UserListRow: React.FC<UserListRowProps> = ({
   user,
   isCurrentUser,
   isProcessing,
-  onViewProfile
+  onViewProfile,
+  onVerify,
+  onRoleAction
 }) => {
   const hasVoterRole = user.roles.includes('voter');
   
@@ -75,6 +79,8 @@ const UserListRow: React.FC<UserListRowProps> = ({
           isCurrentUser={isCurrentUser}
           isProcessing={isProcessing}
           onViewProfile={onViewProfile}
+          onVerify={onVerify}
+          onRoleAction={onRoleAction}
         />
       </TableCell>
     </TableRow>

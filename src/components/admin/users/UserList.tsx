@@ -13,7 +13,8 @@ interface UserListProps {
   isProcessing: boolean;
   onSort: (column: string) => void;
   onViewProfile: (user: UserProfile) => void;
-  onToggleMenu: (userId: string) => void;
+  onVerify: (userId: string, isVerified: boolean) => Promise<void>;
+  onRoleAction: (userId: string, role: string, action: 'add' | 'remove') => Promise<void>;
 }
 
 const UserList = ({
@@ -24,7 +25,8 @@ const UserList = ({
   isProcessing,
   onSort,
   onViewProfile,
-  onToggleMenu
+  onVerify,
+  onRoleAction
 }: UserListProps) => {
   return (
     <div className="rounded-md border overflow-x-auto">
@@ -42,6 +44,8 @@ const UserList = ({
                 isCurrentUser={user.id === currentUserId}
                 isProcessing={isProcessing}
                 onViewProfile={onViewProfile}
+                onVerify={onVerify}
+                onRoleAction={onRoleAction}
               />
             ))
           ) : (

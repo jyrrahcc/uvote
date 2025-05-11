@@ -128,7 +128,8 @@ const UsersManagement = () => {
         setCurrentPage={setCurrentPage}
         onSort={handleSort}
         onViewProfile={openProfileDialog}
-        onToggleMenu={toggleUserMenu}
+        onVerify={handleVerifyProfileWithUpdate}
+        onRoleAction={handleToggleRoleWithUpdate}
       />
 
       <UserDialogs
