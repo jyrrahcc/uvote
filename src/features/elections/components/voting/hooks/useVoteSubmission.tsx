@@ -51,45 +51,44 @@ export const useVoteSubmission = ({
       setVoteLoading(true);
       console.log("Submitting votes:", data);
       
-      // Check if user has already voted
-      const { data: existingVote, error: checkError } = await supabase
+      // Check if user has already voted in this election
+      const { data: existingVotes, error: checkError } = await supabase
         .from('votes')
         .select('id')
         .eq('election_id', electionId)
-        .eq('user_id', userId)
-        .maybeSingle();
+        .eq('user_id', userId);
       
       if (checkError) {
         console.error("Error checking existing votes:", checkError);
         throw new Error("Failed to verify voting eligibility");
       }
       
-      // If user has already voted (any record exists with their user_id and election_id), don't allow another vote
-      if (existingVote) {
+      // If user has already voted in this election, don't allow another vote
+      if (existingVotes && existingVotes.length > 0) {
         toast.error("You have already voted in this election");
         return false;
       }
       
-      // Process each position vote separately
-      const votePromises = Object.entries(data).map(async ([position, candidateId]) => {
-        // For abstain votes, we still record the position but with null candidate_id
-        const voteRecord = {
-          election_id: electionId,
-          user_id: userId,
-          candidate_id: candidateId === "abstain" ? null : candidateId
-        };
-        
-        const { error } = await supabase
-          .from('votes')
-          .insert(voteRecord);
-            
-        if (error) {
-          console.error(`Error recording vote for ${position}:`, error);
-          throw new Error(`Failed to record your vote for ${position}`);
-        }
-      });
-      
       try {
+        // Process each position vote separately and submit all votes
+        const votePromises = Object.entries(data).map(async ([position, candidateId]) => {
+          // For abstain votes, we still record the position but with null candidate_id
+          const voteRecord = {
+            election_id: electionId,
+            user_id: userId,
+            candidate_id: candidateId === "abstain" ? null : candidateId
+          };
+          
+          const { error } = await supabase
+            .from('votes')
+            .insert(voteRecord);
+              
+          if (error) {
+            console.error(`Error recording vote for ${position}:`, error);
+            throw new Error(`Failed to record your vote for ${position}`);
+          }
+        });
+        
         // Wait for all votes to be processed
         await Promise.all(votePromises);
         

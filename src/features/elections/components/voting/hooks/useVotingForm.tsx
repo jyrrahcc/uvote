@@ -81,18 +81,18 @@ export const useVotingForm = ({
       
       try {
         const { supabase } = await import("@/integrations/supabase/client");
-        const { data: existingVote, error } = await supabase
+        const { data: existingVotes, error } = await supabase
           .from('votes')
           .select('*')
           .eq('election_id', electionId)
-          .eq('user_id', userId)
-          .maybeSingle();
+          .eq('user_id', userId);
         
         if (error) {
           console.error("Error checking existing vote:", error);
         }
         
-        console.log("Existing vote check:", existingVote);
+        const hasVoted = existingVotes && existingVotes.length > 0;
+        console.log("Existing vote check:", hasVoted ? "User has voted" : "User has not voted");
       } catch (error) {
         console.error("Error checking existing vote:", error);
       }
