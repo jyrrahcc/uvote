@@ -44,6 +44,20 @@ const Elections = () => {
       setLoading(true);
       setError(null);
       
+      // First, get user profile data to check eligibility
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+      
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      }
+      
+      const userProfile = profileData || { department: '', year_level: '', is_verified: false };
+      
+      // Then fetch all elections
       const { data, error } = await supabase
         .from('elections')
         .select('*')
@@ -55,13 +69,61 @@ const Elections = () => {
       
       const transformedElections = data?.map(mapDbElectionToElection) || [];
       
+      // For non-admin users, check if they're eligible for each election
+      if (!isAdmin) {
+        // Get eligible_voters records for this user
+        const { data: eligibleVotersData } = await supabase
+          .from('eligible_voters')
+          .select('election_id')
+          .eq('user_id', user?.id);
+        
+        const eligibleElectionIds = new Set(eligibleVotersData?.map(ev => ev.election_id) || []);
+        
+        // Filter elections based on eligibility
+        const eligibleElections = transformedElections.filter(election => {
+          // Public elections with no restrictions are accessible to all
+          if (!election.restrictVoting && !election.isPrivate) {
+            return true;
+          }
+          
+          // If user is explicitly added to eligible_voters
+          if (eligibleElectionIds.has(election.id)) {
+            return true;
+          }
+          
+          // If election restricts by department, check department match
+          const departmentMatch = election.departments?.includes(userProfile.department) || 
+                                 election.department === userProfile.department;
+          
+          // If election restricts by year level, check year level match
+          const yearLevelMatch = election.eligibleYearLevels?.includes(userProfile.year_level);
+          
+          if (election.restrictVoting) {
+            if (election.departments?.length && election.eligibleYearLevels?.length) {
+              return departmentMatch && yearLevelMatch;
+            } else if (election.departments?.length) {
+              return departmentMatch;
+            } else if (election.eligibleYearLevels?.length) {
+              return yearLevelMatch;
+            }
+          }
+          
+          // Default to showing the election if none of the above apply
+          return true;
+        });
+        
+        setElections(eligibleElections);
+      } else {
+        // Admins can see all elections
+        setElections(transformedElections);
+      }
+      
       // Extract unique departments for filtering
       const uniqueDepartments = Array.from(
         new Set(transformedElections.map(e => e.department).filter(Boolean))
       ) as string[];
       
       setDepartments(uniqueDepartments);
-      setElections(transformedElections);
     } catch (error) {
       console.error("Error fetching elections:", error);
       setError("Failed to load elections. Please try again.");
@@ -270,7 +332,12 @@ const Elections = () => {
           <div className="text-center py-12 border rounded-md">
             <p className="text-xl font-semibold">No elections found</p>
             <p className="text-muted-foreground mt-2">
-              {searchTerm || statusFilter || departmentFilter ? "Try adjusting your search or filters" : "No elections are available at this time"}
+              {searchTerm || statusFilter || departmentFilter ? 
+                "Try adjusting your search or filters" : 
+                isAdmin ? 
+                  "No elections are available at this time" : 
+                  "You are not eligible to participate in any active elections"
+              }
             </p>
             {(searchTerm || statusFilter || departmentFilter) && (
               <Button variant="outline" className="mt-4" onClick={() => { setSearchTerm(""); setStatusFilter(null); setDepartmentFilter(null); }}>

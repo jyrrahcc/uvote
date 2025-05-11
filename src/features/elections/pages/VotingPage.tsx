@@ -1,182 +1,217 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "@/features/auth/context/AuthContext";
-import { toast } from "sonner";
-import { University } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { useRole } from "@/features/auth/context/RoleContext";
+import { Candidate, Election } from "@/types";
+import { toast } from "sonner";
 
-// Import components and hooks
-import { useElection } from "../hooks/useElection";
+// Import custom components
 import ElectionHeader from "../components/ElectionHeader";
+import CandidatesList from "../components/candidates/CandidatesList";
 import VotingForm from "../components/VotingForm";
-import PrivateElectionAccess from "../components/voting/PrivateElectionAccess";
-import ElectionLoading from "../components/voting/ElectionLoading";
+import PrivateElectionAccess from "../components/PrivateElectionAccess";
+import ElectionLoading from "../components/ElectionLoading";
 import VoterAccessRestriction from "../components/voting/VoterAccessRestriction";
-import VotingInstructions from "../components/voting/VotingInstructions";
-import VoteConfirmation from "../components/voting/VoteConfirmation";
 
-/**
- * Voting page component displays election details and allows voting
- */
 const VotingPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useRole();
   
-  const [canVoteInElection, setCanVoteInElection] = useState<boolean | null>(null);
-  const [userHasVoted, setUserHasVoted] = useState(false);
+  const [election, setElection] = useState<Election | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const [isAccessVerified, setIsAccessVerified] = useState(false);
+  const [isEligible, setIsEligible] = useState<boolean | null>(null);
   
-  const {
-    election,
-    candidates,
-    loading,
-    hasVoted,
-    selectedCandidate,
-    setSelectedCandidate,
-    setHasVoted,
-    accessCodeVerified,
-    setAccessCodeVerified
-  } = useElection(electionId);
-
-  // Check if user has already voted
   useEffect(() => {
-    const checkIfUserHasVoted = async () => {
-      if (!user || !electionId) return;
-      
+    if (!electionId) {
+      setError("Election ID is missing");
+      setLoading(false);
+      return;
+    }
+    
+    const fetchElection = async () => {
       try {
-        const { data, error } = await supabase
-          .from('votes')
-          .select('id')
-          .eq('election_id', electionId)
-          .eq('user_id', user.id)
-          .is('position', null) // Look for the marker record
-          .maybeSingle();
-          
-        if (error) throw error;
+        setLoading(true);
+        setError(null);
         
-        const hasAlreadyVoted = !!data;
-        console.log("User has already voted:", hasAlreadyVoted);
-        setUserHasVoted(hasAlreadyVoted);
-        setHasVoted(hasAlreadyVoted);
-      } catch (error) {
-        console.error("Error checking if user has voted:", error);
+        const { data: electionData, error: electionError } = await supabase
+          .from('elections')
+          .select('*')
+          .eq('id', electionId)
+          .single();
+        
+        if (electionError) {
+          throw electionError;
+        }
+        
+        if (!electionData) {
+          setError("Election not found");
+          return;
+        }
+        
+        // Map the database election object to the app's Election type
+        const { mapDbElectionToElection } = await import("@/types");
+        const election = mapDbElectionToElection.mapDbElectionToElection(electionData);
+        setElection(election);
+        
+        // Fetch candidates for the election
+        const { data: candidatesData, error: candidatesError } = await supabase
+          .from('candidates')
+          .select('*')
+          .eq('election_id', electionId);
+        
+        if (candidatesError) {
+          throw candidatesError;
+        }
+        
+        setCandidates(candidatesData || []);
+        
+        // Check if the user has already voted
+        if (user) {
+          const { data: voteData, error: voteError } = await supabase
+            .from('votes')
+            .select('*')
+            .eq('election_id', electionId)
+            .eq('user_id', user.id)
+            .single();
+          
+          if (voteError) {
+            throw voteError;
+          }
+          
+          if (voteData) {
+            setHasVoted(true);
+            setSelectedCandidateId(voteData.candidate_id);
+          }
+        }
+        
+      } catch (err: any) {
+        console.error("Error fetching election data:", err);
+        setError(err.message || "Failed to load election data");
+      } finally {
+        setLoading(false);
       }
     };
     
-    checkIfUserHasVoted();
-  }, [user, electionId, setHasVoted]);
-
-  // Check if user is eligible to vote in this election
+    fetchElection();
+  }, [electionId, user]);
+  
   useEffect(() => {
     const checkEligibility = async () => {
-      if (!user || !election || !election.restrictVoting) {
-        setCanVoteInElection(true);
-        return;
-      }
-
+      if (!user || !election) return;
+      
       try {
-        const { data, error } = await supabase
-          .from('eligible_voters')
-          .select('id')
-          .eq('election_id', electionId)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          throw error;
-        }
-
-        setCanVoteInElection(!!data);
+        // Get user profile data
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
         
-        if (!data) {
-          toast.error("You are not eligible to vote in this election");
+        const userProfile = profileData || { department: '', year_level: '', is_verified: false };
+        
+        // Check if user is explicitly added to eligible_voters
+        const { data: eligibleVotersData } = await supabase
+          .from('eligible_voters')
+          .select('*')
+          .eq('election_id', electionId)
+          .eq('user_id', user.id);
+        
+        const isExplicitlyEligible = eligibleVotersData && eligibleVotersData.length > 0;
+        
+        // If election has no restrictions or user is an admin, they are eligible
+        if (!election.restrictVoting || isAdmin) {
+          setIsEligible(true);
+          return;
+        }
+        
+        // If user is explicitly added to eligible_voters
+        if (isExplicitlyEligible) {
+          setIsEligible(true);
+          return;
+        }
+        
+        // Check department and year level eligibility
+        const departmentMatch = election.departments?.includes(userProfile.department) || 
+                               election.department === userProfile.department;
+        const yearLevelMatch = election.eligibleYearLevels?.includes(userProfile.year_level);
+        
+        if (election.departments?.length && election.eligibleYearLevels?.length) {
+          setIsEligible(departmentMatch && yearLevelMatch);
+        } else if (election.departments?.length) {
+          setIsEligible(departmentMatch);
+        } else if (election.eligibleYearLevels?.length) {
+          setIsEligible(yearLevelMatch);
+        } else {
+          setIsEligible(true); // Default to eligible if no specific restrictions
         }
       } catch (error) {
-        console.error("Error checking voting eligibility:", error);
-        toast.error("Failed to verify your voting eligibility");
+        console.error("Error checking eligibility:", error);
+        setIsEligible(false); // Default to ineligible on error
       }
     };
-
-    if (election && user && election.restrictVoting) {
-      checkEligibility();
-    }
-  }, [electionId, user, election]);
-
-  // Check if election is in candidacy period
-  const isInCandidacyPeriod = () => {
-    if (!election || !election.candidacyStartDate || !election.candidacyEndDate) {
-      return false;
-    }
     
-    const now = new Date();
-    const candidacyStart = new Date(election.candidacyStartDate);
-    const candidacyEnd = new Date(election.candidacyEndDate);
-    
-    return now >= candidacyStart && now <= candidacyEnd;
+    checkEligibility();
+  }, [user, election, electionId, isAdmin]);
+  
+  const handleAccessCodeValidation = (isValid: boolean) => {
+    setIsAccessVerified(isValid);
   };
-
-  // Handle the special case for private elections
-  if (election?.isPrivate && !accessCodeVerified) {
+  
+  const handleVoteCast = (candidateId: string) => {
+    setSelectedCandidateId(candidateId);
+    setHasVoted(true);
+    toast.success("Your vote has been cast successfully!");
+  };
+  
+  if (loading) {
+    return <ElectionLoading />;
+  }
+  
+  if (!election) {
+    return <div>Election not found</div>;
+  }
+  
+  if (isEligible === false) {
+    return <VoterAccessRestriction election={election} />;
+  }
+  
+  if (election.isPrivate && !isAccessVerified) {
     return (
       <PrivateElectionAccess
         election={election}
-        onVerify={(verified) => setAccessCodeVerified(verified)}
+        onValidateCode={handleAccessCodeValidation}
       />
     );
   }
 
-  // Handle Loading State
-  if (loading) {
-    return <ElectionLoading />;
-  }
-
-  if (!election) {
-    toast.error("Election not found");
-    navigate('/elections');
-    return null;
-  }
-
-  // Check if user is allowed to vote (if voting is restricted)
-  if (election.restrictVoting && canVoteInElection === false) {
-    return <VoterAccessRestriction election={election} />;
-  }
-
   return (
     <div className="container mx-auto py-12 px-4">
-      <div className="flex items-center mb-6">
-        <University className="h-7 w-7 mr-2 text-[#008f50]" />
-        <h1 className="text-2xl font-bold">{election.department || "University-wide"} Election</h1>
-      </div>
-      
       <ElectionHeader election={election} />
       
-      <VotingInstructions 
-        election={election} 
-        isInCandidacyPeriod={isInCandidacyPeriod()} 
-        userHasVoted={userHasVoted} 
-      />
-      
-      {/* Voting Section */}
-      {election.status === 'active' && (
+      {candidates && candidates.length > 0 ? (
         <VotingForm 
-          electionId={election.id}
+          electionId={electionId}
           candidates={candidates}
           userId={user?.id || ''}
-          hasVoted={userHasVoted}
-          selectedCandidateId={selectedCandidate}
-          onSelect={(candidateId) => {
-            if (!userHasVoted) {
-              console.log("Setting selected candidate:", candidateId);
-              setSelectedCandidate(candidateId);
-              setHasVoted(true);
-              setUserHasVoted(true);
-            }
-          }}
+          hasVoted={hasVoted}
+          selectedCandidateId={selectedCandidateId}
+          onSelect={handleVoteCast}
         />
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-lg text-muted-foreground">
+            No candidates have been added to this election yet.
+          </p>
+        </div>
       )}
-      
-      {/* Already voted message */}
-      {election.status === 'active' && userHasVoted && <VoteConfirmation />}
     </div>
   );
 };
