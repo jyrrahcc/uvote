@@ -1,11 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import {
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -173,157 +167,149 @@ const CandidateApplicationForm = ({
   };
 
   return (
-    <DialogContent className="sm:max-w-[425px]">
-      <DialogHeader>
-        <DialogTitle>Candidate Application</DialogTitle>
-        <DialogDescription>
-          Apply to be a candidate for this election.
-        </DialogDescription>
-      </DialogHeader>
-      <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+    <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="name" className="text-right">
+          Name
+        </Label>
+        <Input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="col-span-3"
+          required
+        />
+      </div>
+      
+      {userProfile.student_id && (
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="name" className="text-right">
-            Name
+          <Label htmlFor="student_id" className="text-right">
+            Student ID
           </Label>
           <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="col-span-3"
-            required
+            id="student_id"
+            value={userProfile.student_id}
+            readOnly
+            className="col-span-3 bg-muted"
           />
         </div>
-        
-        {userProfile.student_id && (
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="student_id" className="text-right">
-              Student ID
-            </Label>
-            <Input
-              id="student_id"
-              value={userProfile.student_id}
-              readOnly
-              className="col-span-3 bg-muted"
-            />
-          </div>
-        )}
-        
-        {userProfile.department && (
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="department" className="text-right">
-              Department
-            </Label>
-            <Input
-              id="department"
-              value={userProfile.department}
-              readOnly
-              className="col-span-3 bg-muted"
-            />
-          </div>
-        )}
-        
-        {userProfile.year_level && (
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="year_level" className="text-right">
-              Year Level
-            </Label>
-            <Input
-              id="year_level"
-              value={userProfile.year_level}
-              readOnly
-              className="col-span-3 bg-muted"
-            />
-          </div>
-        )}
-        
+      )}
+      
+      {userProfile.department && (
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="position" className="text-right">
-            Position
+          <Label htmlFor="department" className="text-right">
+            Department
           </Label>
-          {availablePositions.length > 0 ? (
-            <div className="col-span-3">
-              <Select
-                value={position}
-                onValueChange={setPosition}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a position" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availablePositions.map((pos) => (
-                    <SelectItem key={pos} value={pos}>
-                      {pos}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <Input
-              id="position"
+          <Input
+            id="department"
+            value={userProfile.department}
+            readOnly
+            className="col-span-3 bg-muted"
+          />
+        </div>
+      )}
+      
+      {userProfile.year_level && (
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="year_level" className="text-right">
+            Year Level
+          </Label>
+          <Input
+            id="year_level"
+            value={userProfile.year_level}
+            readOnly
+            className="col-span-3 bg-muted"
+          />
+        </div>
+      )}
+      
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="position" className="text-right">
+          Position
+        </Label>
+        {availablePositions.length > 0 ? (
+          <div className="col-span-3">
+            <Select
               value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              className="col-span-3"
-              placeholder="Enter position"
+              onValueChange={setPosition}
               required
-            />
-          )}
-        </div>
-        
-        <div className="grid grid-cols-4 items-start gap-4">
-          <Label htmlFor="bio" className="text-right mt-2">
-            Bio
-          </Label>
-          <Textarea
-            id="bio"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a position" />
+              </SelectTrigger>
+              <SelectContent>
+                {availablePositions.map((pos) => (
+                  <SelectItem key={pos} value={pos}>
+                    {pos}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <Input
+            id="position"
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
             className="col-span-3"
-            placeholder="Write a short description about yourself and your platform (minimum 10 characters)"
-            rows={4}
+            placeholder="Enter position"
             required
           />
-        </div>
-        
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="image" className="text-right">
-            Image
-          </Label>
-          <Input
-            type="file"
-            id="image"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="col-span-3"
-          />
-          {imageUploading && <p className="col-span-4 text-center text-sm text-muted-foreground">Uploading image...</p>}
-          {imageUrl && (
-            <div className="col-span-3 col-start-2 mt-2">
-              <img
-                src={imageUrl}
-                alt="Uploaded"
-                className="w-full h-auto rounded-md"
-              />
-            </div>
+        )}
+      </div>
+      
+      <div className="grid grid-cols-4 items-start gap-4">
+        <Label htmlFor="bio" className="text-right mt-2">
+          Bio
+        </Label>
+        <Textarea
+          id="bio"
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          className="col-span-3"
+          placeholder="Write a short description about yourself and your platform (minimum 10 characters)"
+          rows={4}
+          required
+        />
+      </div>
+      
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="image" className="text-right">
+          Image
+        </Label>
+        <Input
+          type="file"
+          id="image"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="col-span-3"
+        />
+        {imageUploading && <p className="col-span-4 text-center text-sm text-muted-foreground">Uploading image...</p>}
+        {imageUrl && (
+          <div className="col-span-3 col-start-2 mt-2">
+            <img
+              src={imageUrl}
+              alt="Uploaded"
+              className="w-full h-auto rounded-md"
+            />
+          </div>
+        )}
+      </div>
+      
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || imageUploading}>
+          {submitting ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <FileImage className="h-4 w-4 mr-2" />
           )}
-        </div>
-        
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || imageUploading}>
-            {submitting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <FileImage className="h-4 w-4 mr-2" />
-            )}
-            Submit Application
-          </Button>
-        </div>
-      </form>
-    </DialogContent>
+          Submit Application
+        </Button>
+      </div>
+    </form>
   );
 };
 

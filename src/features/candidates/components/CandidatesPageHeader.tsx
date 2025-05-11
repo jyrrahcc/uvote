@@ -186,7 +186,6 @@ const CandidatesPageHeader = ({
             <CandidateApplicationForm 
               electionId={electionId}
               userId={userId || ''}
-              open={isDialogOpen}
               onClose={() => setIsDialogOpen(false)}
               onApplicationSubmitted={handleApplicationSubmitted}
             />

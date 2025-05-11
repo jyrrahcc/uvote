@@ -51,14 +51,21 @@ const CandidateRegistrationDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {isAdmin ? (
-        <CandidateRegistrationForm
-          electionId={electionId}
-          userId={userId}
-          onSuccess={onCandidateAdded}
-          onCancel={handleClose}
-        />
-      ) : userHasRegistered ? (
+      {isAdmin && (
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Register as Candidate</DialogTitle>
+          </DialogHeader>
+          <CandidateRegistrationForm
+            electionId={electionId}
+            userId={userId}
+            onSuccess={onCandidateAdded}
+            onClose={handleClose}
+          />
+        </DialogContent>
+      )}
+      
+      {!isAdmin && userHasRegistered && (
         <DialogContent>
           <Alert variant="default" className="mx-auto">
             <AlertTriangle className="h-4 w-4" />
@@ -67,7 +74,9 @@ const CandidateRegistrationDialog = ({
             </AlertDescription>
           </Alert>
         </DialogContent>
-      ) : userHasApplied ? (
+      )}
+      
+      {!isAdmin && userHasApplied && (
         <DialogContent>
           <Alert variant="default" className="mx-auto">
             <AlertTriangle className="h-4 w-4" />
@@ -76,7 +85,9 @@ const CandidateRegistrationDialog = ({
             </AlertDescription>
           </Alert>
         </DialogContent>
-      ) : !isUserEligible ? (
+      )}
+      
+      {!isAdmin && !isUserEligible && (
         <DialogContent>
           <Alert variant="destructive" className="mx-auto">
             <AlertTriangle className="h-4 w-4" />
@@ -85,14 +96,21 @@ const CandidateRegistrationDialog = ({
             </AlertDescription>
           </Alert>
         </DialogContent>
-      ) : (
-        <CandidateApplicationForm
-          electionId={electionId}
-          userId={userId}
-          onClose={handleClose}
-          onCancel={handleClose}
-          onApplicationSubmitted={onApplicationSubmitted}
-        />
+      )}
+      
+      {!isAdmin && !userHasRegistered && !userHasApplied && isUserEligible && (
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Apply as Candidate</DialogTitle>
+          </DialogHeader>
+          <CandidateApplicationForm
+            electionId={electionId}
+            userId={userId}
+            onClose={handleClose}
+            onCancel={handleClose}
+            onApplicationSubmitted={onApplicationSubmitted}
+          />
+        </DialogContent>
       )}
     </Dialog>
   );

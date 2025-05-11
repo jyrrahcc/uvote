@@ -2,10 +2,6 @@
 import { useState, useEffect } from "react";
 import { 
   Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
   DialogTrigger 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -77,24 +73,10 @@ const ApplyAsCandidateDialog = ({
   }
   
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Apply as Candidate
-        </Button>
-      </DialogTrigger>
-      
-      {isOpen && (
-        <CandidateApplicationForm
-          electionId={electionId}
-          userId={userId}
-          open={isOpen}
-          onClose={() => setIsOpen(false)}
-          onSuccess={handleSuccess}
-        />
-      )}
-    </Dialog>
+    <Button onClick={() => onApplicationSubmitted()}>
+      <Plus className="mr-2 h-4 w-4" />
+      Apply as Candidate
+    </Button>
   );
 };
 
