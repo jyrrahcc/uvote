@@ -49,7 +49,7 @@ const ElectionHeader = ({
       
       <div className="flex items-center gap-2">
         {/* File Candidacy button (only shown during candidacy period and for eligible voters) */}
-        {isCandidacyPeriodActive && userIsVoter && (
+        {isCandidacyPeriodActive && userIsVoter && isEligible && (
           <Button variant="outline" className="flex items-center gap-2" asChild>
             <Link to={`/elections/${election.id}/candidates`}>
               <FileText className="h-4 w-4" />
@@ -69,7 +69,7 @@ const ElectionHeader = ({
             ) : (
               canVote && (
                 <Button className="flex items-center gap-2" asChild>
-                  <Link to={`/elections/${election.id}/vote`}>
+                  <Link to={`/elections/${election.id}`}>
                     <Vote className="h-4 w-4" />
                     <span>Cast Your Vote</span>
                   </Link>

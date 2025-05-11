@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +11,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
 import CandidateApplicationForm from "./CandidateApplicationForm";
 import { toast } from "sonner";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 interface ElectionDetailsHeaderProps {
   election: Election | null;
@@ -20,10 +21,11 @@ interface ElectionDetailsHeaderProps {
 const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isAdmin } = useRole();
+  const { isAdmin, isVoter } = useRole();
   const [applicationFormOpen, setApplicationFormOpen] = useState(false);
   const [userHasApplied, setUserHasApplied] = useState(false);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [isEligible, setIsEligible] = useState<boolean>(true);
 
   // Check if candidacy period is active
   const isCandidacyPeriodActive = () => {
@@ -35,12 +37,39 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
     
     return now >= candidacyStart && now <= candidacyEnd;
   };
+  
+  // Check user eligibility
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!user || !election) return;
+      
+      try {
+        const { isEligible: eligible } = await checkUserEligibility(user.id, election);
+        setIsEligible(eligible);
+      } catch (error) {
+        console.error("Error checking eligibility:", error);
+        setIsEligible(false);
+      }
+    };
+    
+    checkEligibility();
+  }, [user, election]);
 
   const handleApplyAsCandidate = () => {
     if (!user) {
       toast.error("Please log in to apply as a candidate");
       // Redirect to login
       navigate("/login");
+      return;
+    }
+    
+    if (!isVoter) {
+      toast.error("You must be a verified voter to apply as a candidate");
+      return;
+    }
+    
+    if (!isEligible) {
+      toast.error("You are not eligible to apply as a candidate for this election");
       return;
     }
     
@@ -128,7 +157,7 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
           <p className="text-muted-foreground">{election.description}</p>
         </div>
         
-        {!isAdmin && isCandidacyPeriodActive() && !userHasApplied && (
+        {!isAdmin && isCandidacyPeriodActive() && !userHasApplied && isVoter && isEligible && (
           <Button 
             className="mt-4 md:mt-0 bg-[#008f50] hover:bg-[#007a45]"
             onClick={handleApplyAsCandidate}
@@ -204,6 +233,16 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
             <p className="text-sm text-amber-700">
               Apply as a candidate from {format(new Date(election.candidacyStartDate!), 'MMM d, yyyy')} to {format(new Date(election.candidacyEndDate!), 'MMM d, yyyy')}
             </p>
+            {!isVoter && (
+              <p className="text-sm text-amber-700 mt-1 font-medium">
+                Note: You must be a verified voter to apply as a candidate.
+              </p>
+            )}
+            {!isEligible && isVoter && (
+              <p className="text-sm text-amber-700 mt-1 font-medium">
+                Note: You are not eligible to apply for this election based on department or year level requirements.
+              </p>
+            )}
           </div>
         </div>
       )}
