@@ -55,7 +55,7 @@ const ElectionHeader = ({ election, hasVoted, isVoter }: ElectionHeaderProps) =>
             ) : (
               isVoter && (
                 <Button className="flex items-center gap-2" asChild>
-                  <Link to={`/elections/${election.id}/vote`}>
+                  <Link to={`/elections/${election.id}`}>
                     <Vote className="h-4 w-4" />
                     <span>Cast Your Vote</span>
                   </Link>
