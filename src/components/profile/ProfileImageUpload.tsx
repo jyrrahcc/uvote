@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Camera, User } from "lucide-react";
@@ -10,13 +9,22 @@ import { DlsudProfile } from "@/types";
 interface ProfileImageUploadProps {
   profile: DlsudProfile | null;
   onImageUpdate: (imageUrl: string) => void;
+  isVerified?: boolean;
 }
 
-const ProfileImageUpload = ({ profile, onImageUpdate }: ProfileImageUploadProps) => {
+const ProfileImageUpload = ({ profile, onImageUpdate, isVerified = false }: ProfileImageUploadProps) => {
   const [uploading, setUploading] = useState(false);
 
   const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
+      // Prevent upload if profile is verified
+      if (isVerified) {
+        toast.info("Profile is verified and image cannot be changed", {
+          description: "Contact an administrator if you need to update your profile image."
+        });
+        return;
+      }
+      
       setUploading(true);
       
       if (!event.target.files || event.target.files.length === 0) {
@@ -103,13 +111,15 @@ const ProfileImageUpload = ({ profile, onImageUpdate }: ProfileImageUploadProps)
           </AvatarFallback>
         </Avatar>
         
-        <label 
-          htmlFor="profile-image-upload"
-          className="absolute bottom-0 right-0 rounded-full bg-primary p-1 cursor-pointer shadow-sm hover:bg-primary/90 transition-colors"
-        >
-          <Camera className="h-4 w-4 text-white" />
-          <span className="sr-only">Upload profile picture</span>
-        </label>
+        {!isVerified && (
+          <label 
+            htmlFor="profile-image-upload"
+            className="absolute bottom-0 right-0 rounded-full bg-primary p-1 cursor-pointer shadow-sm hover:bg-primary/90 transition-colors"
+          >
+            <Camera className="h-4 w-4 text-white" />
+            <span className="sr-only">Upload profile picture</span>
+          </label>
+        )}
         
         <input 
           id="profile-image-upload"
@@ -117,7 +127,7 @@ const ProfileImageUpload = ({ profile, onImageUpdate }: ProfileImageUploadProps)
           accept="image/*"
           className="hidden"
           onChange={uploadImage}
-          disabled={uploading}
+          disabled={uploading || isVerified}
         />
       </div>
       

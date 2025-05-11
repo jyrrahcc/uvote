@@ -160,6 +160,9 @@ const Profile = () => {
     );
   }
 
+  // Determine if the profile is verified (either by is_verified flag or voter role)
+  const effectivelyVerified = isVerified || isVoter;
+
   return (
     <PageLayout>
       <div className="container mx-auto py-12 px-4">
@@ -175,9 +178,14 @@ const Profile = () => {
               <ProfileImageUpload 
                 profile={profile}
                 onImageUpdate={handleImageUpdate}
+                isVerified={effectivelyVerified}
               />
               <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your DLSU-D student details</CardDescription>
+              <CardDescription>
+                {effectivelyVerified 
+                  ? "Your verified DLSU-D student details" 
+                  : "Update your DLSU-D student details"}
+              </CardDescription>
             </CardHeader>
             
             <ProfileForm
@@ -192,7 +200,7 @@ const Profile = () => {
               setDepartment={setDepartment}
               yearLevel={yearLevel}
               setYearLevel={setYearLevel}
-              isVerified={isVerified || isVoter} // Consider verified if user has voter role
+              isVerified={effectivelyVerified} // Consider verified if user has voter role
               isPendingVerification={isPendingVerification}
               setIsPendingVerification={setIsPendingVerification}
               onSignOut={handleSignOut}

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { DlsudProfile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, Clock, InfoIcon } from "lucide-react";
+import { CheckCircle2, Clock, InfoIcon, LockIcon } from "lucide-react";
 
 // Constants
 const DLSU_DEPARTMENTS = [
@@ -66,6 +66,14 @@ const ProfileForm = ({
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Prevent updates if the profile is verified
+    if (isVerified) {
+      toast.info("Profile is verified and cannot be edited", {
+        description: "Contact an administrator if you need to update your information."
+      });
+      return;
+    }
+
     if (!profile) return;
 
     setIsSaving(true);
@@ -124,6 +132,18 @@ const ProfileForm = ({
   return (
     <form onSubmit={handleUpdateProfile}>
       <CardContent className="space-y-4">
+        {isVerified && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+            <div className="flex items-center space-x-2">
+              <LockIcon className="h-4 w-4 text-blue-500" />
+              <span className="text-blue-700 font-medium">Profile is verified and locked</span>
+            </div>
+            <p className="text-sm text-blue-600 mt-1">
+              Your profile has been verified and cannot be edited. Contact an administrator if you need to make changes.
+            </p>
+          </div>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -142,6 +162,7 @@ const ProfileForm = ({
             id="firstName"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
+            disabled={isVerified}
             required
           />
         </div>
@@ -151,6 +172,7 @@ const ProfileForm = ({
             id="lastName"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
+            disabled={isVerified}
             required
           />
         </div>
@@ -161,6 +183,7 @@ const ProfileForm = ({
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
             placeholder="e.g., 2018-00123-ST-0"
+            disabled={isVerified}
             required
           />
           <p className="text-xs text-muted-foreground">
@@ -172,6 +195,7 @@ const ProfileForm = ({
           <Select
             value={department}
             onValueChange={setDepartment}
+            disabled={isVerified}
             required
           >
             <SelectTrigger id="department">
@@ -192,6 +216,7 @@ const ProfileForm = ({
           <Select
             value={yearLevel}
             onValueChange={setYearLevel}
+            disabled={isVerified}
             required
           >
             <SelectTrigger id="yearLevel">
@@ -251,7 +276,7 @@ const ProfileForm = ({
         <Button 
           type="submit" 
           className="w-full bg-[#008f50] hover:bg-[#007a45]" 
-          disabled={isSaving}
+          disabled={isSaving || isVerified}
         >
           {isSaving ? "Saving..." : "Save Changes"}
         </Button>
