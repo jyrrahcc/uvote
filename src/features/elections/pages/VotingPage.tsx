@@ -8,10 +8,9 @@ import { toast } from "sonner";
 
 // Import custom components
 import ElectionHeader from "../components/ElectionHeader";
-import CandidatesList from "../components/candidates/CandidatesList";
 import VotingForm from "../components/VotingForm";
-import PrivateElectionAccess from "../components/PrivateElectionAccess";
-import ElectionLoading from "../components/ElectionLoading";
+import PrivateElectionAccess from "../components/voting/PrivateElectionAccess";
+import ElectionLoading from "../components/voting/ElectionLoading";
 import VoterAccessRestriction from "../components/voting/VoterAccessRestriction";
 
 const VotingPage = () => {
@@ -187,7 +186,7 @@ const VotingPage = () => {
     return (
       <PrivateElectionAccess
         election={election}
-        onValidateCode={handleAccessCodeValidation}
+        onVerify={handleAccessCodeValidation}
       />
     );
   }
