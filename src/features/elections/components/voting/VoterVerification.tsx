@@ -26,7 +26,7 @@ const VoterVerification = ({ isVoter }: VoterVerificationProps) => {
         </div>
         <p className="text-center text-muted-foreground mb-4">
           Only verified users with voter privileges can cast votes in elections.
-          Please complete your profile and verify it first.
+          Please complete your profile and wait for an admin to verify your account.
         </p>
         
         <Button asChild variant="default">

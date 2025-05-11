@@ -89,12 +89,10 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
   const handleToggleRole = async (userId: string, role: string, action: 'add' | 'remove') => {
     if (isProcessing) return;
     
-    const hasRole = action === 'remove';
-    
     try {
       setIsProcessing(true);
       
-      if (hasRole) {
+      if (action === 'remove') {
         await removeRole(userId, role as "admin" | "voter");
       } else {
         await assignRole(userId, role as "admin" | "voter");
@@ -104,7 +102,7 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
       setUsers(prevUsers => prevUsers.map(user => {
         if (user.id === userId) {
           let updatedRoles = [...user.roles];
-          if (hasRole) {
+          if (action === 'remove') {
             updatedRoles = updatedRoles.filter(r => r !== role);
           } else if (!updatedRoles.includes(role)) {
             updatedRoles.push(role);
@@ -116,7 +114,7 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
             roles: updatedRoles 
           };
           
-          if (role === 'voter' && !hasRole) {
+          if (role === 'voter' && action === 'add') {
             updatedUser.is_verified = true;
           }
           
@@ -126,7 +124,7 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
       }));
       
       // If adding voter role, update profile verification status
-      if (role === 'voter' && !hasRole) {
+      if (role === 'voter' && action === 'add') {
         await supabase
           .from('profiles')
           .update({ is_verified: true })
@@ -134,7 +132,7 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
       }
       
       toast.success(
-        hasRole 
+        action === 'remove' 
           ? `Removed ${role} role successfully` 
           : `Assigned ${role} role successfully`
       );
