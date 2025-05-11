@@ -37,6 +37,7 @@ const ElectionTabsView = ({
       <TabsContent value="overview">
         <ElectionOverviewTab 
           election={election} 
+          candidates={candidates}
           positionVotes={positionVotes}
           formatDate={formatDate}
         />
