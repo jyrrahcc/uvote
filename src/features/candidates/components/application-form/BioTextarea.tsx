@@ -8,9 +8,17 @@ interface BioTextareaProps {
   bio: string;
   setBio: (bio: string) => void;
   validationError?: string;
+  placeholder?: string;
+  rows?: number;
 }
 
-const BioTextarea = ({ bio, setBio, validationError }: BioTextareaProps) => {
+const BioTextarea = ({ 
+  bio, 
+  setBio, 
+  validationError,
+  placeholder = "Write a short description about yourself and your platform (minimum 10 characters)",
+  rows = 4
+}: BioTextareaProps) => {
   return (
     <div className="grid grid-cols-4 items-start gap-4">
       <Label htmlFor="bio" className="text-right mt-2">
@@ -22,8 +30,8 @@ const BioTextarea = ({ bio, setBio, validationError }: BioTextareaProps) => {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           className={validationError ? "border-red-500" : ""}
-          placeholder="Write a short description about yourself and your platform (minimum 10 characters)"
-          rows={4}
+          placeholder={placeholder}
+          rows={rows}
           required
         />
         {validationError && (
