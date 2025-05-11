@@ -38,6 +38,9 @@ export const useVotingForm = ({
   // Get candidate groups by position
   const { positionGroups, positions } = useCandidateGroups(candidates);
   
+  // Filter out positions that have already been voted for
+  const remainingPositions = positions.filter(pos => !hasVotedPositions.includes(pos));
+  
   // Handle position navigation
   const { 
     currentPositionIndex,
@@ -47,7 +50,7 @@ export const useVotingForm = ({
     goToNextPosition,
     goToPreviousPosition
   } = usePositionNavigation({
-    positions,
+    positions: remainingPositions.length > 0 ? remainingPositions : positions,
     validateCurrentSelection: () => !!form.getValues()[currentPosition]
   });
   
@@ -81,6 +84,7 @@ export const useVotingForm = ({
       if (!userId || !electionId) return;
       
       try {
+        setIsCheckingEligibility(true);
         const { supabase } = await import("@/integrations/supabase/client");
         const { data: existingVotes, error } = await supabase
           .from('votes')
@@ -99,10 +103,10 @@ export const useVotingForm = ({
           console.log("Positions already voted for:", votedPositions);
           
           // Filter out positions that have already been voted for
-          const remainingPositions = positions.filter(pos => !votedPositions.includes(pos));
+          const remainingPositionsToVote = positions.filter(pos => !votedPositions.includes(pos));
           
           // If all positions have been voted for, show message
-          if (remainingPositions.length === 0) {
+          if (remainingPositionsToVote.length === 0) {
             console.log("User has voted for all positions");
             onVoteSubmitted("already-voted"); // Trigger the completed state
           }
@@ -112,6 +116,8 @@ export const useVotingForm = ({
         }
       } catch (error) {
         console.error("Error checking existing votes:", error);
+      } finally {
+        setIsCheckingEligibility(false);
       }
     };
     
@@ -125,8 +131,11 @@ export const useVotingForm = ({
       return;
     }
     
-    // Validate all positions have a selection
-    const validation = validateAllSelections(positions, data);
+    // Get only positions that haven't been voted for yet
+    const positionsToVoteFor = positions.filter(pos => !hasVotedPositions.includes(pos));
+    
+    // Validate selections for remaining positions
+    const validation = validateAllSelections(positionsToVoteFor, data);
     if (!validation.valid) {
       setValidationError(validation.errorMessage);
       return;
@@ -135,12 +144,12 @@ export const useVotingForm = ({
     console.log("Submitting votes with data:", data);
     
     // Submit votes to database
-    await submitVotes(data, positions);
+    await submitVotes(data, positionsToVoteFor.length > 0 ? positionsToVoteFor : positions);
   };
   
   return {
     form,
-    positions,
+    positions: remainingPositions.length > 0 ? remainingPositions : positions,
     currentPosition,
     currentPositionIndex,
     currentCandidates,

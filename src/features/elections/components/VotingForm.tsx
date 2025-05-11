@@ -46,6 +46,7 @@ const VotingForm = ({
     validationError,
     eligibilityError,
     isCheckingEligibility,
+    hasVotedPositions,
     handleVote,
     goToNextPosition,
     goToPreviousPosition,
@@ -120,6 +121,29 @@ const VotingForm = ({
             </AlertDescription>
           </Alert>
         </CardContent>
+      </Card>
+    );
+  }
+
+  // If no more positions to vote for, show thank you message
+  if (positions.length === 0) {
+    return (
+      <Card className="mb-6 shadow-lg border-green-100 transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+          <CardTitle className="flex items-center gap-2">
+            <Vote className="h-5 w-5" />
+            All Positions Voted
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6 text-center">
+          <div className="py-6">
+            <p className="text-lg font-medium text-green-600">You have successfully voted for all positions in this election.</p>
+            <p className="text-sm mt-2">Thank you for participating!</p>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <VoteSummary electionId={electionId} />
+        </CardFooter>
       </Card>
     );
   }

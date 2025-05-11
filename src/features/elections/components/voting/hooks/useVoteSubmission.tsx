@@ -51,7 +51,7 @@ export const useVoteSubmission = ({
       setVoteLoading(true);
       console.log("Submitting votes:", data);
       
-      // Check if user has already voted for any positions in this election
+      // Check for already voted positions in a single query
       const { data: existingVotes, error: checkError } = await supabase
         .from('votes')
         .select('position')
@@ -63,58 +63,61 @@ export const useVoteSubmission = ({
         throw new Error("Failed to verify voting eligibility");
       }
       
-      // If user has already voted for any positions, extract those positions
+      // Get positions that the user has already voted for
       const votedPositions = existingVotes ? existingVotes.map(vote => vote.position) : [];
       
+      // Filter out positions that have already been voted for
+      const positionsToVoteFor = Object.keys(data).filter(pos => !votedPositions.includes(pos));
+      
+      if (positionsToVoteFor.length === 0) {
+        toast.error("You have already voted for all positions in this election");
+        return false;
+      }
+      
+      // If there are positions already voted for, inform the user but continue with remaining positions
       if (votedPositions.length > 0) {
-        // Check if there's any overlap between voted positions and current positions
-        const positionsToVoteFor = Object.keys(data);
-        const alreadyVotedFor = positionsToVoteFor.filter(pos => votedPositions.includes(pos));
-        
-        if (alreadyVotedFor.length > 0) {
-          toast.error(`You have already voted for the following positions: ${alreadyVotedFor.join(', ')}`);
-          return false;
+        const alreadyVotedPositions = positions.filter(pos => votedPositions.includes(pos));
+        if (alreadyVotedPositions.length > 0) {
+          console.log(`Already voted for: ${alreadyVotedPositions.join(', ')}`);
+          toast.info(`Note: You've already voted for some positions. Only submitting votes for remaining positions.`);
         }
       }
       
-      try {
-        // Process each position vote separately and submit all votes
-        const votePromises = Object.entries(data).map(async ([position, candidateId]) => {
-          // For abstain votes, we still record the position but with null candidate_id
-          const voteRecord = {
-            election_id: electionId,
-            user_id: userId,
-            candidate_id: candidateId === "abstain" ? null : candidateId,
-            position: position // Include the position in the vote record
-          };
+      // Prepare all vote records at once for bulk insert
+      const voteRecords = positionsToVoteFor.map(position => ({
+        election_id: electionId,
+        user_id: userId,
+        candidate_id: data[position] === "abstain" ? null : data[position],
+        position: position
+      }));
+      
+      // Insert all votes in a single operation
+      if (voteRecords.length > 0) {
+        const { error: insertError } = await supabase
+          .from('votes')
+          .insert(voteRecords);
           
-          const { error } = await supabase
-            .from('votes')
-            .insert(voteRecord);
-              
-          if (error) {
-            console.error(`Error recording vote for ${position}:`, error);
-            throw new Error(`Failed to record your vote for ${position}`);
+        if (insertError) {
+          console.error("Error inserting votes:", insertError);
+          
+          // Check if it's a unique constraint violation
+          if (insertError.code === '23505') {
+            throw new Error("You have already voted for one or more of these positions");
+          } else {
+            throw new Error("Failed to record your votes");
           }
-        });
-        
-        // Wait for all votes to be processed
-        await Promise.all(votePromises);
-        
-        toast.success("Your votes have been recorded successfully", {
-          description: "Thank you for participating in this election"
-        });
-        
-        // Update parent component that user has voted
-        // Use non-abstain vote if available, otherwise use the first vote
-        const firstNonAbstainVote = Object.values(data).find(value => value !== "abstain") || Object.values(data)[0];
-        onVoteSubmitted(firstNonAbstainVote);
-        return true;
-      } catch (error) {
-        // If any vote fails, log the error
-        console.error("Error processing votes:", error);
-        throw error; // Re-throw to be caught by outer catch
+        }
       }
+      
+      toast.success("Your votes have been recorded successfully", {
+        description: "Thank you for participating in this election"
+      });
+      
+      // Use non-abstain vote if available, otherwise use the first vote
+      const firstNonAbstainVote = Object.values(data).find(value => value !== "abstain") || Object.values(data)[0];
+      onVoteSubmitted(firstNonAbstainVote);
+      return true;
+      
     } catch (error: any) {
       console.error("Error submitting votes:", error);
       toast.error(error.message || "Failed to submit your votes");
