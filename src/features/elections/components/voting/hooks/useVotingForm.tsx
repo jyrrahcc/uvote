@@ -94,11 +94,19 @@ export const useVotingForm = ({
           // Properly transform the DB election to application Election type
           const election = mapDbElectionToElection(electionData);
           
+          // If the election doesn't restrict voting by department or year level,
+          // we don't need to check eligibility further
+          if (!election.restrictVoting) {
+            setEligibilityError(null);
+            return;
+          }
+          
           // Use centralized eligibility checker
           const { isEligible, reason } = await checkUserEligibility(userId, election);
           
           if (!isEligible) {
             setEligibilityError(reason || "You are not eligible to vote in this election.");
+            console.log("Setting eligibility error:", reason);
           } else {
             setEligibilityError(null);
           }

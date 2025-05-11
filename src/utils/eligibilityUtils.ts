@@ -27,31 +27,27 @@ export async function checkUserEligibility(
       return { isEligible: false, reason: "Could not verify user profile" };
     }
 
-    // Check if user profile is verified
-    if (!profile.is_verified) {
-      return { 
-        isEligible: false, 
-        reason: "Your profile must be verified before you can participate in elections" 
-      };
+    // Check if user profile is verified - removing this check since it's redundant with role checks
+    // The RoleContext already verifies if the user has a voter role, which means they're verified
+    
+    // If the election doesn't restrict voting, user is eligible
+    if (!election.restrictVoting) {
+      return { isEligible: true, reason: null };
     }
     
     const userDepartment = profile.department || '';
     const userYearLevel = profile.year_level || '';
     
     // Department eligibility check
-    const isDepartmentEligible = election.restrictVoting 
-      ? election.departments?.length 
-        ? election.departments.includes(userDepartment) || 
-          election.departments.includes("University-wide")
-        : true
+    const isDepartmentEligible = election.departments?.length 
+      ? election.departments.includes(userDepartment) || 
+        election.departments.includes("University-wide")
       : true;
     
     // Year level eligibility check
-    const isYearLevelEligible = election.restrictVoting
-      ? election.eligibleYearLevels?.length
-        ? election.eligibleYearLevels.includes(userYearLevel) || 
-          election.eligibleYearLevels.includes("All Year Levels")
-        : true
+    const isYearLevelEligible = election.eligibleYearLevels?.length
+      ? election.eligibleYearLevels.includes(userYearLevel) || 
+        election.eligibleYearLevels.includes("All Year Levels")
       : true;
     
     // Build appropriate reason message if not eligible

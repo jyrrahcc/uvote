@@ -8,11 +8,11 @@ import { useCandidacyPeriod } from "@/features/candidates/components/election-he
 
 interface ElectionHeaderProps {
   election: Election;
-  hasVoted: boolean;
-  isVoter: boolean;
+  hasVoted?: boolean;
+  isVoter?: boolean;
 }
 
-const ElectionHeader = ({ election, hasVoted, isVoter }: ElectionHeaderProps) => {
+const ElectionHeader = ({ election, hasVoted = false, isVoter = false }: ElectionHeaderProps) => {
   const { isCandidacyPeriodActive } = useCandidacyPeriod(election);
   
   return (

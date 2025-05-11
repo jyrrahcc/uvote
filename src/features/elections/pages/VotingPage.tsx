@@ -9,12 +9,14 @@ import { toast } from "sonner";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 // Import custom components
-import ElectionHeader from "../components/ElectionHeader";
+import ElectionHeader from "../components/position-details/ElectionHeader";
 import VotingForm from "../components/VotingForm";
 import PrivateElectionAccess from "../components/voting/PrivateElectionAccess";
 import ElectionLoading from "../components/voting/ElectionLoading";
 import VoterAccessRestriction from "../components/voting/VoterAccessRestriction";
 import VoterVerification from "../components/voting/VoterVerification";
+import ElectionTitleSection from "../components/detail-page/ElectionTitleSection";
+import ElectionBanner from "../components/detail-page/ElectionBanner";
 
 const VotingPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
@@ -67,6 +69,7 @@ const VotingPage = () => {
         // Check eligibility immediately after getting election data
         if (user) {
           const eligibilityCheck = await checkUserEligibility(user.id, election);
+          console.log("Eligibility check result:", eligibilityCheck);
           setIsEligible(eligibilityCheck.isEligible);
           setEligibilityReason(eligibilityCheck.reason);
           
@@ -97,6 +100,7 @@ const VotingPage = () => {
             .select('*')
             .eq('election_id', electionId)
             .eq('user_id', user.id)
+            .is('position', null) // Check for the marker record
             .single();
           
           if (voteError) {
@@ -147,8 +151,8 @@ const VotingPage = () => {
     return <VoterVerification isVoter={isVoter} showToast={false} />;
   }
   
-  // Check election eligibility
-  if (isEligible === false && !isAdmin) {
+  // Check election eligibility - but only if election restricts voting
+  if (election.restrictVoting && isEligible === false && !isAdmin) {
     return (
       <VoterAccessRestriction 
         election={election} 
@@ -168,7 +172,11 @@ const VotingPage = () => {
 
   return (
     <div className="container mx-auto py-12 px-4">
-      <ElectionHeader election={election} />
+      <ElectionHeader election={election} hasVoted={hasVoted} isVoter={isVoter} />
+      
+      <ElectionTitleSection title={election.title} description={election.description} />
+      
+      <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
       
       {candidates && candidates.length > 0 ? (
         <VotingForm 
