@@ -3,6 +3,7 @@ import React from "react";
 import UserList from "@/components/admin/users/UserList";
 import UserTablePagination from "@/components/admin/users/UserTablePagination";
 import UserTableSizeSelector from "@/components/admin/users/UserTableSizeSelector";
+import ExportDataButton from "@/components/admin/users/ExportDataButton";
 import { UserProfile } from "@/components/admin/users/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -51,6 +52,10 @@ export const UsersTableContainer: React.FC<UsersTableContainerProps> = ({
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end mb-2">
+        <ExportDataButton users={users} />
+      </div>
+      
       <UserList
         users={users}
         currentUserId={currentUserId}
