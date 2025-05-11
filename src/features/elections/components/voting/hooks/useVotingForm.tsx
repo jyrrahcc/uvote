@@ -27,7 +27,7 @@ export const useVotingForm = ({
   userId,
   onVoteSubmitted
 }: UseVotingFormProps) => {
-  // Initialize form
+  // Initialize form with persistent storage
   const form = useForm<VotingSelections>({
     defaultValues: {},
   });
@@ -91,7 +91,14 @@ export const useVotingForm = ({
           return;
         }
         
-        // Get election details
+        // If user has voter role, they are considered eligible
+        if (isVoter) {
+          setEligibilityError(null);
+          setIsCheckingEligibility(false);
+          return;
+        }
+        
+        // Get election details for restricted voting checks
         const { data: electionData, error: electionError } = await supabase
           .from('elections')
           .select('*')
@@ -111,7 +118,7 @@ export const useVotingForm = ({
             return;
           }
           
-          // Use centralized eligibility checker
+          // Use centralized eligibility checker for restricted elections
           const { isEligible, reason } = await checkUserEligibility(userId, election);
           
           if (!isEligible) {
@@ -130,7 +137,30 @@ export const useVotingForm = ({
     };
     
     checkEligibility();
-  }, [electionId, userId, isAdmin]);
+  }, [electionId, userId, isAdmin, isVoter]);
+  
+  // Check if user has already voted
+  useEffect(() => {
+    const checkExistingVote = async () => {
+      if (!userId || !electionId) return;
+      
+      try {
+        const { data: existingVote } = await supabase
+          .from('votes')
+          .select('*')
+          .eq('election_id', electionId)
+          .eq('user_id', userId)
+          .is('position', null) // Check for the marker record
+          .maybeSingle();
+        
+        console.log("Existing vote check:", existingVote);
+      } catch (error) {
+        console.error("Error checking existing vote:", error);
+      }
+    };
+    
+    checkExistingVote();
+  }, [userId, electionId]);
   
   // Handle form submission
   const handleVote = async (data: VotingSelections) => {
@@ -152,6 +182,8 @@ export const useVotingForm = ({
       setValidationError(validation.errorMessage);
       return;
     }
+    
+    console.log("Submitting votes with data:", data);
     
     // Submit votes to database
     await submitVotes(data, positions);

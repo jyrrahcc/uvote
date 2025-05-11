@@ -29,6 +29,7 @@ const VotingForm = ({
   candidates, 
   userId, 
   hasVoted, 
+  selectedCandidateId,
   onSelect 
 }: VotingFormProps) => {
   const { isVoter } = useRole();
@@ -60,6 +61,15 @@ const VotingForm = ({
       onSelect(candidateId);
       setShowSummary(true);
     }
+  });
+
+  // Log the current state for debugging
+  console.log({
+    hasVoted,
+    showSummary,
+    isVoter,
+    eligibilityError,
+    selections
   });
 
   // If the user has already voted or just voted, show the results button

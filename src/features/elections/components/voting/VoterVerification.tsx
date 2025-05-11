@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { toast } from "sonner";
 
 interface VoterVerificationProps {
   isVoter?: boolean; // Make this prop optional
@@ -15,7 +16,17 @@ const VoterVerification = ({ showToast = false }: VoterVerificationProps) => {
   // Use the role context to get the current voter status
   const { isVoter } = useRole();
   
+  // If the user has the voter role, don't show the verification message
   if (isVoter) return null;
+  
+  // Show toast notification if requested
+  React.useEffect(() => {
+    if (showToast) {
+      toast.error("Verification required", {
+        description: "You need voter privileges to participate in this election."
+      });
+    }
+  }, [showToast]);
   
   return (
     <Card className="mb-6">

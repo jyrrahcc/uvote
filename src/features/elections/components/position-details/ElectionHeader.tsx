@@ -5,19 +5,19 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle, FileText, Vote } from "lucide-react";
 import { Election } from "@/types";
 import { useCandidacyPeriod } from "@/features/candidates/components/election-header/useCandidacyPeriod";
+import { useRole } from "@/features/auth/context/RoleContext";
 
 interface ElectionHeaderProps {
   election: Election;
   hasVoted?: boolean;
-  isVoter?: boolean;
 }
 
 const ElectionHeader = ({ 
   election, 
-  hasVoted = false, 
-  isVoter = false 
+  hasVoted = false
 }: ElectionHeaderProps) => {
   const { isCandidacyPeriodActive } = useCandidacyPeriod(election);
+  const { isVoter } = useRole();
   
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">

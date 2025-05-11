@@ -57,6 +57,7 @@ export const useVoteSubmission = ({
     
     try {
       setVoteLoading(true);
+      console.log("Submitting votes:", data);
       
       // Check if user has already voted
       const { data: existingVote, error: checkError } = await supabase
@@ -83,7 +84,7 @@ export const useVoteSubmission = ({
         .insert({
           election_id: electionId,
           user_id: userId,
-          candidate_id: null,
+          candidate_id: Object.values(data)[0] !== "abstain" ? Object.values(data)[0] : null,
           position: null
         });
       
@@ -121,7 +122,9 @@ export const useVoteSubmission = ({
         });
         
         // Update parent component that user has voted
-        onVoteSubmitted(Object.values(data)[0]);
+        // Use non-abstain vote if available, otherwise use the first vote
+        const firstNonAbstainVote = Object.values(data).find(value => value !== "abstain") || Object.values(data)[0];
+        onVoteSubmitted(firstNonAbstainVote);
         return true;
       } catch (error) {
         // If any vote fails, try to clean up the marker to allow user to try again

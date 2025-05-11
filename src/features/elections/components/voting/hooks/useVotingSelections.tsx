@@ -15,12 +15,14 @@ interface UseVotingSelectionsProps {
  * Custom hook to manage voting selections state
  */
 export const useVotingSelections = ({ form, currentPosition }: UseVotingSelectionsProps) => {
+  // Use React state to track all selections across positions
   const [selections, setSelections] = useState<VotingSelections>({});
   
-  // Track form value changes
+  // Track form value changes for the current position
   useEffect(() => {
     const subscription = form.watch((formValues) => {
       if (formValues[currentPosition]) {
+        // Only update state if the value changes
         setSelections(prev => ({
           ...prev,
           [currentPosition]: formValues[currentPosition] as string
@@ -31,12 +33,14 @@ export const useVotingSelections = ({ form, currentPosition }: UseVotingSelectio
     return () => subscription.unsubscribe();
   }, [form, currentPosition]);
   
-  // Initialize form with any saved selections
+  // Initialize form with any saved selections when changing positions
   useEffect(() => {
-    Object.entries(selections).forEach(([position, value]) => {
-      form.setValue(position, value);
-    });
-  }, []);
+    // Check if we have a saved selection for the current position
+    if (selections[currentPosition]) {
+      // Set the form value to the saved selection
+      form.setValue(currentPosition, selections[currentPosition]);
+    }
+  }, [currentPosition, form, selections]);
   
   // Add abstain option for the current position
   const handleAbstain = () => {

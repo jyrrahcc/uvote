@@ -15,7 +15,19 @@ export async function checkUserEligibility(
   }
   
   try {
-    // Get user profile
+    // First check if the user has the voter role
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+      
+    if (!roleError && userRole && userRole.role === 'voter') {
+      // User has voter role, so they're eligible regardless of other checks
+      return { isEligible: true, reason: null };
+    }
+    
+    // Get user profile for department and year level checks
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('department, year_level')
