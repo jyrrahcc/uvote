@@ -9,6 +9,7 @@ import { useVotingSelections, VotingSelections } from "./useVotingSelections";
 import { usePositionNavigation } from "./usePositionNavigation";
 import { useVoteSubmission } from "./useVoteSubmission";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { useRole } from "@/features/auth/context/RoleContext";
 
 interface UseVotingFormProps {
   electionId: string;
@@ -31,6 +32,7 @@ export const useVotingForm = ({
     defaultValues: {},
   });
   
+  const { isVoter, isAdmin } = useRole();
   const [eligibilityError, setEligibilityError] = useState<string | null>(null);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
   
@@ -80,7 +82,15 @@ export const useVotingForm = ({
     
     const checkEligibility = async () => {
       setIsCheckingEligibility(true);
+      
       try {
+        // Skip eligibility check if user is an admin
+        if (isAdmin) {
+          setEligibilityError(null);
+          setIsCheckingEligibility(false);
+          return;
+        }
+        
         // Get election details
         const { data: electionData, error: electionError } = await supabase
           .from('elections')
@@ -94,10 +104,10 @@ export const useVotingForm = ({
           // Properly transform the DB election to application Election type
           const election = mapDbElectionToElection(electionData);
           
-          // If the election doesn't restrict voting by department or year level,
-          // we don't need to check eligibility further
+          // If the election doesn't restrict voting, we don't need to check eligibility further
           if (!election.restrictVoting) {
             setEligibilityError(null);
+            setIsCheckingEligibility(false);
             return;
           }
           
@@ -120,11 +130,17 @@ export const useVotingForm = ({
     };
     
     checkEligibility();
-  }, [electionId, userId]);
+  }, [electionId, userId, isAdmin]);
   
   // Handle form submission
   const handleVote = async (data: VotingSelections) => {
-    // Check eligibility first
+    // Check if user has voter role
+    if (!isVoter) {
+      toast.error("You need voter privileges to vote");
+      return;
+    }
+    
+    // Check eligibility only if it's a restricted election
     if (eligibilityError) {
       toast.error("You are not eligible to vote in this election");
       return;
@@ -155,7 +171,7 @@ export const useVotingForm = ({
     goToNextPosition,
     goToPreviousPosition,
     handleAbstain,
-    hasCurrentSelection: hasCurrentSelection,
+    hasCurrentSelection,
     selections,
   };
 };

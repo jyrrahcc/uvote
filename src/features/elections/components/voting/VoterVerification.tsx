@@ -11,12 +11,9 @@ interface VoterVerificationProps {
   showToast?: boolean;
 }
 
-const VoterVerification = ({ isVoter: propsIsVoter, showToast = false }: VoterVerificationProps) => {
+const VoterVerification = ({ showToast = false }: VoterVerificationProps) => {
   // Use the role context to get the current voter status
-  const { isVoter: contextIsVoter } = useRole();
-  
-  // Use the prop value if provided, otherwise use the context value
-  const isVoter = propsIsVoter !== undefined ? propsIsVoter : contextIsVoter;
+  const { isVoter } = useRole();
   
   if (isVoter) return null;
   
@@ -25,7 +22,7 @@ const VoterVerification = ({ isVoter: propsIsVoter, showToast = false }: VoterVe
       <CardHeader>
         <CardTitle>Verification Required</CardTitle>
         <CardDescription>
-          You need to verify your profile to participate in elections.
+          You need voter privileges to participate in elections.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-8">
@@ -33,8 +30,8 @@ const VoterVerification = ({ isVoter: propsIsVoter, showToast = false }: VoterVe
           <AlertTriangle className="h-8 w-8 text-amber-600" />
         </div>
         <p className="text-center text-muted-foreground mb-4">
-          Only verified users with voter privileges can cast votes in elections.
-          Please complete your profile and wait for an admin to verify your account.
+          Only users with voter privileges can cast votes in elections.
+          Please complete your profile and wait for an admin to assign you the voter role.
         </p>
         
         <Button asChild variant="default">

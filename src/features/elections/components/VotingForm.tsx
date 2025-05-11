@@ -68,9 +68,8 @@ const VotingForm = ({
   }
 
   // Display voter verification UI if user doesn't have voter role
-  // Set showToast to false to prevent duplicate notifications
   if (!isVoter) {
-    return <VoterVerification isVoter={isVoter} showToast={false} />;
+    return <VoterVerification showToast={false} />;
   }
   
   // Show loading state while checking eligibility

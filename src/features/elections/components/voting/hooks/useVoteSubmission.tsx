@@ -49,8 +49,8 @@ export const useVoteSubmission = ({
     
     // Check if user has voter role first
     if (!isVoter) {
-      toast.error("You need to verify your profile to vote", {
-        description: "Only verified users with voter privileges can cast votes in elections."
+      toast.error("You need voter privileges to vote", {
+        description: "Only users with voter role can cast votes in elections."
       });
       return false;
     }

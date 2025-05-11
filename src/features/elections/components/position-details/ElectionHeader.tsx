@@ -12,7 +12,11 @@ interface ElectionHeaderProps {
   isVoter?: boolean;
 }
 
-const ElectionHeader = ({ election, hasVoted = false, isVoter = false }: ElectionHeaderProps) => {
+const ElectionHeader = ({ 
+  election, 
+  hasVoted = false, 
+  isVoter = false 
+}: ElectionHeaderProps) => {
   const { isCandidacyPeriodActive } = useCandidacyPeriod(election);
   
   return (

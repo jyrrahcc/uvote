@@ -18,7 +18,7 @@ export async function checkUserEligibility(
     // Get user profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('department, year_level, is_verified')
+      .select('department, year_level')
       .eq('id', userId)
       .single();
     
@@ -27,9 +27,6 @@ export async function checkUserEligibility(
       return { isEligible: false, reason: "Could not verify user profile" };
     }
 
-    // Check if user profile is verified - removing this check since it's redundant with role checks
-    // The RoleContext already verifies if the user has a voter role, which means they're verified
-    
     // If the election doesn't restrict voting, user is eligible
     if (!election.restrictVoting) {
       return { isEligible: true, reason: null };
