@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
 import { Election } from "@/types";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 export const hasUserAppliedForElection = async (electionId: string, userId: string): Promise<boolean> => {
   try {
@@ -37,34 +38,9 @@ export const fetchUserApplications = async (userId: string): Promise<CandidateAp
 
 export const checkUserEligibilityForElection = async (userId: string, election: Election): Promise<boolean> => {
   try {
-    // If election has no restrictions, everyone is eligible
-    if (!election.restrictVoting) {
-      return true;
-    }
-    
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('department, year_level')
-      .eq('id', userId)
-      .single();
-      
-    if (!profile) {
-      return false;
-    }
-    
-    // Check department eligibility
-    const isDepartmentEligible = election.departments?.length 
-      ? election.departments.includes(profile.department || '')
-      : true;
-    
-    // Check year level eligibility
-    const isYearLevelEligible = election.eligibleYearLevels?.length
-      ? election.eligibleYearLevels.includes(profile.year_level || '')
-      : true;
-    
-    // User is eligible if they match both department and year level criteria
-    return isDepartmentEligible && isYearLevelEligible;
+    // Use the centralized eligibility checker
+    const { isEligible } = await checkUserEligibility(userId, election);
+    return isEligible;
   } catch (error) {
     console.error("Error checking user eligibility:", error);
     return false;

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ export const useApplicationForm = ({
     department?: string;
     year_level?: string;
     student_id?: string;
+    is_verified?: boolean;
   }>({});
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isEligible, setIsEligible] = useState(true);
@@ -82,7 +84,7 @@ export const useApplicationForm = ({
         // Fetch user profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('first_name, last_name, department, year_level, student_id')
+          .select('first_name, last_name, department, year_level, student_id, is_verified')
           .eq('id', userId)
           .single();
           
@@ -93,6 +95,12 @@ export const useApplicationForm = ({
           // Pre-fill name from profile
           if (profileData.first_name && profileData.last_name) {
             setName(`${profileData.first_name} ${profileData.last_name}`);
+          }
+          
+          // Check if profile is verified
+          if (!profileData.is_verified) {
+            setIsEligible(false);
+            setValidationError("Your profile must be verified before you can apply as a candidate");
           }
         }
       } catch (error) {

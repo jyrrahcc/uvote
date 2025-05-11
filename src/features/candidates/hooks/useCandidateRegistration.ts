@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { createCandidate } from "../services/candidateService";
 import { CandidateFormData } from "../schemas/candidateFormSchema";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { canRegisterAsCandidate } from "@/utils/admin/roleUtils";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UseCandidateRegistrationProps {
   electionId: string;
@@ -28,11 +29,32 @@ export const useCandidateRegistration = ({
 
     try {
       // Check if user has voter role first
-      if (!canRegisterAsCandidate(isVoter)) {
+      if (!isVoter) {
+        toast.error("You must be a verified voter to register as a candidate", {
+          description: "Please verify your profile first"
+        });
         throw new Error("Profile verification required");
       }
       
       setLoading(true);
+      
+      // Get election details for eligibility check
+      const { data: electionData, error: electionError } = await supabase
+        .from('elections')
+        .select('*')
+        .eq('id', electionId)
+        .single();
+        
+      if (electionError) throw electionError;
+      
+      // Check eligibility based on department and year level
+      const eligibilityCheck = await checkUserEligibility(userId, electionData);
+      if (!eligibilityCheck.isEligible) {
+        toast.error("You are not eligible to register as a candidate", {
+          description: eligibilityCheck.reason || "You do not meet the department or year level requirements"
+        });
+        throw new Error("Not eligible for candidacy");
+      }
       
       // Create the candidate with the provided data
       const candidateData = {

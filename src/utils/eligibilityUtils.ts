@@ -14,16 +14,11 @@ export async function checkUserEligibility(
     return { isEligible: false, reason: "Missing user or election data" };
   }
   
-  // If election doesn't restrict voting, everyone is eligible
-  if (!election.restrictVoting) {
-    return { isEligible: true, reason: null };
-  }
-  
   try {
     // Get user profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('department, year_level')
+      .select('department, year_level, is_verified')
       .eq('id', userId)
       .single();
     
@@ -31,20 +26,32 @@ export async function checkUserEligibility(
       console.error("Error fetching user profile:", profileError);
       return { isEligible: false, reason: "Could not verify user profile" };
     }
+
+    // Check if user profile is verified
+    if (!profile.is_verified) {
+      return { 
+        isEligible: false, 
+        reason: "Your profile must be verified before you can participate in elections" 
+      };
+    }
     
     const userDepartment = profile.department || '';
     const userYearLevel = profile.year_level || '';
     
     // Department eligibility check
-    const isDepartmentEligible = election.departments?.length 
-      ? election.departments.includes(userDepartment) || 
-        election.departments.includes("University-wide")
+    const isDepartmentEligible = election.restrictVoting 
+      ? election.departments?.length 
+        ? election.departments.includes(userDepartment) || 
+          election.departments.includes("University-wide")
+        : true
       : true;
     
     // Year level eligibility check
-    const isYearLevelEligible = election.eligibleYearLevels?.length
-      ? election.eligibleYearLevels.includes(userYearLevel) || 
-        election.eligibleYearLevels.includes("All Year Levels")
+    const isYearLevelEligible = election.restrictVoting
+      ? election.eligibleYearLevels?.length
+        ? election.eligibleYearLevels.includes(userYearLevel) || 
+          election.eligibleYearLevels.includes("All Year Levels")
+        : true
       : true;
     
     // Build appropriate reason message if not eligible
