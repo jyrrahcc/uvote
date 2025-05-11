@@ -82,7 +82,10 @@ const CandidateRegistrationDialog = ({
         <CandidateRegistrationForm
           electionId={electionId}
           userId={userId}
-          onSuccess={onCandidateAdded}
+          onSuccess={(candidate) => {
+            if (onCandidateAdded) onCandidateAdded(candidate);
+            setIsOpen(false);
+          }}
           onCancel={() => setIsOpen(false)}
           onClose={() => setIsOpen(false)}
         />
@@ -94,8 +97,14 @@ const CandidateRegistrationDialog = ({
       <CandidateApplicationForm
         electionId={electionId}
         userId={userId}
-        onSuccess={onCandidateAdded}
-        onApplicationSubmitted={onApplicationSubmitted}
+        onSuccess={() => {
+          if (onCandidateAdded) onCandidateAdded({});
+          setIsOpen(false);
+        }}
+        onApplicationSubmitted={() => {
+          if (onApplicationSubmitted) onApplicationSubmitted();
+          setIsOpen(false);
+        }}
         onCancel={() => setIsOpen(false)}
         onClose={() => setIsOpen(false)}
         isUserEligible={isUserEligible}

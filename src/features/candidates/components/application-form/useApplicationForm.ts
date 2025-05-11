@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
-import { Election } from "@/types";
+import { Election, mapDbElectionToElection } from "@/types";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 interface UseApplicationFormProps {
@@ -71,12 +71,14 @@ export const useApplicationForm = ({
         }
 
         if (electionData) {
-          setElection(electionData);
-          setAvailablePositions(electionData.positions || []);
+          // Use the mapper function to convert the DB election to the application Election type
+          const mappedElection = mapDbElectionToElection(electionData);
+          setElection(mappedElection);
+          setAvailablePositions(mappedElection.positions || []);
           
           // Check eligibility if not provided externally
           if (initialEligibility === undefined) {
-            const eligibilityResult = await checkUserEligibility(userId, electionData);
+            const eligibilityResult = await checkUserEligibility(userId, mappedElection);
             setIsEligible(eligibilityResult.isEligible);
             setEligibilityReason(eligibilityResult.reason);
           }
