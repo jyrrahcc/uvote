@@ -43,6 +43,7 @@ export interface ElectionResult {
   candidates: {
     id: string;
     name: string;
+    position?: string;
     votes: number;
     percentage: number;
   }[];
@@ -50,6 +51,7 @@ export interface ElectionResult {
   winner: {
     id: string;
     name: string;
+    position?: string;
     votes: number;
     percentage: number;
   } | null;

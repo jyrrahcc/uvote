@@ -8,6 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, ExternalLink } from "lucide-react";
 
+interface VoteCandidate {
+  position: string;
+  candidateName: string;
+  candidateId: string | null;
+}
+
 interface MyVote {
   id: string;
   timestamp: string;
@@ -16,8 +22,7 @@ interface MyVote {
     title: string;
     status: string;
   };
-  candidateName: string;
-  candidateId: string | null;
+  candidates: VoteCandidate[];
 }
 
 const MyVotes = () => {
@@ -48,25 +53,29 @@ const MyVotes = () => {
       
       if (votesError) throw votesError;
       
-      // For each vote, get one candidate to display (preferably not an abstain)
+      // For each vote, get all candidates they voted for, grouped by position
       const votesWithCandidates = await Promise.all(userVotes.map(async (vote) => {
-        // Get a candidate they voted for (first non-abstain one)
-        const { data: candidateVotes } = await supabase
+        // Get all candidates they voted for in this vote
+        const { data: candidateVotes, error: candidateVotesError } = await supabase
           .from('vote_candidates')
           .select(`
             candidate_id,
+            position,
             candidates (id, name)
           `)
           .eq('vote_id', vote.id)
-          .not('candidate_id', 'is', null)
-          .limit(1);
+          .order('position');
           
-        let candidateName = "Abstained";
-        let candidateId = null;
+        if (candidateVotesError) throw candidateVotesError;
         
-        if (candidateVotes && candidateVotes.length > 0 && candidateVotes[0].candidates) {
-          candidateName = candidateVotes[0].candidates.name;
-          candidateId = candidateVotes[0].candidate_id;
+        let voteCandidates: VoteCandidate[] = [];
+        
+        if (candidateVotes && candidateVotes.length > 0) {
+          voteCandidates = candidateVotes.map(cv => ({
+            position: cv.position,
+            candidateName: cv.candidates ? cv.candidates.name : 'Abstained',
+            candidateId: cv.candidate_id
+          }));
         }
         
         return {
@@ -77,8 +86,7 @@ const MyVotes = () => {
             title: vote.elections.title,
             status: vote.elections.status
           },
-          candidateName,
-          candidateId
+          candidates: voteCandidates
         };
       }));
       
@@ -89,6 +97,20 @@ const MyVotes = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Group candidates by position
+  const groupCandidatesByPosition = (candidates: VoteCandidate[]) => {
+    const grouped: Record<string, VoteCandidate[]> = {};
+    
+    candidates.forEach(candidate => {
+      if (!grouped[candidate.position]) {
+        grouped[candidate.position] = [];
+      }
+      grouped[candidate.position].push(candidate);
+    });
+    
+    return grouped;
   };
 
   return (
@@ -105,40 +127,52 @@ const MyVotes = () => {
                 <CardTitle className="text-lg">{vote.election.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm">
-                      <Check className="h-4 w-4 mr-1 text-green-600" />
-                      <span>Voted for: <strong>{vote.candidateName}</strong></span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Voted on {new Date(vote.timestamp).toLocaleString()}
-                    </p>
+                <div className="mb-4">
+                  <p className="text-xs text-muted-foreground">
+                    Voted on {new Date(vote.timestamp).toLocaleString()}
+                  </p>
+                </div>
+                
+                {vote.candidates.length > 0 ? (
+                  <div className="space-y-4">
+                    {Object.entries(groupCandidatesByPosition(vote.candidates)).map(([position, candidates]) => (
+                      <div key={position} className="bg-muted/30 p-3 rounded-md">
+                        <h4 className="font-medium text-sm mb-2">{position}</h4>
+                        {candidates.map((candidate, idx) => (
+                          <div key={idx} className="flex items-center text-sm ml-2">
+                            <Check className="h-4 w-4 mr-1 text-green-600" />
+                            <span>{candidate.candidateId ? candidate.candidateName : 'Abstained'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
                   </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No candidate data available</div>
+                )}
+                
+                <div className="flex gap-2 mt-4 justify-end">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    asChild
+                  >
+                    <Link to={`/elections/${vote.election.id}`}>
+                      View Election
+                    </Link>
+                  </Button>
                   
-                  <div className="flex gap-2">
+                  {vote.election.status === 'completed' && (
                     <Button 
-                      variant="outline" 
                       size="sm" 
                       asChild
                     >
-                      <Link to={`/elections/${vote.election.id}`}>
-                        View Election
+                      <Link to={`/elections/${vote.election.id}/results`}>
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Results
                       </Link>
                     </Button>
-                    
-                    {vote.election.status === 'completed' && (
-                      <Button 
-                        size="sm" 
-                        asChild
-                      >
-                        <Link to={`/elections/${vote.election.id}/results`}>
-                          <ExternalLink className="h-4 w-4 mr-1" />
-                          Results
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

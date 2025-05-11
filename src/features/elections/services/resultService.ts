@@ -7,7 +7,7 @@ import { ElectionResult } from "@/types";
  */
 export const fetchElectionResults = async (electionId: string): Promise<ElectionResult> => {
   try {
-    // Get candidates with their vote counts
+    // Get candidates with their vote counts and positions
     const { data: candidates, error: candidatesError } = await supabase
       .from('candidates')
       .select('id, name, position')
@@ -15,7 +15,7 @@ export const fetchElectionResults = async (electionId: string): Promise<Election
     
     if (candidatesError) throw candidatesError;
     
-    // Get vote counts for each candidate from the new vote_candidates table
+    // Get vote counts for each candidate from the vote_candidates table
     const candidatesWithVotes = await Promise.all(candidates.map(async (candidate) => {
       const { count, error: countError } = await supabase
         .from('vote_candidates')
@@ -27,6 +27,7 @@ export const fetchElectionResults = async (electionId: string): Promise<Election
       return {
         id: candidate.id,
         name: candidate.name,
+        position: candidate.position,
         votes: count || 0,
         percentage: 0 // Will calculate this after we have total votes
       };
