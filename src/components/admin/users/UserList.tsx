@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { 
   Table, 
   TableBody, 
@@ -11,7 +10,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Shield, UserCheck, User, Info, Check, X, UserCog } from "lucide-react";
+import { ArrowUpDown, Shield, UserCheck, User, Info, Check, X } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { UserProfile } from "./types";
