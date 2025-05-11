@@ -15,6 +15,13 @@ const AbstainOption = ({ onAbstain }: AbstainOptionProps) => {
         <RadioGroupItem 
           value="abstain" 
           className="border-gray-400"
+          onClick={() => {
+            if (onAbstain) {
+              setTimeout(() => {
+                onAbstain();
+              }, 100);
+            }
+          }}
         />
       </FormControl>
       <FormLabel className="font-normal cursor-pointer flex items-center w-full">

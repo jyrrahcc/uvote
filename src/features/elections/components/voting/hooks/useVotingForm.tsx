@@ -160,6 +160,7 @@ export const useVotingForm = ({
         .select('id')
         .eq('election_id', electionId)
         .eq('user_id', userId)
+        .is('position', null) // Look for the marker record
         .maybeSingle();
       
       if (checkError) {
@@ -187,35 +188,47 @@ export const useVotingForm = ({
         throw new Error("Failed to record your participation");
       }
       
-      // Process each candidate vote separately
-      const votePromises = Object.entries(data)
-        .filter(([_, candidateId]) => candidateId !== "abstain") // Skip abstained positions
-        .map(async ([position, candidateId]) => {
-          const { error } = await supabase
-            .from('votes')
-            .insert({
-              election_id: electionId,
-              candidate_id: candidateId,
-              user_id: userId,
-              position: position
-            });
+      // Process each position vote separately
+      const votePromises = Object.entries(data).map(async ([position, candidateId]) => {
+        // For abstain votes, we still record the position but with null candidate_id
+        const voteRecord = {
+          election_id: electionId,
+          user_id: userId,
+          position: position,
+          candidate_id: candidateId === "abstain" ? null : candidateId
+        };
+        
+        const { error } = await supabase
+          .from('votes')
+          .insert(voteRecord);
             
-          if (error) {
-            console.error(`Error recording vote for ${position}:`, error);
-            throw new Error(`Failed to record your vote for ${position}`);
-          }
-        });
-      
-      // Wait for all votes to be processed
-      await Promise.all(votePromises);
-      
-      toast.success("Your votes have been recorded successfully", {
-        description: "Thank you for participating in this election"
+        if (error) {
+          console.error(`Error recording vote for ${position}:`, error);
+          throw new Error(`Failed to record your vote for ${position}`);
+        }
       });
       
-      // Update parent component that user has voted
-      onVoteSubmitted(Object.values(data)[0]);
-      
+      try {
+        // Wait for all votes to be processed
+        await Promise.all(votePromises);
+        
+        toast.success("Your votes have been recorded successfully", {
+          description: "Thank you for participating in this election"
+        });
+        
+        // Update parent component that user has voted
+        onVoteSubmitted(Object.values(data)[0]);
+      } catch (error) {
+        // If any vote fails, try to clean up the marker to allow user to try again
+        await supabase
+          .from('votes')
+          .delete()
+          .eq('election_id', electionId)
+          .eq('user_id', userId)
+          .is('position', null);
+          
+        throw error; // Re-throw to be caught by outer catch
+      }
     } catch (error: any) {
       console.error("Error submitting votes:", error);
       toast.error(error.message || "Failed to submit your votes");

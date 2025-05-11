@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -50,11 +49,13 @@ const VotingPage = () => {
           .select('id')
           .eq('election_id', electionId)
           .eq('user_id', user.id)
+          .is('position', null) // Look for the marker record
           .maybeSingle();
           
         if (error) throw error;
         
         const hasAlreadyVoted = !!data;
+        console.log("User has already voted:", hasAlreadyVoted);
         setUserHasVoted(hasAlreadyVoted);
         setHasVoted(hasAlreadyVoted);
       } catch (error) {
@@ -165,6 +166,7 @@ const VotingPage = () => {
           selectedCandidateId={selectedCandidate}
           onSelect={(candidateId) => {
             if (!userHasVoted) {
+              console.log("Setting selected candidate:", candidateId);
               setSelectedCandidate(candidateId);
               setHasVoted(true);
               setUserHasVoted(true);

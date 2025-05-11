@@ -57,6 +57,7 @@ const VotingForm = ({
     candidates, 
     userId,
     onVoteSubmitted: (candidateId) => {
+      console.log("Vote submitted successfully, updating UI");
       onSelect(candidateId);
       setShowSummary(true);
     }
@@ -94,6 +95,11 @@ const VotingForm = ({
     );
   }
 
+  const handleSubmit = form.handleSubmit((data) => {
+    console.log("Submitting vote with data:", data);
+    handleVote(data);
+  });
+
   return (
     <Card className="mb-6 shadow-lg border-green-100 transition-all duration-300">
       <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
@@ -107,7 +113,7 @@ const VotingForm = ({
       </CardHeader>
       <CardContent className="pt-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleVote)} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {positions.length > 0 ? (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -167,7 +173,7 @@ const VotingForm = ({
                   totalPositions={positions.length}
                   onPrevious={goToPreviousPosition}
                   onNext={goToNextPosition}
-                  onSubmit={() => form.handleSubmit(handleVote)()}
+                  onSubmit={() => handleSubmit()}
                   isLoading={voteLoading}
                   canProceed={hasCurrentSelection}
                 />
