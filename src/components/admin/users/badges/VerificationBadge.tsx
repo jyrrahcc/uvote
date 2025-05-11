@@ -5,10 +5,17 @@ import { Check, Info } from "lucide-react";
 
 interface VerificationBadgeProps {
   isVerified: boolean;
+  hasVoterRole?: boolean;
 }
 
-const VerificationBadge: React.FC<VerificationBadgeProps> = ({ isVerified }) => {
-  return isVerified ? (
+const VerificationBadge: React.FC<VerificationBadgeProps> = ({ 
+  isVerified,
+  hasVoterRole = false 
+}) => {
+  // If user has voter role, they're considered verified regardless of is_verified flag
+  const isEffectivelyVerified = isVerified || hasVoterRole;
+  
+  return isEffectivelyVerified ? (
     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
       <Check className="h-3 w-3 mr-1" />
       Verified

@@ -23,6 +23,8 @@ const UserListRow: React.FC<UserListRowProps> = ({
   isProcessing,
   onViewProfile
 }) => {
+  const hasVoterRole = user.roles.includes('voter');
+  
   return (
     <TableRow className={cn(
       isCurrentUser && "bg-muted/50"
@@ -62,7 +64,10 @@ const UserListRow: React.FC<UserListRowProps> = ({
         <RoleBadges roles={user.roles} />
       </TableCell>
       <TableCell>
-        <VerificationBadge isVerified={user.is_verified || false} />
+        <VerificationBadge 
+          isVerified={user.is_verified || false} 
+          hasVoterRole={hasVoterRole}
+        />
       </TableCell>
       <TableCell className="text-right">
         <UserActions 

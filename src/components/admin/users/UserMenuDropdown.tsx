@@ -32,9 +32,14 @@ const UserMenuDropdown = ({
   onRoleAction,
   isProcessing
 }: UserMenuDropdownProps) => {
+  const hasVoterRole = user.roles.includes('voter');
+  
+  // To maintain backward compatibility, we'll consider a user verified if either flag is true
+  const effectivelyVerified = user.is_verified || hasVoterRole;
+  
   const handleVerify = () => {
-    console.log("UserMenuDropdown - handleVerify:", user.id, user.is_verified);
-    onVerify(user.id, user.is_verified || false);
+    console.log("UserMenuDropdown - handleVerify:", user.id, effectivelyVerified);
+    onVerify(user.id, effectivelyVerified);
   };
   
   return (
@@ -53,7 +58,7 @@ const UserMenuDropdown = ({
         <DropdownMenuLabel>User Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {user.is_verified ? (
+        {effectivelyVerified ? (
           <DropdownMenuItem
             onClick={handleVerify}
             disabled={isProcessing}
@@ -92,7 +97,7 @@ const UserMenuDropdown = ({
           </DropdownMenuItem>
         )}
         
-        {user.roles.includes("voter") ? (
+        {hasVoterRole ? (
           <DropdownMenuItem
             onClick={() => onRoleAction(user.id, "voter", "remove")}
             disabled={isProcessing}
