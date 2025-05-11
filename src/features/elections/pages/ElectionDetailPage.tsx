@@ -43,9 +43,13 @@ const ElectionDetailPage = () => {
   // Check if the user is eligible to participate in this election
   useEffect(() => {
     const checkEligibility = async () => {
-      if (!user || !election || !election.restrictVoting) {
-        // If no user, no election, or the election doesn't restrict voting,
-        // then don't check eligibility
+      if (!user || !election) {
+        setIsEligible(true);
+        return;
+      }
+      
+      if (!election.restrictVoting) {
+        // If the election doesn't restrict voting, the user is eligible
         setIsEligible(true);
         return;
       }
@@ -90,7 +94,8 @@ const ElectionDetailPage = () => {
       <ElectionHeader 
         election={election} 
         hasVoted={hasVoted} 
-        isVoter={isVoter && isEligible} 
+        isVoter={isVoter}
+        isEligible={isEligible}
       />
       
       {/* Election title and description */}

@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import VoterEligibilityAlert from "../VoterEligibilityAlert";
 import ElectionBanner from "../detail-page/ElectionBanner";
 import ElectionTitleSection from "../detail-page/ElectionTitleSection";
+import ElectionHeader from "../position-details/ElectionHeader";
 
 interface VoterAccessRestrictionProps {
   election: Election;
@@ -19,16 +20,11 @@ const VoterAccessRestriction = ({ election, reason }: VoterAccessRestrictionProp
   
   return (
     <div className="container mx-auto py-12 px-4">
-      <Button 
-        variant="ghost" 
-        className="mb-6" 
-        onClick={() => navigate('/elections')}
-      >
-        <span className="flex items-center">
-          <AlertTriangle className="h-4 w-4 mr-2" />
-          Back to Elections
-        </span>
-      </Button>
+      <ElectionHeader 
+        election={election} 
+        isVoter={false}
+        isEligible={false}
+      />
       
       <ElectionTitleSection title={election.title} description={election.description} />
       

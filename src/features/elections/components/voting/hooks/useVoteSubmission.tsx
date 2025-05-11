@@ -3,7 +3,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { Election, mapDbElectionToElection } from "@/types";
 
 export interface VotingSelections {
   [position: string]: string;

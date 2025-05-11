@@ -1,15 +1,13 @@
 
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Candidate, mapDbElectionToElection } from "@/types";
+import { Candidate } from "@/types";
 import { useCandidateGroups } from "./useCandidateGroups";
 import { useVotingSelections, VotingSelections } from "./useVotingSelections";
 import { usePositionNavigation } from "./usePositionNavigation";
 import { useVoteSubmission } from "./useVoteSubmission";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 interface UseVotingFormProps {
   electionId: string;
@@ -27,14 +25,14 @@ export const useVotingForm = ({
   userId,
   onVoteSubmitted
 }: UseVotingFormProps) => {
-  // Initialize form with persistent storage
+  // Initialize form with react-hook-form
   const form = useForm<VotingSelections>({
     defaultValues: {},
   });
   
   const { isVoter, isAdmin } = useRole();
   const [eligibilityError, setEligibilityError] = useState<string | null>(null);
-  const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
   
   // Get candidate groups by position
   const { positionGroups, positions } = useCandidateGroups(candidates);
@@ -76,56 +74,13 @@ export const useVotingForm = ({
   // Get candidates for the current position
   const currentCandidates = currentPosition ? positionGroups[currentPosition] || [] : [];
   
-  // Check eligibility including department and year level
-  useEffect(() => {
-    const checkEligibility = async () => {
-      setIsCheckingEligibility(true);
-      
-      try {
-        // Get election details
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('*')
-          .eq('id', electionId)
-          .single();
-        
-        if (electionError) {
-          console.error("Error fetching election:", electionError);
-          setEligibilityError("Failed to check eligibility: could not fetch election details");
-          setIsCheckingEligibility(false);
-          return;
-        }
-        
-        // Transform raw database election to Election type with correct status typing
-        const election = mapDbElectionToElection(electionData);
-        
-        // Check comprehensive eligibility
-        const { isEligible, reason } = await checkUserEligibility(userId, election);
-        
-        if (!isEligible && !isAdmin) {
-          setEligibilityError(reason || "You are not eligible to vote in this election");
-        } else {
-          setEligibilityError(null);
-        }
-      } catch (error) {
-        console.error("Error checking eligibility:", error);
-        setEligibilityError("Failed to check eligibility. Please try again later.");
-      } finally {
-        setIsCheckingEligibility(false);
-      }
-    };
-    
-    if (userId && electionId) {
-      checkEligibility();
-    }
-  }, [userId, electionId, isAdmin]);
-  
   // Check if user has already voted
   useEffect(() => {
     const checkExistingVote = async () => {
       if (!userId || !electionId) return;
       
       try {
+        const { supabase } = await import("@/integrations/supabase/client");
         const { data: existingVote, error } = await supabase
           .from('votes')
           .select('*')

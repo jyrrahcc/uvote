@@ -10,19 +10,24 @@ import { useRole } from "@/features/auth/context/RoleContext";
 interface ElectionHeaderProps {
   election: Election;
   hasVoted?: boolean;
-  isVoter?: boolean; // Add the isVoter prop to the interface
+  isVoter?: boolean;
+  isEligible?: boolean;
 }
 
 const ElectionHeader = ({ 
   election, 
   hasVoted = false,
-  isVoter: isVoterProp // Rename to avoid conflict with the hook
+  isVoter: isVoterProp,
+  isEligible = true
 }: ElectionHeaderProps) => {
   const { isCandidacyPeriodActive } = useCandidacyPeriod(election);
   const { isVoter } = useRole();
   
   // Use the prop if provided, otherwise use the value from the hook
   const userIsVoter = isVoterProp !== undefined ? isVoterProp : isVoter;
+  
+  // User can vote only if they have voter role AND are eligible for this election
+  const canVote = userIsVoter && isEligible;
   
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -62,9 +67,9 @@ const ElectionHeader = ({
                 <span>You have voted</span>
               </Badge>
             ) : (
-              userIsVoter && (
+              canVote && (
                 <Button className="flex items-center gap-2" asChild>
-                  <Link to={`/elections/${election.id}`}>
+                  <Link to={`/elections/${election.id}/vote`}>
                     <Vote className="h-4 w-4" />
                     <span>Cast Your Vote</span>
                   </Link>

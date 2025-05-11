@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { Candidate, Election } from "@/types";
+import { Candidate, Election, mapDbElectionToElection } from "@/types";
 import { toast } from "sonner";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
@@ -61,22 +62,26 @@ const VotingPage = () => {
         }
         
         // Map the database election object to the app's Election type
-        const { mapDbElectionToElection } = await import("@/types");
         const election = mapDbElectionToElection(electionData);
         setElection(election);
         
-        // Check eligibility immediately after getting election data
+        // Check if user has already voted
         if (user) {
-          const eligibilityCheck = await checkUserEligibility(user.id, election);
-          console.log("Eligibility check result:", eligibilityCheck);
-          setIsEligible(eligibilityCheck.isEligible);
-          setEligibilityReason(eligibilityCheck.reason);
+          const { data: voteData, error: voteError } = await supabase
+            .from('votes')
+            .select('*')
+            .eq('election_id', electionId)
+            .eq('user_id', user.id)
+            .is('position', null) // Check for the marker record
+            .maybeSingle();
           
-          // If not eligible, show toast notification
-          if (!eligibilityCheck.isEligible && eligibilityCheck.reason && !isAdmin) {
-            toast.error("Access restricted", {
-              description: eligibilityCheck.reason
-            });
+          if (voteError && voteError.code !== 'PGRST116') {
+            console.error("Error checking if user has voted:", voteError);
+          }
+          
+          if (voteData) {
+            setHasVoted(true);
+            setSelectedCandidateId(voteData.candidate_id);
           }
         }
         
@@ -92,28 +97,14 @@ const VotingPage = () => {
         
         setCandidates(candidatesData || []);
         
-        // Check if the user has already voted
-        if (user) {
-          const { data: voteData, error: voteError } = await supabase
-            .from('votes')
-            .select('*')
-            .eq('election_id', electionId)
-            .eq('user_id', user.id)
-            .is('position', null) // Check for the marker record
-            .single();
-          
-          if (voteError) {
-            if (voteError.code !== 'PGRST116') { // Not found error code
-              throw voteError;
-            }
-          }
-          
-          if (voteData) {
-            setHasVoted(true);
-            setSelectedCandidateId(voteData.candidate_id);
-          }
+        // Check eligibility if user is logged in and election restricts voting
+        if (user && election.restrictVoting) {
+          const eligibilityCheck = await checkUserEligibility(user.id, election);
+          setIsEligible(eligibilityCheck.isEligible);
+          setEligibilityReason(eligibilityCheck.reason);
+        } else {
+          setIsEligible(true); // Default to eligible if no restrictions
         }
-        
       } catch (err: any) {
         console.error("Error fetching election data:", err);
         setError(err.message || "Failed to load election data");
@@ -123,7 +114,7 @@ const VotingPage = () => {
     };
     
     fetchElection();
-  }, [electionId, user, isAdmin]);
+  }, [electionId, user]);
   
   const handleAccessCodeValidation = (isValid: boolean) => {
     setIsAccessVerified(isValid);
@@ -132,6 +123,9 @@ const VotingPage = () => {
   const handleVoteCast = (candidateId: string) => {
     setSelectedCandidateId(candidateId);
     setHasVoted(true);
+    
+    // Navigate to results page after voting
+    navigate(`/elections/${electionId}/results`);
     toast.success("Your vote has been cast successfully!");
   };
   
@@ -140,18 +134,27 @@ const VotingPage = () => {
   }
   
   if (!election) {
-    return <div>Election not found</div>;
+    return <div className="container mx-auto py-8 px-4">Election not found</div>;
   }
   
-  // Show verification required message if user is not a voter
+  // Check if user has the voter role
   if (!isVoter && !isAdmin) {
-    // Pass false to prevent duplicate toast notifications
-    // The toast will already be shown by RoleProtectedRoute
-    return <VoterVerification isVoter={isVoter} showToast={false} />;
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <ElectionHeader 
+          election={election} 
+          hasVoted={hasVoted} 
+          isVoter={false} 
+        />
+        <ElectionTitleSection title={election.title} description={election.description} />
+        <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
+        <VoterVerification isVoter={isVoter} showToast={false} />
+      </div>
+    );
   }
   
-  // Check election eligibility - but only if election restricts voting
-  if (election.restrictVoting && isEligible === false && !isAdmin) {
+  // Check eligibility if election restricts voting
+  if (isEligible === false && !isAdmin) {
     return (
       <VoterAccessRestriction 
         election={election} 
@@ -160,18 +163,33 @@ const VotingPage = () => {
     );
   }
   
+  // Check if election is private and requires access code
   if (election.isPrivate && !isAccessVerified) {
     return (
-      <PrivateElectionAccess
-        election={election}
-        onVerify={handleAccessCodeValidation}
-      />
+      <div className="container mx-auto py-8 px-4">
+        <ElectionHeader 
+          election={election} 
+          hasVoted={hasVoted} 
+          isVoter={isVoter} 
+        />
+        <ElectionTitleSection title={election.title} description={election.description} />
+        <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
+        <PrivateElectionAccess
+          election={election}
+          onVerify={handleAccessCodeValidation}
+        />
+      </div>
     );
   }
 
   return (
     <div className="container mx-auto py-12 px-4">
-      <ElectionHeader election={election} hasVoted={hasVoted} isVoter={isVoter} />
+      <ElectionHeader 
+        election={election} 
+        hasVoted={hasVoted} 
+        isVoter={isVoter} 
+        isEligible={isEligible || false}
+      />
       
       <ElectionTitleSection title={election.title} description={election.description} />
       
