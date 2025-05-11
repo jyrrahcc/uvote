@@ -74,10 +74,10 @@ const UserList = ({
             <TableHead onClick={() => onSort("email")} className="cursor-pointer">
               <SortableHeader column="email" label="Email" />
             </TableHead>
-            <TableHead className="hidden md:table-cell" onClick={() => onSort("department")} className="cursor-pointer">
+            <TableHead className="hidden md:table-cell cursor-pointer" onClick={() => onSort("department")}>
               <SortableHeader column="department" label="Department" />
             </TableHead>
-            <TableHead className="hidden lg:table-cell" onClick={() => onSort("year_level")} className="cursor-pointer">
+            <TableHead className="hidden lg:table-cell cursor-pointer" onClick={() => onSort("year_level")}>
               <SortableHeader column="year_level" label="Year" />
             </TableHead>
             <TableHead>Roles</TableHead>
