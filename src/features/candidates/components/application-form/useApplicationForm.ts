@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 interface UseApplicationFormProps {
   electionId: string;
@@ -57,6 +58,13 @@ export const useApplicationForm = ({
         if (electionError) throw electionError;
         
         if (electionData) {
+          const election = {
+            id: electionId,
+            departments: electionData.departments,
+            eligibleYearLevels: electionData.eligible_year_levels,
+            restrictVoting: electionData.restrict_voting
+          };
+          
           setElectionDetails({
             departments: electionData.departments,
             eligibleYearLevels: electionData.eligible_year_levels,
@@ -65,6 +73,13 @@ export const useApplicationForm = ({
           
           if (electionData.positions) {
             setAvailablePositions(electionData.positions);
+          }
+          
+          // Use the centralized eligibility checker
+          const eligibilityCheck = await checkUserEligibility(userId, election);
+          setIsEligible(eligibilityCheck.isEligible);
+          if (!eligibilityCheck.isEligible) {
+            setValidationError(eligibilityCheck.reason || "You are not eligible to participate in this election");
           }
         }
         
@@ -83,13 +98,6 @@ export const useApplicationForm = ({
           if (profileData.first_name && profileData.last_name) {
             setName(`${profileData.first_name} ${profileData.last_name}`);
           }
-          
-          // Check eligibility
-          const eligibilityCheck = checkEligibility(profileData, electionData);
-          setIsEligible(eligibilityCheck.isEligible);
-          if (!eligibilityCheck.isEligible) {
-            setValidationError(eligibilityCheck.reason);
-          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -99,47 +107,6 @@ export const useApplicationForm = ({
     
     fetchData();
   }, [electionId, userId]);
-
-  const checkEligibility = (
-    profile: any, 
-    election: any
-  ): { isEligible: boolean; reason: string } => {
-    // If voting is not restricted, everyone is eligible
-    if (!election.restrict_voting) {
-      return { isEligible: true, reason: "" };
-    }
-    
-    let isEligible = true;
-    let reason = "";
-    
-    // Check department eligibility
-    const userDepartment = profile.department || "";
-    if (election.departments && election.departments.length > 0) {
-      const isDepartmentEligible = 
-        election.departments.includes(userDepartment) || 
-        election.departments.includes("University-wide");
-      
-      if (!isDepartmentEligible) {
-        isEligible = false;
-        reason = `This election is restricted to ${election.departments.join(", ")} departments, but your profile shows you're in ${userDepartment}`;
-      }
-    }
-    
-    // Check year level eligibility
-    const userYearLevel = profile.year_level || "";
-    if (isEligible && election.eligible_year_levels && election.eligible_year_levels.length > 0) {
-      const isYearEligible = 
-        election.eligible_year_levels.includes(userYearLevel) || 
-        election.eligible_year_levels.includes("All Year Levels");
-      
-      if (!isYearEligible) {
-        isEligible = false;
-        reason = `This election is restricted to ${election.eligible_year_levels.join(", ")} year levels, but your profile shows you're in ${userYearLevel}`;
-      }
-    }
-    
-    return { isEligible, reason };
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

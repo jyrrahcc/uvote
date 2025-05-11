@@ -8,6 +8,7 @@ import { useCandidateGroups } from "./useCandidateGroups";
 import { useVotingSelections, VotingSelections } from "./useVotingSelections";
 import { usePositionNavigation } from "./usePositionNavigation";
 import { useVoteSubmission } from "./useVoteSubmission";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 interface UseVotingFormProps {
   electionId: string;
@@ -77,63 +78,26 @@ export const useVotingForm = ({
   useEffect(() => {
     if (!electionId || !userId) return;
     
-    const checkUserEligibility = async () => {
+    const checkEligibility = async () => {
       setIsCheckingEligibility(true);
       try {
         // Get election details
         const { data: election, error: electionError } = await supabase
           .from('elections')
-          .select('departments, eligible_year_levels, restrict_voting')
+          .select('*')
           .eq('id', electionId)
           .single();
         
         if (electionError) throw electionError;
         
-        // If voting is not restricted, everyone is eligible
-        if (!election.restrict_voting) {
+        // Use centralized eligibility checker
+        const { isEligible, reason } = await checkUserEligibility(userId, election);
+        
+        if (!isEligible) {
+          setEligibilityError(reason || "You are not eligible to vote in this election.");
+        } else {
           setEligibilityError(null);
-          setIsCheckingEligibility(false);
-          return;
         }
-        
-        // Get user profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('department, year_level')
-          .eq('id', userId)
-          .single();
-        
-        if (profileError) throw profileError;
-        
-        // Check department eligibility
-        if (election.departments && election.departments.length > 0) {
-          const isDepartmentEligible = 
-            election.departments.includes(profile.department) || 
-            election.departments.includes("University-wide");
-          
-          if (!isDepartmentEligible) {
-            setEligibilityError(`This election is for ${election.departments.join(", ")} departments. Your profile indicates you are in ${profile.department}.`);
-            setIsCheckingEligibility(false);
-            return;
-          }
-        }
-        
-        // Check year level eligibility
-        if (election.eligible_year_levels && election.eligible_year_levels.length > 0) {
-          const isYearEligible = 
-            election.eligible_year_levels.includes(profile.year_level) || 
-            election.eligible_year_levels.includes("All Year Levels");
-          
-          if (!isYearEligible) {
-            setEligibilityError(`This election is for ${election.eligible_year_levels.join(", ")} year levels. Your profile indicates you are in ${profile.year_level}.`);
-            setIsCheckingEligibility(false);
-            return;
-          }
-        }
-        
-        // User is eligible
-        setEligibilityError(null);
-        
       } catch (error) {
         console.error("Error checking eligibility:", error);
         setEligibilityError("Failed to check eligibility. Please try again later.");
@@ -142,7 +106,7 @@ export const useVotingForm = ({
       }
     };
     
-    checkUserEligibility();
+    checkEligibility();
   }, [electionId, userId]);
   
   // Handle form submission

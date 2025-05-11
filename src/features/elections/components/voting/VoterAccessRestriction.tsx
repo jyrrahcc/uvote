@@ -7,9 +7,10 @@ import ElectionHeader from "../ElectionHeader";
 
 interface VoterAccessRestrictionProps {
   election: Election;
+  reason?: string | null;
 }
 
-const VoterAccessRestriction = ({ election }: VoterAccessRestrictionProps) => {
+const VoterAccessRestriction = ({ election, reason }: VoterAccessRestrictionProps) => {
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="flex items-center mb-6">
@@ -22,7 +23,7 @@ const VoterAccessRestriction = ({ election }: VoterAccessRestrictionProps) => {
       <Alert className="mb-6 bg-red-50 border-red-200">
         <AlertTitle className="text-red-700">Access Restricted</AlertTitle>
         <AlertDescription className="text-red-600">
-          <p>You are not eligible to vote in this election. Please contact the election administrator if you believe this is an error.</p>
+          <p>{reason || "You are not eligible to vote in this election. Please contact the election administrator if you believe this is an error."}</p>
         </AlertDescription>
       </Alert>
     </div>

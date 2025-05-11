@@ -7,6 +7,7 @@ import { Candidate, Election } from "@/types";
 import { fetchElectionDetails } from "@/features/elections/services/electionService";
 import { fetchCandidatesForElection, deleteCandidate } from "../services/candidateService";
 import { hasUserAppliedForElection } from "../services/candidateApplicationService";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 export const useCandidates = (electionId?: string, userId?: string) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -52,8 +53,13 @@ export const useCandidates = (electionId?: string, userId?: string) => {
         const hasApplied = await hasUserAppliedForElection(electionId!, userId);
         setUserHasApplied(hasApplied);
         
-        // Check user eligibility based on profile and election restrictions
-        await checkUserEligibility(electionData);
+        // Use centralized eligibility checker
+        const eligibilityResult = await checkUserEligibility(userId, electionData);
+        setIsUserEligible(eligibilityResult.isEligible);
+        
+        if (!eligibilityResult.isEligible && eligibilityResult.reason) {
+          console.log("User is not eligible:", eligibilityResult.reason);
+        }
       }
       
       setError(null);
@@ -62,52 +68,6 @@ export const useCandidates = (electionId?: string, userId?: string) => {
       setError(err.message || "Failed to load candidates");
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const checkUserEligibility = async (election: Election) => {
-    if (!userId || !election) {
-      setIsUserEligible(false);
-      return;
-    }
-    
-    try {
-      // Get user profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('department, year_level')
-        .eq('id', userId)
-        .maybeSingle();
-        
-      if (!profile) {
-        setIsUserEligible(false);
-        return;
-      }
-      
-      // If election has no restrictions, everyone is eligible
-      if (!election.restrictVoting) {
-        setIsUserEligible(true);
-        return;
-      }
-      
-      // Check department eligibility
-      const isDepartmentEligible = election.departments?.length 
-        ? election.departments.includes(profile.department || '') || 
-          election.departments.includes("University-wide")
-        : true;
-      
-      // Check year level eligibility
-      const isYearLevelEligible = election.eligibleYearLevels?.length
-        ? election.eligibleYearLevels.includes(profile.year_level || '') ||
-          election.eligibleYearLevels.includes("All Year Levels")
-        : true;
-      
-      // User is eligible if they match both department and year level criteria
-      setIsUserEligible(isDepartmentEligible && isYearLevelEligible);
-      
-    } catch (error) {
-      console.error("Error checking eligibility:", error);
-      setIsUserEligible(false);
     }
   };
 

@@ -6,6 +6,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { Candidate, Election } from "@/types";
 import { toast } from "sonner";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 // Import custom components
 import ElectionHeader from "../components/ElectionHeader";
@@ -29,6 +30,7 @@ const VotingPage = () => {
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [isAccessVerified, setIsAccessVerified] = useState(false);
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
+  const [eligibilityReason, setEligibilityReason] = useState<string | null>(null);
   
   useEffect(() => {
     if (!electionId) {
@@ -62,6 +64,20 @@ const VotingPage = () => {
         const election = mapDbElectionToElection(electionData);
         setElection(election);
         
+        // Check eligibility immediately after getting election data
+        if (user) {
+          const eligibilityCheck = await checkUserEligibility(user.id, election);
+          setIsEligible(eligibilityCheck.isEligible);
+          setEligibilityReason(eligibilityCheck.reason);
+          
+          // If not eligible, show toast notification
+          if (!eligibilityCheck.isEligible && eligibilityCheck.reason && !isAdmin) {
+            toast.error("Access restricted", {
+              description: eligibilityCheck.reason
+            });
+          }
+        }
+        
         // Fetch candidates for the election
         const { data: candidatesData, error: candidatesError } = await supabase
           .from('candidates')
@@ -93,13 +109,6 @@ const VotingPage = () => {
             setHasVoted(true);
             setSelectedCandidateId(voteData.candidate_id);
           }
-          
-          // Check eligibility
-          if (election.restrictVoting) {
-            await checkUserEligibility(election);
-          } else {
-            setIsEligible(true);
-          }
         }
         
       } catch (err: any) {
@@ -111,64 +120,7 @@ const VotingPage = () => {
     };
     
     fetchElection();
-  }, [electionId, user]);
-  
-  const checkUserEligibility = async (election: Election) => {
-    if (!user || !election) {
-      setIsEligible(false);
-      return;
-    }
-    
-    try {
-      // Get user profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('department, year_level')
-        .eq('id', user.id)
-        .single();
-        
-      if (!profileData) {
-        setIsEligible(false);
-        return;
-      }
-      
-      // If election has no restrictions, everyone is eligible
-      if (!election.restrictVoting) {
-        setIsEligible(true);
-        return;
-      }
-      
-      // Check department eligibility
-      const isDepartmentEligible = election.departments?.length 
-        ? election.departments.includes(profileData.department || '') ||
-          election.departments.includes("University-wide")
-        : true;
-      
-      // Check year level eligibility
-      const isYearLevelEligible = election.eligibleYearLevels?.length
-        ? election.eligibleYearLevels.includes(profileData.year_level || '') ||
-          election.eligibleYearLevels.includes("All Year Levels")
-        : true;
-      
-      // Admin users are always eligible
-      if (isAdmin) {
-        setIsEligible(true);
-        return;
-      }
-      
-      // User is eligible if they match both department and year level criteria
-      setIsEligible(isDepartmentEligible && isYearLevelEligible);
-      
-      if (!isDepartmentEligible || !isYearLevelEligible) {
-        console.log(`User not eligible. User department: ${profileData.department}, Election departments: ${election.departments?.join(', ')}`);
-        console.log(`User year: ${profileData.year_level}, Election years: ${election.eligibleYearLevels?.join(', ')}`);
-      }
-      
-    } catch (error) {
-      console.error("Error checking eligibility:", error);
-      setIsEligible(false);
-    }
-  };
+  }, [electionId, user, isAdmin]);
   
   const handleAccessCodeValidation = (isValid: boolean) => {
     setIsAccessVerified(isValid);
@@ -195,8 +147,14 @@ const VotingPage = () => {
     return <VoterVerification isVoter={isVoter} showToast={false} />;
   }
   
+  // Check election eligibility
   if (isEligible === false && !isAdmin) {
-    return <VoterAccessRestriction election={election} />;
+    return (
+      <VoterAccessRestriction 
+        election={election} 
+        reason={eligibilityReason || "You are not eligible to vote in this election."}
+      />
+    );
   }
   
   if (election.isPrivate && !isAccessVerified) {
