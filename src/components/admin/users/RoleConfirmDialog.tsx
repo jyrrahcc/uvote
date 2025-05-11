@@ -22,7 +22,7 @@ interface RoleConfirmDialogProps {
   action: 'add' | 'remove';
   isProcessing: boolean;
   onCancel: () => void;
-  onConfirm: (userId: string, role: "admin" | "voter", hasRole: boolean) => void;
+  onConfirm: (userId: string, role: string, action: 'add' | 'remove') => Promise<void>;
 }
 
 const RoleConfirmDialog = ({
@@ -85,7 +85,7 @@ const RoleConfirmDialog = ({
           </Button>
           <Button
             variant={action === 'remove' ? "destructive" : "default"}
-            onClick={() => onConfirm(userId, role as "admin" | "voter", action === 'remove')}
+            onClick={() => onConfirm(userId, role, action)}
             disabled={isProcessing}
           >
             {isProcessing ? (

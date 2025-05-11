@@ -58,7 +58,7 @@ const VotingPage = () => {
         
         // Map the database election object to the app's Election type
         const { mapDbElectionToElection } = await import("@/types");
-        const election = mapDbElectionToElection.mapDbElectionToElection(electionData);
+        const election = mapDbElectionToElection(electionData);
         setElection(election);
         
         // Fetch candidates for the election
