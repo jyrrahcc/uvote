@@ -6,6 +6,7 @@ import { CandidateFormData } from "../schemas/candidateFormSchema";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 import { supabase } from "@/integrations/supabase/client";
+import { mapDbElectionToElection } from "@/types";
 
 interface UseCandidateRegistrationProps {
   electionId: string;
@@ -47,8 +48,11 @@ export const useCandidateRegistration = ({
         
       if (electionError) throw electionError;
       
+      // Transform the raw election data to the typed Election interface
+      const typedElection = mapDbElectionToElection(electionData);
+      
       // Check eligibility based on department and year level
-      const eligibilityCheck = await checkUserEligibility(userId, electionData);
+      const eligibilityCheck = await checkUserEligibility(userId, typedElection);
       if (!eligibilityCheck.isEligible) {
         toast.error("You are not eligible to register as a candidate", {
           description: eligibilityCheck.reason || "You do not meet the department or year level requirements"
