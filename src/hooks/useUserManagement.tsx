@@ -94,8 +94,28 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
       
       if (action === 'remove') {
         await removeRole(userId, role as "admin" | "voter");
+        
+        // If removing voter role, also update verification status
+        if (role === 'voter') {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ is_verified: false })
+            .eq('id', userId);
+            
+          if (error) throw error;
+        }
       } else {
         await assignRole(userId, role as "admin" | "voter");
+        
+        // If adding voter role, also mark as verified
+        if (role === 'voter') {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ is_verified: true })
+            .eq('id', userId);
+            
+          if (error) throw error;
+        }
       }
       
       // Update local state
@@ -111,25 +131,16 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
           // If adding voter role, also mark as verified
           const updatedUser = { 
             ...user, 
-            roles: updatedRoles 
+            roles: updatedRoles,
+            is_verified: role === 'voter' && action === 'add' ? true : 
+                         role === 'voter' && action === 'remove' ? false : 
+                         user.is_verified
           };
-          
-          if (role === 'voter' && action === 'add') {
-            updatedUser.is_verified = true;
-          }
           
           return updatedUser;
         }
         return user;
       }));
-      
-      // If adding voter role, update profile verification status
-      if (role === 'voter' && action === 'add') {
-        await supabase
-          .from('profiles')
-          .update({ is_verified: true })
-          .eq('id', userId);
-      }
       
       toast.success(
         action === 'remove' 

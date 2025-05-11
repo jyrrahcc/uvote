@@ -1,8 +1,11 @@
 
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import UserList from "@/components/admin/users/UserList";
 import { UserProfile } from "@/components/admin/users/types";
+import UserTablePagination from "@/components/admin/users/UserTablePagination";
+import UserTableSizeSelector from "@/components/admin/users/UserTableSizeSelector";
+import ExportDataButton from "@/components/admin/users/ExportDataButton";
 
 interface UsersTableContainerProps {
   users: UserProfile[];
@@ -11,6 +14,11 @@ interface UsersTableContainerProps {
   sortDirection: "asc" | "desc";
   isProcessing: boolean;
   loading: boolean;
+  totalUsers: number;
+  pageSize: number;
+  currentPage: number;
+  setPageSize: (size: number) => void;
+  setCurrentPage: (page: number) => void;
   onSort: (column: string) => void;
   onViewProfile: (user: UserProfile) => void;
   onToggleMenu: (userId: string) => void;
@@ -23,6 +31,11 @@ export const UsersTableContainer: React.FC<UsersTableContainerProps> = ({
   sortDirection,
   isProcessing,
   loading,
+  totalUsers,
+  pageSize,
+  currentPage,
+  setPageSize,
+  setCurrentPage,
   onSort,
   onViewProfile,
   onToggleMenu
@@ -50,6 +63,23 @@ export const UsersTableContainer: React.FC<UsersTableContainerProps> = ({
           />
         )}
       </CardContent>
+      <CardFooter className="flex flex-col sm:flex-row justify-between items-center border-t p-4 gap-4">
+        <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+          <UserTableSizeSelector 
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
+          
+          <ExportDataButton users={users} />
+        </div>
+        
+        <UserTablePagination 
+          totalItems={totalUsers}
+          pageSize={pageSize}
+          currentPage={currentPage} 
+          onPageChange={setCurrentPage}
+        />
+      </CardFooter>
     </Card>
   );
 };

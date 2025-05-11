@@ -10,6 +10,8 @@ interface UsersListHeaderProps {
   onSearchChange: (value: string) => void;
   currentTab: string;
   onTabChange: (value: string) => void;
+  verificationFilter: "all" | "verified" | "unverified";
+  onVerificationFilterChange: (value: "all" | "verified" | "unverified") => void;
 }
 
 export const UsersListHeader: React.FC<UsersListHeaderProps> = ({
@@ -17,7 +19,9 @@ export const UsersListHeader: React.FC<UsersListHeaderProps> = ({
   searchTerm,
   onSearchChange,
   currentTab,
-  onTabChange
+  onTabChange,
+  verificationFilter,
+  onVerificationFilterChange
 }) => {
   return (
     <>
@@ -46,6 +50,8 @@ export const UsersListHeader: React.FC<UsersListHeaderProps> = ({
               onSearchChange={onSearchChange}
               currentTab={currentTab}
               onTabChange={onTabChange}
+              verificationFilter={verificationFilter}
+              onVerificationFilterChange={onVerificationFilterChange}
             />
           </div>
         </CardHeader>

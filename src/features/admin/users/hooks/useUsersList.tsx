@@ -7,15 +7,41 @@ import { UserProfile } from "@/components/admin/users/types";
 export const useUsersList = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchUsers = async () => {
+  // Get total count of users (for pagination)
+  const fetchUserCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setTotalUsers(count || 0);
+    } catch (error) {
+      console.error("Error fetching user count:", error);
+    }
+  };
+
+  const fetchUsers = async (page = 1, limit = pageSize) => {
     try {
       setLoading(true);
+      
+      // Calculate range start for pagination
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
       
       // Get all user profiles with more detailed information
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified, image_url');
+        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified, image_url')
+        .range(from, to)
+        .order('created_at', { ascending: false });
       
       if (error) {
         throw error;
@@ -49,13 +75,22 @@ export const useUsersList = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUserCount();
   }, []);
+
+  useEffect(() => {
+    fetchUsers(currentPage, pageSize);
+  }, [currentPage, pageSize]);
 
   return {
     users,
     setUsers,
     loading,
-    fetchUsers
+    fetchUsers,
+    totalUsers,
+    pageSize,
+    setPageSize,
+    currentPage,
+    setCurrentPage
   };
 };

@@ -10,7 +10,18 @@ import { UserDialogs } from "@/features/admin/users/components/UserDialogs";
 
 const UsersManagement = () => {
   // Custom hooks
-  const { users, setUsers, loading } = useUsersList();
+  const { 
+    users, 
+    setUsers, 
+    loading, 
+    totalUsers,
+    pageSize,
+    setPageSize,
+    currentPage,
+    setCurrentPage,
+    fetchUsers 
+  } = useUsersList();
+  
   const { user: currentUser } = useAuth();
   const { isProcessing, handleVerifyProfile, handleToggleRole } = useUserManagement(users, setUsers);
   
@@ -21,6 +32,8 @@ const UsersManagement = () => {
     sortDirection,
     currentTab,
     setCurrentTab,
+    verificationFilter,
+    setVerificationFilter,
     handleSort,
     filteredUsers
   } = useUserFiltersAndSort(users);
@@ -80,6 +93,8 @@ const UsersManagement = () => {
         onSearchChange={setSearchTerm}
         currentTab={currentTab}
         onTabChange={setCurrentTab}
+        verificationFilter={verificationFilter}
+        onVerificationFilterChange={setVerificationFilter}
       />
       
       <UsersTableContainer
@@ -89,6 +104,11 @@ const UsersManagement = () => {
         sortDirection={sortDirection}
         isProcessing={isProcessing}
         loading={loading}
+        totalUsers={totalUsers}
+        pageSize={pageSize}
+        currentPage={currentPage}
+        setPageSize={setPageSize}
+        setCurrentPage={setCurrentPage}
         onSort={handleSort}
         onViewProfile={openProfileDialog}
         onToggleMenu={toggleUserMenu}

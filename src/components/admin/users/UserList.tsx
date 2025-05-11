@@ -49,26 +49,36 @@ const UserList = ({
     return "U";
   };
 
+  // Render sort indicator
+  const SortableHeader = ({ column, label }: { column: string, label: string }) => (
+    <div 
+      className="flex items-center space-x-1 cursor-pointer hover:text-primary transition-colors"
+      onClick={() => onSort(column)}
+    >
+      <span>{label}</span>
+      <ArrowUpDown className={cn(
+        "h-3 w-3 transition-opacity",
+        sortColumn === column ? "opacity-100" : "opacity-40"
+      )} />
+    </div>
+  );
+
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead onClick={() => onSort("name")} className="cursor-pointer">
-              <div className="flex items-center space-x-1">
-                <span>Name</span>
-                {sortColumn === "name" && (
-                  <ArrowUpDown className="h-3 w-3" />
-                )}
-              </div>
+              <SortableHeader column="name" label="Name" />
             </TableHead>
             <TableHead onClick={() => onSort("email")} className="cursor-pointer">
-              <div className="flex items-center space-x-1">
-                <span>Email</span>
-                {sortColumn === "email" && (
-                  <ArrowUpDown className="h-3 w-3" />
-                )}
-              </div>
+              <SortableHeader column="email" label="Email" />
+            </TableHead>
+            <TableHead className="hidden md:table-cell" onClick={() => onSort("department")} className="cursor-pointer">
+              <SortableHeader column="department" label="Department" />
+            </TableHead>
+            <TableHead className="hidden lg:table-cell" onClick={() => onSort("year_level")} className="cursor-pointer">
+              <SortableHeader column="year_level" label="Year" />
             </TableHead>
             <TableHead>Roles</TableHead>
             <TableHead>Verification</TableHead>
@@ -102,8 +112,14 @@ const UserList = ({
                   </div>
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {user.department || "-"}
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  {user.year_level || "-"}
+                </TableCell>
                 <TableCell>
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     {user.roles.includes('admin') && (
                       <HoverCard>
                         <HoverCardTrigger>
@@ -180,7 +196,7 @@ const UserList = ({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+              <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
                 No users found
               </TableCell>
             </TableRow>
