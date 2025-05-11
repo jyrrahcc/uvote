@@ -19,9 +19,15 @@ export const useUserDialogs = () => {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [activeUserMenuId, setActiveUserMenuId] = useState<string | null>(null);
 
+  // This updated function will be used to open the profile dialog and set the selected user
   const openProfileDialog = (user: UserProfile) => {
     setSelectedUser(user);
     setProfileDialogOpen(true);
+  };
+
+  // New function to update the selectedUser state when their properties change
+  const updateSelectedUser = (updatedUser: UserProfile) => {
+    setSelectedUser(updatedUser);
   };
 
   const handleRoleAction = (userId: string, role: string, action: 'add' | 'remove') => {
@@ -44,6 +50,7 @@ export const useUserDialogs = () => {
     setProfileDialogOpen,
     selectedUser,
     setSelectedUser,
+    updateSelectedUser, // Export the new function
     activeUserMenuId,
     setActiveUserMenuId,
     openProfileDialog,

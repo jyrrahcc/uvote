@@ -10,7 +10,7 @@ import { UserDialogs } from "@/features/admin/users/components/UserDialogs";
 
 const UsersManagement = () => {
   // Custom hooks
-  const { users, setUsers } = useUsersList();
+  const { users, setUsers, loading } = useUsersList();
   const { user: currentUser } = useAuth();
   const { isProcessing, handleVerifyProfile, handleToggleRole } = useUserManagement(users, setUsers);
   
@@ -31,10 +31,46 @@ const UsersManagement = () => {
     profileDialogOpen,
     setProfileDialogOpen,
     selectedUser,
+    setSelectedUser,
+    updateSelectedUser,
+    activeUserMenuId,
     openProfileDialog,
     handleRoleAction,
     toggleUserMenu
   } = useUserDialogs();
+
+  // Custom handler for verifying profiles that updates the selectedUser state
+  const handleVerifyProfileWithUpdate = async (userId: string, isVerified: boolean) => {
+    await handleVerifyProfile(userId, isVerified);
+    
+    // After verification, update the selectedUser state if they're the one being verified
+    if (selectedUser && selectedUser.id === userId) {
+      // Find the updated user in the users array
+      const updatedUser = users.find(user => user.id === userId);
+      if (updatedUser) {
+        // Update the selected user with the new data
+        setSelectedUser({
+          ...updatedUser,
+          is_verified: !isVerified // Toggle the verification status
+        });
+      }
+    }
+  };
+
+  // Custom handler for toggling roles that updates the selectedUser state  
+  const handleToggleRoleWithUpdate = async (userId: string, role: string, action: 'add' | 'remove') => {
+    await handleToggleRole(userId, role, action);
+    
+    // After role change, update the selectedUser state if they're the one being updated
+    if (selectedUser && selectedUser.id === userId) {
+      // Find the updated user in the users array
+      const updatedUser = users.find(user => user.id === userId);
+      if (updatedUser) {
+        // Update the selected user with the new data
+        setSelectedUser(updatedUser);
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -52,7 +88,7 @@ const UsersManagement = () => {
         sortColumn={sortColumn}
         sortDirection={sortDirection}
         isProcessing={isProcessing}
-        loading={false}
+        loading={loading}
         onSort={handleSort}
         onViewProfile={openProfileDialog}
         onToggleMenu={toggleUserMenu}
@@ -64,9 +100,9 @@ const UsersManagement = () => {
         isProcessing={isProcessing}
         confirmDialog={confirmDialog}
         onCloseProfileDialog={() => setProfileDialogOpen(false)}
-        onVerifyProfile={handleVerifyProfile}
+        onVerifyProfile={handleVerifyProfileWithUpdate}
         onCancelRoleDialog={() => setConfirmDialog(prev => ({...prev, open: false}))}
-        onConfirmRoleAction={handleToggleRole}
+        onConfirmRoleAction={handleToggleRoleWithUpdate}
       />
     </div>
   );

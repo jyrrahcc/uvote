@@ -37,6 +37,10 @@ const UserProfileDialog = ({
     return "U";
   };
 
+  const handleVerifyProfile = async () => {
+    await onVerifyProfile(selectedUser.id, selectedUser.is_verified || false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -94,7 +98,7 @@ const UserProfileDialog = ({
         <div className="flex justify-between pt-4">
           {!selectedUser.is_verified ? (
             <Button 
-              onClick={() => onVerifyProfile(selectedUser.id, false)} 
+              onClick={handleVerifyProfile} 
               disabled={isProcessing}
               className="gap-2"
             >
@@ -103,7 +107,7 @@ const UserProfileDialog = ({
             </Button>
           ) : (
             <Button 
-              onClick={() => onVerifyProfile(selectedUser.id, true)} 
+              onClick={handleVerifyProfile} 
               disabled={isProcessing}
               variant="destructive"
               className="gap-2"

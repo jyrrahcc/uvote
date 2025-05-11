@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { UserProfile } from "@/components/admin/users/types";
 import UserProfileDialog from "@/components/admin/users/UserProfileDialog";
 import RoleConfirmDialog from "@/components/admin/users/RoleConfirmDialog";
