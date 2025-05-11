@@ -43,15 +43,24 @@ export async function checkUserEligibility(
       .from('profiles')
       .select('department, year_level')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     
-    if (profileError || !profile) {
+    if (profileError) {
       console.error("Error fetching user profile:", profileError);
       return { isEligible: false, reason: "Could not verify user profile" };
     }
     
+    if (!profile) {
+      return { isEligible: false, reason: "User profile not found. Please complete your profile information." };
+    }
+    
     const userDepartment = profile.department || '';
     const userYearLevel = profile.year_level || '';
+    
+    // If the election doesn't restrict voting, user with voter role is eligible
+    if (!election.restrictVoting) {
+      return { isEligible: true, reason: null };
+    }
     
     console.log("Eligibility check:", {
       userDepartment,
@@ -59,12 +68,6 @@ export async function checkUserEligibility(
       electionDepartments: election.departments,
       electionYearLevels: election.eligibleYearLevels
     });
-    
-    // If the election doesn't restrict voting, user with voter role is eligible
-    // Only check after we have the profile information
-    if (!election.restrictVoting) {
-      return { isEligible: true, reason: null };
-    }
     
     // Department eligibility check
     const isDepartmentEligible = !election.departments?.length || 

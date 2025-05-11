@@ -102,6 +102,7 @@ const App = () => {
                     <Route element={<RoleProtectedRoute requiredRole="voter" redirectTo="/profile" />}>
                       <Route path="/elections/:electionId" element={<VotingPage />} />
                       <Route path="/elections/:electionId/results" element={<ResultsPage />} />
+                      {/* Use only CandidatesPage, not the Candidates component */}
                       <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
                       <Route path="/my-votes" element={<MyVotes />} />
                       <Route path="/my-applications" element={<MyApplicationsPage />} />
