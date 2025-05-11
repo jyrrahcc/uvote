@@ -1,5 +1,5 @@
 
-import { Election } from "@/types";
+import { Election, mapDbElectionToElection } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export async function checkUserEligibility(
   userId: string | null | undefined,
-  election: Election | null
+  election: Election | Partial<Election> | null
 ): Promise<{ isEligible: boolean; reason: string | null }> {
   // If no user or election, they're not eligible
   if (!userId || !election) {

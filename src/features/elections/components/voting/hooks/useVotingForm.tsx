@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Candidate } from "@/types";
+import { Candidate, Election, mapDbElectionToElection } from "@/types";
 import { useCandidateGroups } from "./useCandidateGroups";
 import { useVotingSelections, VotingSelections } from "./useVotingSelections";
 import { usePositionNavigation } from "./usePositionNavigation";
@@ -82,7 +82,7 @@ export const useVotingForm = ({
       setIsCheckingEligibility(true);
       try {
         // Get election details
-        const { data: election, error: electionError } = await supabase
+        const { data: electionData, error: electionError } = await supabase
           .from('elections')
           .select('*')
           .eq('id', electionId)
@@ -90,13 +90,18 @@ export const useVotingForm = ({
         
         if (electionError) throw electionError;
         
-        // Use centralized eligibility checker
-        const { isEligible, reason } = await checkUserEligibility(userId, election);
-        
-        if (!isEligible) {
-          setEligibilityError(reason || "You are not eligible to vote in this election.");
-        } else {
-          setEligibilityError(null);
+        if (electionData) {
+          // Properly transform the DB election to application Election type
+          const election = mapDbElectionToElection(electionData);
+          
+          // Use centralized eligibility checker
+          const { isEligible, reason } = await checkUserEligibility(userId, election);
+          
+          if (!isEligible) {
+            setEligibilityError(reason || "You are not eligible to vote in this election.");
+          } else {
+            setEligibilityError(null);
+          }
         }
       } catch (error) {
         console.error("Error checking eligibility:", error);

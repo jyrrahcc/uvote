@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { Election, mapDbElectionToElection } from "@/types";
 
 interface UseApplicationFormProps {
   electionId: string;
@@ -51,19 +51,15 @@ export const useApplicationForm = ({
         // Fetch election details
         const { data: electionData, error: electionError } = await supabase
           .from('elections')
-          .select('positions, departments, eligible_year_levels, restrict_voting')
+          .select('*')
           .eq('id', electionId)
           .single();
           
         if (electionError) throw electionError;
         
         if (electionData) {
-          const election = {
-            id: electionId,
-            departments: electionData.departments,
-            eligibleYearLevels: electionData.eligible_year_levels,
-            restrictVoting: electionData.restrict_voting
-          };
+          // Properly transform raw DB election to application Election type
+          const election = mapDbElectionToElection(electionData);
           
           setElectionDetails({
             departments: electionData.departments,

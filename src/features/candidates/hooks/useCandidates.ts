@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Candidate, Election } from "@/types";
+import { Candidate, Election, mapDbElectionToElection } from "@/types";
 import { fetchElectionDetails } from "@/features/elections/services/electionService";
 import { fetchCandidatesForElection, deleteCandidate } from "../services/candidateService";
 import { hasUserAppliedForElection } from "../services/candidateApplicationService";
