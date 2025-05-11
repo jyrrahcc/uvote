@@ -299,6 +299,7 @@ export type Database = {
           candidate_id: string | null
           election_id: string | null
           id: string
+          position: string | null
           timestamp: string | null
           user_id: string | null
         }
@@ -306,6 +307,7 @@ export type Database = {
           candidate_id?: string | null
           election_id?: string | null
           id?: string
+          position?: string | null
           timestamp?: string | null
           user_id?: string | null
         }
@@ -313,6 +315,7 @@ export type Database = {
           candidate_id?: string | null
           election_id?: string | null
           id?: string
+          position?: string | null
           timestamp?: string | null
           user_id?: string | null
         }

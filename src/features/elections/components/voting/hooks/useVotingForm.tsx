@@ -33,6 +33,7 @@ export const useVotingForm = ({
   const { isVoter, isAdmin } = useRole();
   const [eligibilityError, setEligibilityError] = useState<string | null>(null);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
+  const [hasVotedPositions, setHasVotedPositions] = useState<string[]>([]);
   
   // Get candidate groups by position
   const { positionGroups, positions } = useCandidateGroups(candidates);
@@ -74,32 +75,48 @@ export const useVotingForm = ({
   // Get candidates for the current position
   const currentCandidates = currentPosition ? positionGroups[currentPosition] || [] : [];
   
-  // Check if user has already voted
+  // Check if user has already voted for any positions
   useEffect(() => {
-    const checkExistingVote = async () => {
+    const checkExistingVotes = async () => {
       if (!userId || !electionId) return;
       
       try {
         const { supabase } = await import("@/integrations/supabase/client");
         const { data: existingVotes, error } = await supabase
           .from('votes')
-          .select('*')
+          .select('position')
           .eq('election_id', electionId)
           .eq('user_id', userId);
         
         if (error) {
-          console.error("Error checking existing vote:", error);
+          console.error("Error checking existing votes:", error);
+          return;
         }
         
-        const hasVoted = existingVotes && existingVotes.length > 0;
-        console.log("Existing vote check:", hasVoted ? "User has voted" : "User has not voted");
+        if (existingVotes && existingVotes.length > 0) {
+          const votedPositions = existingVotes.map(vote => vote.position);
+          setHasVotedPositions(votedPositions);
+          console.log("Positions already voted for:", votedPositions);
+          
+          // Filter out positions that have already been voted for
+          const remainingPositions = positions.filter(pos => !votedPositions.includes(pos));
+          
+          // If all positions have been voted for, show message
+          if (remainingPositions.length === 0) {
+            console.log("User has voted for all positions");
+            onVoteSubmitted("already-voted"); // Trigger the completed state
+          }
+        } else {
+          console.log("User has not voted for any positions yet");
+          setHasVotedPositions([]);
+        }
       } catch (error) {
-        console.error("Error checking existing vote:", error);
+        console.error("Error checking existing votes:", error);
       }
     };
     
-    checkExistingVote();
-  }, [userId, electionId]);
+    checkExistingVotes();
+  }, [userId, electionId, positions, onVoteSubmitted]);
   
   // Handle form submission
   const handleVote = async (data: VotingSelections) => {
@@ -131,6 +148,7 @@ export const useVotingForm = ({
     validationError,
     eligibilityError,
     isCheckingEligibility,
+    hasVotedPositions,
     handleVote,
     goToNextPosition,
     goToPreviousPosition,

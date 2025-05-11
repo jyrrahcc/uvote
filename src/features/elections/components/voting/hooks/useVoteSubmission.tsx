@@ -51,10 +51,10 @@ export const useVoteSubmission = ({
       setVoteLoading(true);
       console.log("Submitting votes:", data);
       
-      // Check if user has already voted in this election
+      // Check if user has already voted for any positions in this election
       const { data: existingVotes, error: checkError } = await supabase
         .from('votes')
-        .select('id')
+        .select('position')
         .eq('election_id', electionId)
         .eq('user_id', userId);
       
@@ -63,10 +63,18 @@ export const useVoteSubmission = ({
         throw new Error("Failed to verify voting eligibility");
       }
       
-      // If user has already voted in this election, don't allow another vote
-      if (existingVotes && existingVotes.length > 0) {
-        toast.error("You have already voted in this election");
-        return false;
+      // If user has already voted for any positions, extract those positions
+      const votedPositions = existingVotes ? existingVotes.map(vote => vote.position) : [];
+      
+      if (votedPositions.length > 0) {
+        // Check if there's any overlap between voted positions and current positions
+        const positionsToVoteFor = Object.keys(data);
+        const alreadyVotedFor = positionsToVoteFor.filter(pos => votedPositions.includes(pos));
+        
+        if (alreadyVotedFor.length > 0) {
+          toast.error(`You have already voted for the following positions: ${alreadyVotedFor.join(', ')}`);
+          return false;
+        }
       }
       
       try {
@@ -76,7 +84,8 @@ export const useVoteSubmission = ({
           const voteRecord = {
             election_id: electionId,
             user_id: userId,
-            candidate_id: candidateId === "abstain" ? null : candidateId
+            candidate_id: candidateId === "abstain" ? null : candidateId,
+            position: position // Include the position in the vote record
           };
           
           const { error } = await supabase
