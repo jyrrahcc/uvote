@@ -69,6 +69,17 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     setViewingPoll(true);
   };
   
+  const handleCreatePoll = async (
+    question: string, 
+    options: Record<string, string>,
+    description?: string,
+    multipleChoice: boolean = false,
+    endsAt?: string
+  ) => {
+    // Pass null as topicId since we're creating from the polls tab
+    return addPoll(question, options, description, null, multipleChoice, endsAt);
+  };
+  
   return (
     <div className="container mx-auto py-8 px-4">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
@@ -121,7 +132,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
               polls={polls}
               loading={pollLoading}
               onSelectPoll={handleSelectPoll}
-              onCreatePoll={addPoll}
+              onCreatePoll={handleCreatePoll}
               electionId={finalElectionId}
             />
           )}

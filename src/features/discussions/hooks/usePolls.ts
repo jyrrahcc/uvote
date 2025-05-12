@@ -9,8 +9,8 @@ import {
   updatePoll,
   deletePoll,
   votePoll,
-  getUserVote,
-  getPollResults
+  fetchUserVote,
+  fetchPollResults
 } from '../services/pollService';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -85,7 +85,7 @@ export const usePolls = (electionId: string) => {
   
   const loadPollResults = async (pollId: string) => {
     try {
-      const results = await getPollResults(pollId);
+      const results = await fetchPollResults(pollId);
       setPollResults(results);
     } catch (error) {
       console.error("Error loading poll results:", error);
@@ -99,8 +99,8 @@ export const usePolls = (electionId: string) => {
     }
     
     try {
-      const vote = await getUserVote(pollId);
-      setUserVote(vote);
+      const vote = await fetchUserVote(pollId);
+      setUserVote(vote?.options as string[] || null);
     } catch (error) {
       console.error("Error loading user vote:", error);
       setUserVote(null);
@@ -111,7 +111,7 @@ export const usePolls = (electionId: string) => {
     question: string, 
     options: Record<string, string>,
     description?: string,
-    topicId?: string,
+    topicId?: string | null,
     multipleChoice: boolean = false,
     endsAt?: string
   ) => {

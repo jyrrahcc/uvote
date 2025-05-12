@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Calendar, Bar, MessageCircle } from "lucide-react";
+import { Plus, Calendar, BarChart, MessageCircle } from "lucide-react";
 import { Poll } from "@/types/discussions";
 import { formatDistanceToNow } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
@@ -131,7 +131,7 @@ const PollsList = ({
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <Bar size={14} className="mr-1" />
+                    <BarChart size={14} className="mr-1" />
                     View Results
                   </div>
                 </div>
