@@ -23,7 +23,7 @@ const UserTableSizeSelector: React.FC<UserTableSizeSelectorProps> = ({ value, on
       <span className="text-sm text-muted-foreground">Rows per page:</span>
       <Select value={value.toString()} onValueChange={handleValueChange}>
         <SelectTrigger className="w-[70px]">
-          <SelectValue placeholder={value} />
+          <SelectValue placeholder={value.toString()} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="5">5</SelectItem>

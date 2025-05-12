@@ -25,7 +25,7 @@ const PositionSelector = ({
       {availablePositions.length > 0 ? (
         <div className="col-span-3">
           <Select
-            value={position}
+            value={position || "select-position"} // Ensure value is never empty
             onValueChange={setPosition}
             required={required}
           >
