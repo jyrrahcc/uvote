@@ -1,32 +1,32 @@
 
 import { useState, useEffect } from "react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
-interface SecuritySettings {
-  requireAccessCodesForPrivateElections: boolean;
-  enableIpAddressVoting: boolean;
-  maxLoginAttempts: number;
-  voterVerificationRequired: boolean;
+interface VotingSettings {
+  allowAbstain: boolean;
+  showRealTimeResults: boolean;
+  minimumVotingPeriodHours: number;
+  voterEmailVerificationRequired: boolean;
 }
 
-const SecuritySettingsForm = () => {
+const VotingSettingsForm = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  const form = useForm<SecuritySettings>({
+  const form = useForm<VotingSettings>({
     defaultValues: {
-      requireAccessCodesForPrivateElections: true,
-      enableIpAddressVoting: true,
-      maxLoginAttempts: 5,
-      voterVerificationRequired: true
+      allowAbstain: true,
+      showRealTimeResults: false,
+      minimumVotingPeriodHours: 8,
+      voterEmailVerificationRequired: true
     }
   });
   
@@ -39,22 +39,22 @@ const SecuritySettingsForm = () => {
         const { data, error } = await supabase
           .from("settings")
           .select("*")
-          .eq("category", "security")
+          .eq("category", "voting")
           .maybeSingle();
           
         if (error) throw error;
         
         if (data) {
           form.reset({
-            requireAccessCodesForPrivateElections: data.settings_value.requireAccessCodesForPrivateElections ?? true,
-            enableIpAddressVoting: data.settings_value.enableIpAddressVoting ?? true,
-            maxLoginAttempts: data.settings_value.maxLoginAttempts ?? 5,
-            voterVerificationRequired: data.settings_value.voterVerificationRequired ?? true
+            allowAbstain: data.settings_value.allowAbstain ?? true,
+            showRealTimeResults: data.settings_value.showRealTimeResults ?? false,
+            minimumVotingPeriodHours: data.settings_value.minimumVotingPeriodHours ?? 8,
+            voterEmailVerificationRequired: data.settings_value.voterEmailVerificationRequired ?? true
           });
         }
       } catch (error) {
-        console.error("Failed to load security settings:", error);
-        toast.error("Failed to load security settings");
+        console.error("Failed to load voting settings:", error);
+        toast.error("Failed to load voting settings");
       } finally {
         setLoading(false);
       }
@@ -64,14 +64,14 @@ const SecuritySettingsForm = () => {
   }, [form]);
   
   // Save settings to database
-  const onSubmit = async (values: SecuritySettings) => {
+  const onSubmit = async (values: VotingSettings) => {
     try {
       setSaving(true);
       
       const { error } = await supabase
         .from("settings")
         .upsert({
-          category: "security",
+          category: "voting",
           settings_value: values
         }, {
           onConflict: "category"
@@ -79,10 +79,10 @@ const SecuritySettingsForm = () => {
         
       if (error) throw error;
       
-      toast.success("Security settings saved successfully");
+      toast.success("Voting settings saved successfully");
     } catch (error) {
-      console.error("Failed to save security settings:", error);
-      toast.error("Failed to save security settings");
+      console.error("Failed to save voting settings:", error);
+      toast.error("Failed to save voting settings");
     } finally {
       setSaving(false);
     }
@@ -104,15 +104,15 @@ const SecuritySettingsForm = () => {
             <div className="grid gap-6">
               <FormField
                 control={form.control}
-                name="requireAccessCodesForPrivateElections"
+                name="allowAbstain"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Require Access Codes
+                        Allow Abstain Option
                       </FormLabel>
                       <FormDescription>
-                        When enabled, private elections must have access codes for voter entry
+                        When enabled, voters can choose to abstain from voting for a position
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -127,15 +127,15 @@ const SecuritySettingsForm = () => {
               
               <FormField
                 control={form.control}
-                name="voterVerificationRequired"
+                name="showRealTimeResults"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Require Voter Verification
+                        Show Real-Time Results
                       </FormLabel>
                       <FormDescription>
-                        When enabled, users must be verified as voters before participating
+                        When enabled, voting results are visible in real-time during the election
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -150,45 +150,45 @@ const SecuritySettingsForm = () => {
               
               <FormField
                 control={form.control}
-                name="enableIpAddressVoting"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Log IP Addresses
-                      </FormLabel>
-                      <FormDescription>
-                        When enabled, voter IP addresses are recorded with each vote for security
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="maxLoginAttempts"
+                name="minimumVotingPeriodHours"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Max Login Attempts</FormLabel>
+                    <FormLabel>Minimum Voting Period (hours)</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
                         {...field} 
                         min={1}
-                        max={10}
+                        max={168}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                       />
                     </FormControl>
                     <FormDescription>
-                      Maximum number of failed login attempts before temporary lockout
+                      Minimum duration that voting must remain open (1-168 hours)
                     </FormDescription>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="voterEmailVerificationRequired"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">
+                        Require Email Verification
+                      </FormLabel>
+                      <FormDescription>
+                        When enabled, voters must verify their email address before voting
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />
@@ -207,4 +207,4 @@ const SecuritySettingsForm = () => {
   );
 };
 
-export default SecuritySettingsForm;
+export default VotingSettingsForm;

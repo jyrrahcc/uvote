@@ -30,7 +30,7 @@ const SystemSettings = () => {
         
       if (error) throw error;
       
-      toast.success("Settings reset to defaults successfully");
+      toast.success("Election system settings reset to defaults successfully");
       
       // Reload the page to show default settings
       window.location.reload();
@@ -47,7 +47,7 @@ const SystemSettings = () => {
       <div className="flex flex-col space-y-1.5">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Settings className="h-7 w-7 text-primary" />
-          System Settings
+          Election System Settings
         </h1>
         <p className="text-muted-foreground">
           Manage system-wide settings and configurations for the DLSU-D voting platform
@@ -56,9 +56,9 @@ const SystemSettings = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>System Configuration</CardTitle>
+          <CardTitle>Election System Configuration</CardTitle>
           <CardDescription>
-            Configure various aspects of the DLSU-D voting system
+            Configure key parameters for the DLSU-D election and voting system
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -87,13 +87,6 @@ const SystemSettings = () => {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h3 className="font-medium">Application Version</h3>
-              <p className="text-sm text-muted-foreground">1.0.0</p>
-            </div>
-            
-            <Separator />
-            
-            <div>
               <h3 className="font-medium">System Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 <div>
@@ -101,8 +94,8 @@ const SystemSettings = () => {
                   <p className="text-sm text-muted-foreground">De La Salle University - Dasmariñas</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium">Last Updated</h4>
-                  <p className="text-sm text-muted-foreground">May 8, 2025</p>
+                  <h4 className="text-sm font-medium">Application Version</h4>
+                  <p className="text-sm text-muted-foreground">1.0.0</p>
                 </div>
               </div>
             </div>
