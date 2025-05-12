@@ -1,33 +1,45 @@
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { CandidateApplication } from "@/types";
-import { 
-  fetchCandidateApplicationsForElection, 
-  fetchCandidateApplicationsByUser
-} from "../services/candidateApplicationService";
+import { deleteCandidateApplication, fetchCandidateApplicationsForElection } from "../services/candidateApplicationService";
 
 export const useCandidateApplications = (electionId: string) => {
   const [applications, setApplications] = useState<CandidateApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchApplications = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      setError(null);
       const data = await fetchCandidateApplicationsForElection(electionId);
       setApplications(data);
-    } catch (err) {
+      setError(null);
+    } catch (err: any) {
       console.error("Error fetching applications:", err);
-      setError(err instanceof Error ? err : new Error("Failed to fetch applications"));
+      setError(err);
     } finally {
       setLoading(false);
     }
   };
 
+  const deleteApplication = async (applicationId: string) => {
+    try {
+      await deleteCandidateApplication(applicationId);
+      // Update the local state to reflect the deletion
+      setApplications(prev => prev.filter(app => app.id !== applicationId));
+      toast.success("Application deleted successfully");
+      return true;
+    } catch (err: any) {
+      console.error("Error deleting application:", err);
+      toast.error("Failed to delete application");
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (electionId) {
-      fetchApplications();
+      fetchData();
     }
   }, [electionId]);
 
@@ -35,37 +47,7 @@ export const useCandidateApplications = (electionId: string) => {
     applications,
     loading,
     error,
-    refetch: fetchApplications
-  };
-};
-
-export const useUserCandidateApplications = () => {
-  const [applications, setApplications] = useState<CandidateApplication[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchUserApplications = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchCandidateApplicationsByUser();
-      setApplications(data);
-    } catch (err) {
-      console.error("Error fetching user applications:", err);
-      setError(err instanceof Error ? err : new Error("Failed to fetch applications"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUserApplications();
-  }, []);
-
-  return {
-    applications,
-    loading,
-    error,
-    refetch: fetchUserApplications
+    refetch: fetchData,
+    deleteApplication
   };
 };

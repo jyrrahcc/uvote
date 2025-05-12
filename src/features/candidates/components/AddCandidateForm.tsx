@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Candidate } from "@/types";
+import { Candidate, Election } from "@/types";
 import CampaignPosterUpload from "./CampaignPosterUpload";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
-// Adding the missing interface definition
 interface AddCandidateFormProps {
   electionId: string;
   onCandidateAdded: (candidate: Candidate | Candidate[]) => void;
@@ -39,6 +45,33 @@ const formSchema = z.object({
 
 const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandidateFormProps) => {
   const [loading, setLoading] = useState(false);
+  const [availablePositions, setAvailablePositions] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Fetch election details to get positions
+    const fetchElectionDetails = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('elections')
+          .select('positions')
+          .eq('id', electionId)
+          .single();
+          
+        if (error) {
+          console.error("Error fetching election positions:", error);
+          return;
+        }
+        
+        if (data && Array.isArray(data.positions)) {
+          setAvailablePositions(data.positions);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    };
+
+    fetchElectionDetails();
+  }, [electionId]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -92,7 +125,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
 
   return (
     <ScrollArea className="h-full max-h-[calc(80vh-100px)]">
-      <div className="px-1 py-2">
+      <div className="px-4 py-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
@@ -116,7 +149,25 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
                 <FormItem>
                   <FormLabel>Position</FormLabel>
                   <FormControl>
-                    <Input placeholder="Position running for" {...field} />
+                    {availablePositions.length > 0 ? (
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a position" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availablePositions.map((position) => (
+                            <SelectItem key={position} value={position}>
+                              {position}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input placeholder="Position running for" {...field} />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -8,12 +8,14 @@ interface PositionSelectorProps {
   position: string;
   setPosition: (position: string) => void;
   availablePositions: string[];
+  required?: boolean;
 }
 
 const PositionSelector = ({ 
   position, 
   setPosition, 
-  availablePositions 
+  availablePositions,
+  required = true
 }: PositionSelectorProps) => {
   return (
     <div className="grid grid-cols-4 items-center gap-4">
@@ -25,7 +27,7 @@ const PositionSelector = ({
           <Select
             value={position}
             onValueChange={setPosition}
-            required
+            required={required}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select a position" />
@@ -46,7 +48,7 @@ const PositionSelector = ({
           onChange={(e) => setPosition(e.target.value)}
           className="col-span-3"
           placeholder="Enter position"
-          required
+          required={required}
         />
       )}
     </div>

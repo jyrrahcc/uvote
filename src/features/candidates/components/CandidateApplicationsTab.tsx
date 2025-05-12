@@ -10,12 +10,17 @@ interface CandidateApplicationsTabProps {
 }
 
 const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplicationsTabProps) => {
-  const { applications, loading, error, refetch } = useCandidateApplications(electionId);
+  const { applications, loading, error, refetch, deleteApplication } = useCandidateApplications(electionId);
 
   useEffect(() => {
     // Fetch applications on component mount
     refetch();
   }, [electionId]);
+
+  const handleDeleteApplication = async (applicationId: string) => {
+    await deleteApplication(applicationId);
+    refetch(); // Explicitly refetch after deletion
+  };
 
   if (loading) {
     return <div className="text-center py-10">Loading applications...</div>;
@@ -49,6 +54,7 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
           application={application} 
           isAdmin={isAdmin}
           onStatusChange={refetch}
+          onDelete={handleDeleteApplication}
         />
       ))}
     </div>

@@ -119,7 +119,6 @@ export const updateCandidateApplication = async (
 
 export const deleteCandidateApplication = async (applicationId: string): Promise<void> => {
   try {
-    // Ensure we're using the right table name and condition
     const { error } = await supabase
       .from('candidate_applications')
       .delete()
