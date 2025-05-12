@@ -26,6 +26,7 @@ import Dashboard from "./pages/Dashboard";
 import MyVotes from "./pages/MyVotes";
 import UsersManagement from "./pages/admin/UsersManagement";
 import ElectionsManagement from "./pages/admin/ElectionsManagement";
+import ElectionDetail from "./pages/admin/ElectionDetail";
 import Analytics from "./pages/admin/Analytics"; 
 import SystemSettings from "./pages/admin/SystemSettings";
 import VotingPage from "./features/elections/pages/VotingPage";
@@ -112,6 +113,7 @@ const App = () => {
                     <Route element={<RoleProtectedRoute requiredRole="admin" />}>
                       <Route path="/admin/users" element={<UsersManagement />} />
                       <Route path="/admin/elections" element={<ElectionsManagement />} />
+                      <Route path="/admin/elections/:electionId" element={<ElectionDetail />} />
                       <Route path="/admin/analytics" element={<Analytics />} />
                       <Route path="/admin/settings" element={<SystemSettings />} />
                     </Route>
