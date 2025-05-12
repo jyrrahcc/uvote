@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, FileText } from "lucide-react";
+import { AlertCircle, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Candidate, Election } from "@/types";
@@ -84,8 +84,8 @@ const CandidatesTab = ({ election, candidates, isUserEligible = true }: Candidat
         <div>
           {showCandidacyButton && (
             <Button onClick={handleApplyAsCandidate} className="bg-[#008f50] hover:bg-[#007a45]">
-              <FileText className="mr-2 h-4 w-4" />
-              File Candidacy
+              <Users className="mr-2 h-4 w-4" />
+              Candidates
             </Button>
           )}
           

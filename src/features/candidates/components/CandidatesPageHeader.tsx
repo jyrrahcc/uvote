@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar, PlusCircle, Users, AlertTriangle } from "lucide-react";
+import { Users, PlusCircle, AlertTriangle, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -139,7 +139,7 @@ const CandidatesPageHeader = ({
               onClick={() => handleOpenDialog('apply')}
               className="bg-[#008f50] hover:bg-[#007a45]"
             >
-              <PlusCircle className="mr-2 h-4 w-4" />
+              <Users className="mr-2 h-4 w-4" />
               Apply as Candidate
             </Button>
           )

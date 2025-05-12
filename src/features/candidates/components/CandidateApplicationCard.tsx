@@ -34,6 +34,11 @@ const CandidateApplicationCard = ({
   const { user } = useAuth();
 
   const handleStatusChange = async (status: "approved" | "rejected" | "disqualified") => {
+    if ((status === "rejected" || status === "disqualified") && !feedback.trim()) {
+      toast.error("Feedback is required when rejecting or disqualifying an application");
+      return;
+    }
+
     try {
       setSubmitting(true);
       await updateCandidateApplication(application.id, {
@@ -111,13 +116,12 @@ const CandidateApplicationCard = ({
 
         {isAdmin && application.status === "pending" && (
           <div className="mt-4">
-            <h4 className="text-sm font-medium mb-1">Feedback (required):</h4>
+            <h4 className="text-sm font-medium mb-1">Feedback (required for rejection/disqualification):</h4>
             <Textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Provide feedback to the candidate"
               className="h-20"
-              required
             />
           </div>
         )}
@@ -137,7 +141,7 @@ const CandidateApplicationCard = ({
                 <Button 
                   variant="outline" 
                   onClick={() => confirmStatusChange("rejected")}
-                  disabled={submitting || !feedback.trim()}
+                  disabled={submitting}
                   className="border-red-200 text-red-700 hover:bg-red-50"
                 >
                   Reject
@@ -145,7 +149,7 @@ const CandidateApplicationCard = ({
                 <Button 
                   variant="outline"
                   onClick={() => confirmStatusChange("disqualified")}
-                  disabled={submitting || !feedback.trim()}
+                  disabled={submitting}
                   className="border-orange-200 text-orange-700 hover:bg-orange-50"
                 >
                   Disqualify
@@ -197,13 +201,17 @@ const CandidateApplicationCard = ({
               {statusToSet === "approved" && "Are you sure you want to approve this application? This will add the applicant as a candidate."}
               {statusToSet === "rejected" && "Are you sure you want to reject this application?"}
               {statusToSet === "disqualified" && "Are you sure you want to disqualify this candidate?"}
-              {" "}Your feedback will be sent to the applicant.
+              {(statusToSet === "rejected" || statusToSet === "disqualified") && !feedback.trim() && (
+                <p className="text-red-500 mt-2">Please provide feedback before proceeding.</p>
+              )}
+              {feedback.trim() && " Your feedback will be sent to the applicant."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => statusToSet && handleStatusChange(statusToSet)}
+              disabled={(statusToSet === "rejected" || statusToSet === "disqualified") && !feedback.trim()}
               className={`
                 ${statusToSet === "approved" ? "bg-green-600 hover:bg-green-700" : ""}
                 ${statusToSet === "rejected" ? "bg-red-600 hover:bg-red-700" : ""}

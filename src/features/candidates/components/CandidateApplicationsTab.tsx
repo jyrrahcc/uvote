@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CandidateApplication } from "@/types";
 import ApplicationStatusBadge from "./ApplicationStatusBadge";
 import { formatDate } from "@/utils/dateUtils";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface CandidateApplicationsTabProps {
   electionId: string;
@@ -40,9 +42,13 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
 
   if (error) {
     return (
-      <div className="text-center py-10 text-red-500">
-        Error loading applications: {error.message}
-      </div>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          Failed to load applications: {error.message}
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -79,26 +85,28 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
       </div>
 
       {applications.length > 0 && (
-        <Table className="hidden md:table">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Position</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredApplications.map(app => (
-              <TableRow key={app.id} className="cursor-pointer hover:bg-gray-50">
-                <TableCell>{app.name}</TableCell>
-                <TableCell>{app.position}</TableCell>
-                <TableCell><ApplicationStatusBadge status={app.status} /></TableCell>
-                <TableCell>{formatDate(app.created_at || '')}</TableCell>
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Position</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredApplications.map(app => (
+                <TableRow key={app.id} className="cursor-pointer hover:bg-gray-50">
+                  <TableCell>{app.name}</TableCell>
+                  <TableCell>{app.position}</TableCell>
+                  <TableCell><ApplicationStatusBadge status={app.status} /></TableCell>
+                  <TableCell>{formatDate(app.created_at || '')}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

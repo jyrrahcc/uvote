@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { Users } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -43,8 +43,8 @@ const ElectionTitleSection = ({
             onClick={onApply}
             className="bg-[#008f50] hover:bg-[#007a45] text-white"
           >
-            <PlusCircle className="mr-2 h-4 w-4" /> 
-            Apply as Candidate
+            <Users className="mr-2 h-4 w-4" /> 
+            Candidates
           </Button>
         )}
         
