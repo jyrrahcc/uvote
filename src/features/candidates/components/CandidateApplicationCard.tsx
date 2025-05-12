@@ -68,10 +68,11 @@ const CandidateApplicationCard = ({
       <CardContent className="flex-grow">
         {application.image_url && (
           <div className="mb-4">
+            {/* Fix: Pass correct props to ImageThumbnail according to its interface */}
             <ImageThumbnail 
-              src={application.image_url} 
-              alt={`${application.name}'s campaign poster`} 
-              className="w-full h-auto max-h-40 object-contain"
+              imageUrl={application.image_url}
+              onRemove={() => {/* No action needed for preview */}}
+              disabled={true}
             />
           </div>
         )}

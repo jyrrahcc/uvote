@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -19,12 +18,26 @@ export const hasUserAppliedForElection = async (electionId: string, userId: stri
   }
 };
 
-export const fetchUserApplications = async (userId: string): Promise<CandidateApplication[]> => {
+export const fetchUserApplications = async (userId?: string): Promise<CandidateApplication[]> => {
   try {
+    // If userId is provided, use it; otherwise, get the current user's ID from the session
+    let userIdToUse = userId;
+    
+    if (!userIdToUse) {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) throw sessionError;
+      if (!sessionData.session?.user?.id) {
+        throw new Error("User not authenticated");
+      }
+      
+      userIdToUse = sessionData.session.user.id;
+    }
+    
     const { data, error } = await supabase
       .from('candidate_applications')
       .select('*, elections(title, candidacy_start_date, candidacy_end_date, status)')
-      .eq('user_id', userId)
+      .eq('user_id', userIdToUse)
       .order('created_at', { ascending: false });
       
     if (error) throw error;
@@ -64,29 +77,8 @@ export const fetchCandidateApplicationsForElection = async (electionId: string):
 };
 
 export const fetchCandidateApplicationsByUser = async (): Promise<CandidateApplication[]> => {
-  try {
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) throw sessionError;
-    if (!sessionData.session?.user?.id) {
-      throw new Error("User not authenticated");
-    }
-    
-    const userId = sessionData.session.user.id;
-    
-    const { data, error } = await supabase
-      .from('candidate_applications')
-      .select('*, elections(title, candidacy_start_date, candidacy_end_date, status)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    
-    return data?.map(item => mapDbCandidateApplicationToCandidateApplication(item)) || [];
-  } catch (error) {
-    console.error("Error fetching user applications:", error);
-    throw error;
-  }
+  // This is now redundant with fetchUserApplications, but we'll keep it for backward compatibility
+  return fetchUserApplications();
 };
 
 export const updateCandidateApplication = async (

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { CandidateApplication } from "@/types";
-import { deleteCandidateApplication, fetchCandidateApplicationsForElection } from "../services/candidateApplicationService";
+import { deleteCandidateApplication, fetchCandidateApplicationsForElection, fetchUserApplications } from "../services/candidateApplicationService";
 
 export const useCandidateApplications = (electionId: string) => {
   const [applications, setApplications] = useState<CandidateApplication[]>([]);
@@ -49,5 +49,37 @@ export const useCandidateApplications = (electionId: string) => {
     error,
     refetch: fetchData,
     deleteApplication
+  };
+};
+
+// Add the useUserCandidateApplications hook
+export const useUserCandidateApplications = () => {
+  const [applications, setApplications] = useState<CandidateApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchUserApplications();
+      setApplications(data);
+      setError(null);
+    } catch (err: any) {
+      console.error("Error fetching user applications:", err);
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    applications,
+    loading,
+    error,
+    refetch: fetchData
   };
 };

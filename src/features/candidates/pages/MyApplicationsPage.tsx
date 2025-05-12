@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const MyApplicationsPage = () => {
+  // Using the newly created useUserCandidateApplications hook
   const { applications, loading, error, refetch } = useUserCandidateApplications();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
