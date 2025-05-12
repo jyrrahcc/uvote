@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollVote, PollResults } from "@/types/discussions";
 import { toast } from "sonner";
@@ -8,7 +9,7 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
       .from('polls')
       .select(`
         *,
-        author:profiles(first_name, last_name, image_url)
+        profiles:created_by(first_name, last_name, image_url)
       `)
       .eq('election_id', electionId)
       .order('created_at', { ascending: false });
@@ -19,10 +20,10 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
     return (data || []).map(poll => ({
       ...poll,
       options: poll.options as Record<string, string>,
-      author: poll.author ? {
-        first_name: poll.author.first_name || '',
-        last_name: poll.author.last_name || '',
-        image_url: poll.author.image_url
+      author: poll.profiles ? {
+        first_name: poll.profiles.first_name || '',
+        last_name: poll.profiles.last_name || '',
+        image_url: poll.profiles.image_url
       } : undefined
     })) as Poll[];
   } catch (error) {
@@ -37,7 +38,7 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
       .from('polls')
       .select(`
         *,
-        author:profiles(first_name, last_name, image_url)
+        profiles:created_by(first_name, last_name, image_url)
       `)
       .eq('id', pollId)
       .single();
@@ -48,10 +49,10 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
     return {
       ...data,
       options: data.options as Record<string, string>,
-      author: data.author ? {
-        first_name: data.author.first_name || '',
-        last_name: data.author.last_name || '',
-        image_url: poll.author.image_url
+      author: data.profiles ? {
+        first_name: data.profiles.first_name || '',
+        last_name: data.profiles.last_name || '',
+        image_url: data.profiles.image_url
       } : undefined
     } as Poll;
   } catch (error) {

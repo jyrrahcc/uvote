@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { DiscussionTopic, DiscussionComment } from '@/types/discussions';
 import { 
@@ -24,22 +23,22 @@ export const useDiscussions = (electionId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [commentLoading, setCommentLoading] = useState(false);
 
+  const loadTopics = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchDiscussionTopics(electionId);
+      setTopics(data);
+    } catch (error) {
+      console.error("Error loading discussions:", error);
+      setError("Failed to load discussion topics");
+    } finally {
+      setLoading(false);
+    }
+  }, [electionId]);
+
   useEffect(() => {
     if (!electionId) return;
-    
-    const loadTopics = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchDiscussionTopics(electionId);
-        setTopics(data);
-      } catch (error) {
-        console.error("Error loading discussions:", error);
-        setError("Failed to load discussion topics");
-      } finally {
-        setLoading(false);
-      }
-    };
     
     loadTopics();
     
@@ -59,7 +58,7 @@ export const useDiscussions = (electionId: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [electionId]);
+  }, [electionId, loadTopics]);
   
   const loadTopic = async (topicId: string) => {
     try {
@@ -69,7 +68,7 @@ export const useDiscussions = (electionId: string) => {
       setSelectedTopic(topic);
       
       if (topic) {
-        loadComments(topicId);
+        await loadComments(topicId);
       }
       
       return topic;
@@ -253,7 +252,7 @@ export const useDiscussions = (electionId: string) => {
     commentLoading,
     error,
     loadTopic,
-    addTopic,
+    addTopic: createDiscussionTopic,
     updateTopic,
     removeTopic,
     addComment,

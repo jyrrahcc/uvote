@@ -10,6 +10,7 @@ import DiscussionList from "./components/DiscussionList";
 import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
+import { DiscussionTopic, Poll } from "@/types/discussions";
 
 interface DiscussionsPageProps {
   electionId?: string;
@@ -59,12 +60,12 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     setViewingPoll(false);
   };
   
-  const handleSelectTopic = async (topic) => {
+  const handleSelectTopic = async (topic: DiscussionTopic) => {
     await loadTopic(topic.id);
     setViewingTopic(true);
   };
   
-  const handleSelectPoll = async (poll) => {
+  const handleSelectPoll = async (poll: Poll) => {
     await loadPoll(poll.id);
     setViewingPoll(true);
   };
@@ -73,11 +74,12 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     question: string, 
     options: Record<string, string>,
     description?: string,
+    topicId?: string | null,
     multipleChoice: boolean = false,
-    endsAt?: string
+    endsAt?: string | null
   ) => {
     // Pass null as topicId since we're creating from the polls tab
-    return addPoll(question, options, description, null, multipleChoice, endsAt);
+    return addPoll(question, options, description || null, topicId || null, multipleChoice, endsAt || null);
   };
   
   return (

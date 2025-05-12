@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DiscussionTopic, DiscussionComment } from "@/types/discussions";
 import { toast } from "sonner";
@@ -8,7 +9,7 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
       .from('discussion_topics')
       .select(`
         *,
-        author:profiles(first_name, last_name, image_url)
+        profiles:created_by(first_name, last_name, image_url)
       `)
       .eq('election_id', electionId)
       .order('is_pinned', { ascending: false })
@@ -19,10 +20,10 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
     // Transform data to match our types
     return (data || []).map(topic => ({
       ...topic,
-      author: topic.author ? {
-        first_name: topic.author.first_name || '',
-        last_name: topic.author.last_name || '',
-        image_url: topic.author.image_url
+      author: topic.profiles ? {
+        first_name: topic.profiles.first_name || '',
+        last_name: topic.profiles.last_name || '',
+        image_url: topic.profiles.image_url
       } : undefined
     })) as DiscussionTopic[];
   } catch (error) {
@@ -37,7 +38,7 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
       .from('discussion_topics')
       .select(`
         *,
-        author:profiles(first_name, last_name, image_url)
+        profiles:created_by(first_name, last_name, image_url)
       `)
       .eq('id', topicId)
       .single();
@@ -47,10 +48,10 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
     // Transform data to match our types
     const topic = {
       ...data,
-      author: data.author ? {
-        first_name: data.author.first_name || '',
-        last_name: data.author.last_name || '',
-        image_url: data.author.image_url
+      author: data.profiles ? {
+        first_name: data.profiles.first_name || '',
+        last_name: data.profiles.last_name || '',
+        image_url: data.profiles.image_url
       } : undefined
     } as DiscussionTopic;
     
@@ -147,7 +148,7 @@ export const fetchComments = async (topicId: string): Promise<DiscussionComment[
       .from('discussion_comments')
       .select(`
         *,
-        author:profiles(first_name, last_name, image_url)
+        profiles:user_id(first_name, last_name, image_url)
       `)
       .eq('topic_id', topicId)
       .order('created_at', { ascending: true });
@@ -157,10 +158,10 @@ export const fetchComments = async (topicId: string): Promise<DiscussionComment[
     // Transform data to match our types
     return (data || []).map(comment => ({
       ...comment,
-      author: comment.author ? {
-        first_name: comment.author.first_name || '',
-        last_name: comment.author.last_name || '',
-        image_url: comment.author.image_url
+      author: comment.profiles ? {
+        first_name: comment.profiles.first_name || '',
+        last_name: comment.profiles.last_name || '',
+        image_url: comment.profiles.image_url
       } : undefined
     })) as DiscussionComment[];
   } catch (error) {
