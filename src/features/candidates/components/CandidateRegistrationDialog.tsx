@@ -2,6 +2,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle } from "lucide-react";
 import CandidateRegistrationForm from "./CandidateRegistrationForm";
 import CandidateApplicationForm from "./CandidateApplicationForm";
@@ -115,13 +116,15 @@ const CandidateRegistrationDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>{getDialogTitle()}</DialogTitle>
           <DialogDescription>{getDialogDescription()}</DialogDescription>
         </DialogHeader>
         
-        {renderContent()}
+        <ScrollArea className="max-h-[70vh] px-6 pb-6">
+          {renderContent()}
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
