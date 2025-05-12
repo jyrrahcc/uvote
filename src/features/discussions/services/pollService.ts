@@ -18,16 +18,16 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
     
     // Transform the data to match our types
     return (data || []).map(poll => {
-      // Safely access profile data with proper type checking
-      const profileData = poll.profiles && typeof poll.profiles === 'object' ? poll.profiles : null;
+      // Safely access profile data
+      const profileData = poll.profiles || null;
       
       return {
         ...poll,
         options: poll.options as Record<string, string>,
         author: {
-          first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
-          last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
-          image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
+          first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
+          last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
+          image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
         }
       };
     }) as Poll[];
@@ -50,17 +50,17 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
       
     if (error) throw error;
     
-    // Safely access profile data with proper type checking
-    const profileData = data.profiles && typeof data.profiles === 'object' ? data.profiles : null;
+    // Safely access profile data
+    const profileData = data.profiles || null;
     
     // Transform the data to match our types
     return {
       ...data,
       options: data.options as Record<string, string>,
       author: {
-        first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
-        last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
-        image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
+        first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
+        last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
+        image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
       }
     } as Poll;
   } catch (error) {

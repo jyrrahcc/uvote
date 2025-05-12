@@ -83,7 +83,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
   
   // Wrapper function to match expected signature in DiscussionList
   const handleCreateTopic = async (title: string, content: string) => {
-    const result = await addTopic(finalElectionId, title, content);
+    const result = await addTopic(finalElectionId, title, content || null);
     return result as DiscussionTopic;
   };
   

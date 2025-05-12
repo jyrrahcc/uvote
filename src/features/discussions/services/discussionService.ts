@@ -19,15 +19,15 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
     
     // Transform data to match our types
     return (data || []).map(topic => {
-      // Safely access profile data with proper type checking
-      const profileData = topic.profiles && typeof topic.profiles === 'object' ? topic.profiles : null;
+      // Safely access profile data
+      const profileData = topic.profiles || null;
       
       return {
         ...topic,
         author: {
-          first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
-          last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
-          image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
+          first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
+          last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
+          image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
         }
       };
     }) as DiscussionTopic[];
@@ -50,16 +50,16 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
       
     if (error) throw error;
     
-    // Safely access profile data with proper type checking
-    const profileData = data.profiles && typeof data.profiles === 'object' ? data.profiles : null;
+    // Safely access profile data
+    const profileData = data.profiles || null;
     
     // Transform data to match our types
     const topic = {
       ...data,
       author: {
-        first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
-        last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
-        image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
+        first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
+        last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
+        image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
       }
     } as DiscussionTopic;
     
@@ -165,15 +165,15 @@ export const fetchComments = async (topicId: string): Promise<DiscussionComment[
     
     // Transform data to match our types
     return (data || []).map(comment => {
-      // Safely access profile data with proper type checking
-      const profileData = comment.profiles && typeof comment.profiles === 'object' ? comment.profiles : null;
+      // Safely access profile data
+      const profileData = comment.profiles || null;
       
       return {
         ...comment,
         author: {
-          first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
-          last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
-          image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
+          first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
+          last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
+          image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
         }
       };
     }) as DiscussionComment[];
