@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { CandidateApplication } from "@/types";
 import { deleteCandidateApplication, fetchCandidateApplicationsForElection, fetchUserApplications } from "../services/candidateApplicationService";
@@ -9,7 +9,7 @@ export const useCandidateApplications = (electionId: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchCandidateApplicationsForElection(electionId);
@@ -21,7 +21,7 @@ export const useCandidateApplications = (electionId: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [electionId]);
 
   const deleteApplication = async (applicationId: string) => {
     try {
@@ -30,7 +30,7 @@ export const useCandidateApplications = (electionId: string) => {
       setApplications(prev => prev.filter(app => app.id !== applicationId));
       toast.success("Application deleted successfully");
       // Explicitly refetch data to ensure UI is in sync with database
-      fetchData();
+      await fetchData();
       return true;
     } catch (err: any) {
       console.error("Error deleting application:", err);
@@ -43,7 +43,7 @@ export const useCandidateApplications = (electionId: string) => {
     if (electionId) {
       fetchData();
     }
-  }, [electionId]);
+  }, [electionId, fetchData]);
 
   return {
     applications,
@@ -60,7 +60,7 @@ export const useUserCandidateApplications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchUserApplications();
@@ -72,7 +72,7 @@ export const useUserCandidateApplications = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
   
   const deleteApplication = async (applicationId: string) => {
     try {
@@ -81,7 +81,7 @@ export const useUserCandidateApplications = () => {
       setApplications(prev => prev.filter(app => app.id !== applicationId));
       toast.success("Application deleted successfully");
       // Explicitly refetch to ensure UI is in sync with database
-      fetchData();
+      await fetchData();
       return true;
     } catch (err: any) {
       console.error("Error deleting application:", err);
@@ -92,7 +92,7 @@ export const useUserCandidateApplications = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   return {
     applications,

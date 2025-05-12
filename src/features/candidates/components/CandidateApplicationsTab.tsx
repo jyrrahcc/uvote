@@ -21,7 +21,7 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
   useEffect(() => {
     // Fetch applications on component mount
     refetch();
-  }, [electionId]);
+  }, [electionId, refetch]);
 
   const handleDeleteApplication = async (applicationId: string) => {
     const success = await deleteApplication(applicationId);

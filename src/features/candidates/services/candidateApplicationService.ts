@@ -62,15 +62,42 @@ export const checkUserEligibilityForElection = async (userId: string, election: 
 
 export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
   try {
+    // Instead of using the profile reference directly, fetch the applications and user data separately
     const { data, error } = await supabase
       .from('candidate_applications')
-      .select('*, profiles(first_name, last_name, department, year_level, student_id)')
+      .select('*')
       .eq('election_id', electionId)
       .order('created_at', { ascending: false });
       
     if (error) throw error;
     
-    return data?.map(item => mapDbCandidateApplicationToCandidateApplication(item)) || [];
+    // For each application, fetch the related user profile data
+    const applicationsWithProfiles = await Promise.all(
+      data.map(async (application) => {
+        // Get the user profile information
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, department, year_level, student_id')
+          .eq('id', application.user_id)
+          .single();
+        
+        if (profileError) {
+          console.warn("Error fetching profile for user:", application.user_id, profileError);
+          // Return the application without profile data
+          return mapDbCandidateApplicationToCandidateApplication(application);
+        }
+        
+        // Merge the application data with profile data
+        const enrichedApplication = {
+          ...application,
+          profiles: profileData
+        };
+        
+        return mapDbCandidateApplicationToCandidateApplication(enrichedApplication);
+      })
+    );
+    
+    return applicationsWithProfiles;
   } catch (error) {
     console.error("Error fetching applications for election:", error);
     throw error;
