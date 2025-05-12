@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialAuthCheckDone, setInitialAuthCheckDone] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -66,8 +67,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(newSession?.user ?? null);
         setLoading(false);
         
-        // Redirect to dashboard when user logs in via OAuth
-        if (event === 'SIGNED_IN' && newSession) {
+        // Only redirect on fresh sign-in events, not on every auth state change
+        if (event === 'SIGNED_IN' && newSession && !initialAuthCheckDone) {
           navigate('/dashboard');
         }
       }
@@ -80,6 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data } = await supabase.auth.getSession();
         setSession(data.session);
         setUser(data.session?.user ?? null);
+        setInitialAuthCheckDone(true);
       } catch (error) {
         console.error("Error getting initial session:", error);
       } finally {
@@ -92,7 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, initialAuthCheckDone]);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
