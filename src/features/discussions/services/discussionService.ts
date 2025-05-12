@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { DiscussionTopic, DiscussionComment } from "@/types/discussions";
 import { toast } from "sonner";
+import { extractAuthor } from "../utils/profileUtils";
 
 export const fetchDiscussionTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
   try {
@@ -20,15 +21,11 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
     // Transform data to match our types
     return (data || []).map(topic => {
       // Safely access profile data
-      const profileData = topic.profiles || null;
+      const profileData = topic.profiles;
       
       return {
         ...topic,
-        author: {
-          first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
-          last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
-          image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
-        }
+        author: extractAuthor(profileData)
       };
     }) as DiscussionTopic[];
   } catch (error) {
@@ -51,16 +48,12 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
     if (error) throw error;
     
     // Safely access profile data
-    const profileData = data.profiles || null;
+    const profileData = data.profiles;
     
     // Transform data to match our types
     const topic = {
       ...data,
-      author: {
-        first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
-        last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
-        image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
-      }
+      author: extractAuthor(profileData)
     } as DiscussionTopic;
     
     // Increment view count
@@ -166,15 +159,11 @@ export const fetchComments = async (topicId: string): Promise<DiscussionComment[
     // Transform data to match our types
     return (data || []).map(comment => {
       // Safely access profile data
-      const profileData = comment.profiles || null;
+      const profileData = comment.profiles;
       
       return {
         ...comment,
-        author: {
-          first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
-          last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
-          image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
-        }
+        author: extractAuthor(profileData)
       };
     }) as DiscussionComment[];
   } catch (error) {

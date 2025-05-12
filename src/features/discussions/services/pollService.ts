@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollVote, PollResults } from "@/types/discussions";
 import { toast } from "sonner";
+import { extractAuthor } from "../utils/profileUtils";
 
 export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
   try {
@@ -19,16 +20,12 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
     // Transform the data to match our types
     return (data || []).map(poll => {
       // Safely access profile data
-      const profileData = poll.profiles || null;
+      const profileData = poll.profiles;
       
       return {
         ...poll,
         options: poll.options as Record<string, string>,
-        author: {
-          first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
-          last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
-          image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
-        }
+        author: extractAuthor(profileData)
       };
     }) as Poll[];
   } catch (error) {
@@ -51,17 +48,13 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
     if (error) throw error;
     
     // Safely access profile data
-    const profileData = data.profiles || null;
+    const profileData = data.profiles;
     
     // Transform the data to match our types
     return {
       ...data,
       options: data.options as Record<string, string>,
-      author: {
-        first_name: profileData && typeof profileData === 'object' && 'first_name' in profileData ? String(profileData.first_name || '') : '',
-        last_name: profileData && typeof profileData === 'object' && 'last_name' in profileData ? String(profileData.last_name || '') : '',
-        image_url: profileData && typeof profileData === 'object' && 'image_url' in profileData ? profileData.image_url : null
-      }
+      author: extractAuthor(profileData)
     } as Poll;
   } catch (error) {
     console.error("Error fetching poll:", error);
