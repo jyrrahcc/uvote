@@ -1,98 +1,112 @@
 
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Spinner } from "@/components/ui/spinner";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface NewTopicDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
   onCreateTopic: (title: string, content: string) => Promise<any>;
+  disabled?: boolean;
 }
 
-const NewTopicDialog = ({ isOpen, onClose, onCreateTopic }: NewTopicDialogProps) => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+const NewTopicDialog = ({ onCreateTopic, disabled = false }: NewTopicDialogProps) => {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
     if (!title.trim()) {
-      setError("Title is required");
+      toast.error('Please enter a topic title');
       return;
     }
-    
+
     try {
-      setLoading(true);
-      setError(null);
-      
+      setIsSubmitting(true);
       console.log("Submitting new topic:", { title, content });
-      
-      const result = await onCreateTopic(title, content);
-      console.log("Topic creation result:", result);
+      const result = await onCreateTopic(title.trim(), content.trim());
       
       if (result) {
-        setTitle("");
-        setContent("");
-        onClose();
+        console.log("Topic creation result:", result);
+        setTitle('');
+        setContent('');
+        setOpen(false);
+        toast.success('Topic created successfully');
+      } else {
+        console.error("Failed to create topic: No result returned");
+        toast.error('Failed to create topic');
       }
     } catch (error: any) {
-      console.error("Error in dialog when creating topic:", error);
-      setError(error.message || "Failed to create topic");
+      console.error("Error in topic dialog submission:", error);
+      toast.error(`Error creating topic: ${error.message || 'Unknown error'}`);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
-  
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
-          <DialogTitle>Create New Discussion Topic</DialogTitle>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="default" disabled={disabled}>
+          New Topic
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] p-0">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle>Create a New Topic</DialogTitle>
+          <DialogDescription>
+            Start a discussion on this election.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter topic title"
-              disabled={loading}
-            />
+        
+        <ScrollArea className="p-6 pt-0 max-h-[500px]">
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-right">
+                Title
+              </Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Topic title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="content" className="text-right">
+                Content
+              </Label>
+              <Textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="What would you like to discuss?"
+                className="min-h-[150px]"
+              />
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="content">Content (Optional)</Label>
-            <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter topic content"
-              rows={5}
-              disabled={loading}
-            />
-          </div>
-          
-          {error && (
-            <div className="text-red-500 text-sm">{error}</div>
-          )}
-          
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" className="bg-[#008f50] hover:bg-[#007a45]" disabled={loading}>
-              {loading ? <Spinner className="mr-2" /> : null}
-              Create Topic
-            </Button>
-          </div>
-        </form>
+        </ScrollArea>
+        
+        <DialogFooter className="p-6 pt-2">
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" onClick={handleSubmit} disabled={isSubmitting || !title.trim()}>
+            {isSubmitting ? 'Creating...' : 'Create Topic'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

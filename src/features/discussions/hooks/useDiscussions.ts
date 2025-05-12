@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { DiscussionTopic, DiscussionComment } from '@/types/discussions';
@@ -14,6 +13,7 @@ import {
   deleteComment
 } from '../services/discussionService';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const useDiscussions = (electionId: string) => {
   const { user } = useAuth();
@@ -26,13 +26,20 @@ export const useDiscussions = (electionId: string) => {
 
   const loadTopics = useCallback(async () => {
     try {
+      if (!electionId) {
+        console.log("No election ID provided, skipping topic load");
+        setTopics([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       console.log("Loading topics for election:", electionId);
       const data = await fetchDiscussionTopics(electionId);
       console.log("Loaded topics:", data);
       setTopics(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading discussions:", error);
       setError("Failed to load discussion topics");
     } finally {
@@ -124,24 +131,34 @@ export const useDiscussions = (electionId: string) => {
   const addTopic = async (electionId: string, title: string, content: string) => {
     try {
       if (!user) {
-        throw new Error("You must be logged in to create a topic");
+        const errorMsg = "You must be logged in to create a topic";
+        setError(errorMsg);
+        console.error(errorMsg);
+        toast.error(errorMsg);
+        return null;
       }
       
       console.log("Adding new topic:", { electionId, title, content });
+      setLoading(true);
       
       const newTopic = await createDiscussionTopic(electionId, title, content);
       
       if (newTopic) {
-        console.log("New topic created:", newTopic);
-        // Reload topics to ensure we have the latest data with author information
+        console.log("New topic created successfully:", newTopic);
+        // Reload topics to ensure we have the latest data
         await loadTopics();
         return newTopic;
+      } else {
+        console.error("Failed to create topic: No topic data returned");
+        setError("Failed to create topic");
+        return null;
       }
-      return null;
     } catch (error: any) {
       console.error("Error creating topic:", error);
       setError(error.message || "Failed to create topic");
       return null;
+    } finally {
+      setLoading(false);
     }
   };
   

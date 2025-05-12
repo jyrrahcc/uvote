@@ -76,13 +76,32 @@ export const createDiscussionTopic = async (
 ): Promise<DiscussionTopic | null> => {
   try {
     const { data: userData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) throw sessionError;
-    if (!userData.session) throw new Error("User not authenticated");
+    if (sessionError) {
+      console.error("Session error:", sessionError);
+      throw sessionError;
+    }
+    if (!userData.session) {
+      console.error("No user session found");
+      throw new Error("User not authenticated");
+    }
     
     const userId = userData.session.user.id;
     
     console.log("Creating topic with:", { electionId, userId, title, content });
     
+    // First, check if the election exists
+    const { data: electionData, error: electionError } = await supabase
+      .from('elections')
+      .select('id')
+      .eq('id', electionId)
+      .single();
+      
+    if (electionError) {
+      console.error("Election not found:", electionError);
+      throw new Error(`Invalid election: ${electionError.message}`);
+    }
+    
+    // Create the discussion topic without using .single() initially
     const { data, error } = await supabase
       .from('discussion_topics')
       .insert({
@@ -91,17 +110,35 @@ export const createDiscussionTopic = async (
         title,
         content
       })
-      .select()
-      .single();
+      .select();
       
     if (error) {
-      console.error("Database error:", error);
+      console.error("Database error creating topic:", error);
       throw error;
     }
     
-    console.log("Topic created successfully:", data);
+    if (!data || data.length === 0) {
+      console.error("No data returned after insertion");
+      throw new Error("Topic created but no data returned");
+    }
+    
+    const createdTopic = data[0];
+    console.log("Topic created successfully:", createdTopic);
     toast.success("Discussion topic created successfully");
-    return data as DiscussionTopic;
+    
+    // Get the author information to return a complete topic object
+    const { data: authorData } = await supabase
+      .from('profiles')
+      .select('first_name, last_name, image_url')
+      .eq('id', userId)
+      .single();
+      
+    const topicWithAuthor = {
+      ...createdTopic,
+      author: authorData || null
+    } as DiscussionTopic;
+    
+    return topicWithAuthor;
   } catch (error: any) {
     console.error("Error creating discussion topic:", error);
     toast.error(`Failed to create topic: ${error.message}`);
