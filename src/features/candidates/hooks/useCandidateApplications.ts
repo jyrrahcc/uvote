@@ -29,6 +29,8 @@ export const useCandidateApplications = (electionId: string) => {
       // Update the local state to reflect the deletion
       setApplications(prev => prev.filter(app => app.id !== applicationId));
       toast.success("Application deleted successfully");
+      // Explicitly refetch data to ensure UI is in sync with database
+      fetchData();
       return true;
     } catch (err: any) {
       console.error("Error deleting application:", err);
@@ -52,7 +54,7 @@ export const useCandidateApplications = (electionId: string) => {
   };
 };
 
-// Add the useUserCandidateApplications hook
+// For accessing user's own applications
 export const useUserCandidateApplications = () => {
   const [applications, setApplications] = useState<CandidateApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,22 @@ export const useUserCandidateApplications = () => {
       setLoading(false);
     }
   };
+  
+  const deleteApplication = async (applicationId: string) => {
+    try {
+      await deleteCandidateApplication(applicationId);
+      // Update the local state to reflect the deletion
+      setApplications(prev => prev.filter(app => app.id !== applicationId));
+      toast.success("Application deleted successfully");
+      // Explicitly refetch to ensure UI is in sync with database
+      fetchData();
+      return true;
+    } catch (err: any) {
+      console.error("Error deleting application:", err);
+      toast.error("Failed to delete application");
+      return false;
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -80,6 +98,7 @@ export const useUserCandidateApplications = () => {
     applications,
     loading,
     error,
-    refetch: fetchData
+    refetch: fetchData,
+    deleteApplication
   };
 };

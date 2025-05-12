@@ -1,8 +1,13 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useCandidateApplications } from "../hooks/useCandidateApplications";
 import CandidateApplicationCard from "./CandidateApplicationCard";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CandidateApplication } from "@/types";
+import ApplicationStatusBadge from "./ApplicationStatusBadge";
+import { formatDate } from "@/utils/dateUtils";
 
 interface CandidateApplicationsTabProps {
   electionId: string;
@@ -11,6 +16,7 @@ interface CandidateApplicationsTabProps {
 
 const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplicationsTabProps) => {
   const { applications, loading, error, refetch, deleteApplication } = useCandidateApplications(electionId);
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch applications on component mount
@@ -18,9 +24,15 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
   }, [electionId]);
 
   const handleDeleteApplication = async (applicationId: string) => {
-    await deleteApplication(applicationId);
-    refetch(); // Explicitly refetch after deletion
+    const success = await deleteApplication(applicationId);
+    if (success) {
+      refetch(); // Explicitly refetch after deletion to ensure UI is updated
+    }
   };
+  
+  const filteredApplications = filterStatus 
+    ? applications.filter(app => app.status === filterStatus) 
+    : applications;
 
   if (loading) {
     return <div className="text-center py-10">Loading applications...</div>;
@@ -47,16 +59,59 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {applications.map((application) => (
-        <CandidateApplicationCard 
-          key={application.id}
-          application={application} 
-          isAdmin={isAdmin}
-          onStatusChange={refetch}
-          onDelete={handleDeleteApplication}
-        />
-      ))}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Candidate Applications</h3>
+        <Tabs 
+          defaultValue={null} 
+          value={filterStatus || undefined}
+          onValueChange={(value) => setFilterStatus(value || null)}
+          className="w-auto"
+        >
+          <TabsList>
+            <TabsTrigger value={undefined as any}>All</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="approved">Approved</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected</TabsTrigger>
+            <TabsTrigger value="disqualified">Disqualified</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {applications.length > 0 && (
+        <Table className="hidden md:table">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Position</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredApplications.map(app => (
+              <TableRow key={app.id} className="cursor-pointer hover:bg-gray-50">
+                <TableCell>{app.name}</TableCell>
+                <TableCell>{app.position}</TableCell>
+                <TableCell><ApplicationStatusBadge status={app.status} /></TableCell>
+                <TableCell>{formatDate(app.created_at || '')}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {filteredApplications.map((application) => (
+          <CandidateApplicationCard 
+            key={application.id}
+            application={application} 
+            isAdmin={isAdmin}
+            onStatusChange={refetch}
+            onDelete={handleDeleteApplication}
+          />
+        ))}
+      </div>
     </div>
   );
 };

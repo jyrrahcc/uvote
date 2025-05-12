@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -63,7 +64,7 @@ export const fetchCandidateApplicationsForElection = async (electionId: string):
   try {
     const { data, error } = await supabase
       .from('candidate_applications')
-      .select('*')
+      .select('*, profiles(first_name, last_name, department, year_level, student_id)')
       .eq('election_id', electionId)
       .order('created_at', { ascending: false });
       
@@ -84,7 +85,7 @@ export const fetchCandidateApplicationsByUser = async (): Promise<CandidateAppli
 export const updateCandidateApplication = async (
   applicationId: string, 
   updates: { 
-    status: "approved" | "rejected"; 
+    status: "approved" | "rejected" | "disqualified";
     feedback?: string | null;
     reviewed_by?: string | null;
     reviewed_at?: string | null;
@@ -161,6 +162,17 @@ export const submitCandidateApplication = async (applicationData: Omit<Candidate
     return mapDbCandidateApplicationToCandidateApplication(data);
   } catch (error) {
     console.error("Error submitting application:", error);
+    throw error;
+  }
+};
+
+export const getApplicationHistory = async (applicationId: string): Promise<any[]> => {
+  try {
+    // This is a placeholder for a future feature to track application history
+    // We would need to create a new table for tracking history
+    return [];
+  } catch (error) {
+    console.error("Error fetching application history:", error);
     throw error;
   }
 };

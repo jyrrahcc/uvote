@@ -10,7 +10,8 @@ import ApplicationStatusBadge from "./ApplicationStatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import ImageThumbnail from "./ImageThumbnail";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
+import { Clock, Trash2, User } from "lucide-react";
+import { formatDate } from "@/utils/dateUtils";
 
 interface CandidateApplicationCardProps {
   application: CandidateApplication;
@@ -28,9 +29,11 @@ const CandidateApplicationCard = ({
   const [feedback, setFeedback] = useState(application.feedback || "");
   const [submitting, setSubmitting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isStatusChangeDialogOpen, setIsStatusChangeDialogOpen] = useState(false);
+  const [statusToSet, setStatusToSet] = useState<"approved" | "rejected" | "disqualified" | null>(null);
   const { user } = useAuth();
 
-  const handleStatusChange = async (status: "approved" | "rejected") => {
+  const handleStatusChange = async (status: "approved" | "rejected" | "disqualified") => {
     try {
       setSubmitting(true);
       await updateCandidateApplication(application.id, {
@@ -46,7 +49,14 @@ const CandidateApplicationCard = ({
       toast.error("Failed to update application status");
     } finally {
       setSubmitting(false);
+      setIsStatusChangeDialogOpen(false);
+      setStatusToSet(null);
     }
+  };
+
+  const confirmStatusChange = (status: "approved" | "rejected" | "disqualified") => {
+    setStatusToSet(status);
+    setIsStatusChangeDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -68,7 +78,6 @@ const CandidateApplicationCard = ({
       <CardContent className="flex-grow">
         {application.image_url && (
           <div className="mb-4">
-            {/* Fix: Pass correct props to ImageThumbnail according to its interface */}
             <ImageThumbnail 
               imageUrl={application.image_url}
               onRemove={() => {/* No action needed for preview */}}
@@ -84,14 +93,31 @@ const CandidateApplicationCard = ({
           </div>
         )}
 
+        {/* Review information */}
+        {(application.status !== "pending" && application.reviewed_at) && (
+          <div className="mt-4 p-2 border rounded-md bg-gray-50 text-xs">
+            <div className="flex items-center gap-1 mb-1 text-muted-foreground">
+              <Clock className="h-3 w-3" /> 
+              <span>Reviewed on {formatDate(application.reviewed_at)}</span>
+            </div>
+            {application.reviewed_by && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <User className="h-3 w-3" /> 
+                <span>Reviewed by admin</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {isAdmin && application.status === "pending" && (
           <div className="mt-4">
-            <h4 className="text-sm font-medium mb-1">Feedback (optional):</h4>
+            <h4 className="text-sm font-medium mb-1">Feedback (required):</h4>
             <Textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Provide feedback to the candidate"
               className="h-20"
+              required
             />
           </div>
         )}
@@ -110,14 +136,24 @@ const CandidateApplicationCard = ({
               <>
                 <Button 
                   variant="outline" 
-                  onClick={() => handleStatusChange("rejected")}
-                  disabled={submitting}
+                  onClick={() => confirmStatusChange("rejected")}
+                  disabled={submitting || !feedback.trim()}
+                  className="border-red-200 text-red-700 hover:bg-red-50"
                 >
                   Reject
                 </Button>
                 <Button 
-                  onClick={() => handleStatusChange("approved")}
+                  variant="outline"
+                  onClick={() => confirmStatusChange("disqualified")}
+                  disabled={submitting || !feedback.trim()}
+                  className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                >
+                  Disqualify
+                </Button>
+                <Button 
+                  onClick={() => confirmStatusChange("approved")}
                   disabled={submitting}
+                  className="bg-green-600 hover:bg-green-700"
                 >
                   Approve
                 </Button>
@@ -134,6 +170,7 @@ const CandidateApplicationCard = ({
         )}
       </CardFooter>
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -146,6 +183,34 @@ const CandidateApplicationCard = ({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={isStatusChangeDialogOpen} onOpenChange={setIsStatusChangeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm {statusToSet?.charAt(0).toUpperCase() + statusToSet?.slice(1)}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {statusToSet === "approved" && "Are you sure you want to approve this application? This will add the applicant as a candidate."}
+              {statusToSet === "rejected" && "Are you sure you want to reject this application?"}
+              {statusToSet === "disqualified" && "Are you sure you want to disqualify this candidate?"}
+              {" "}Your feedback will be sent to the applicant.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => statusToSet && handleStatusChange(statusToSet)}
+              className={`
+                ${statusToSet === "approved" ? "bg-green-600 hover:bg-green-700" : ""}
+                ${statusToSet === "rejected" ? "bg-red-600 hover:bg-red-700" : ""}
+                ${statusToSet === "disqualified" ? "bg-orange-600 hover:bg-orange-700" : ""}
+              `}
+            >
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
