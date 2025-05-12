@@ -29,15 +29,19 @@ interface NewPollDialogProps {
   disabled?: boolean;
   electionId: string;
   topicId?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 const NewPollDialog = ({ 
   onCreatePoll, 
   disabled = false,
   electionId,
-  topicId
+  topicId,
+  isOpen,
+  onClose
 }: NewPollDialogProps) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(isOpen || false);
   const [question, setQuestion] = useState('');
   const [description, setDescription] = useState('');
   const [options, setOptions] = useState<{ id: string; text: string }[]>([
@@ -46,6 +50,21 @@ const NewPollDialog = ({
   ]);
   const [multipleChoice, setMultipleChoice] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle controlled and uncontrolled state
+  const handleOpenChange = (newOpenState: boolean) => {
+    if (onClose && !newOpenState) {
+      onClose();
+    }
+    setOpen(newOpenState);
+  };
+
+  // Update internal state when isOpen changes
+  useState(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
+    }
+  });
 
   const handleAddOption = () => {
     setOptions([
@@ -102,7 +121,7 @@ const NewPollDialog = ({
           { id: '2', text: '' }
         ]);
         setMultipleChoice(false);
-        setOpen(false);
+        handleOpenChange(false);
         toast.success('Poll created successfully');
       } else {
         toast.error('Failed to create poll');
@@ -115,7 +134,7 @@ const NewPollDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen !== undefined ? isOpen : open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" disabled={disabled}>
           New Poll
@@ -207,7 +226,7 @@ const NewPollDialog = ({
         </ScrollArea>
         
         <DialogFooter className="p-6 pt-2">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>

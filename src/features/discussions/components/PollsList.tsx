@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Calendar, BarChart, MessageCircle } from "lucide-react";
+import { Plus, Calendar, BarChart } from "lucide-react";
 import { Poll } from "@/types/discussions";
 import { formatDistanceToNow } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
@@ -141,10 +141,11 @@ const PollsList = ({
         </div>
       )}
       
-      <NewPollDialog 
+      <NewPollDialog
         isOpen={isNewPollOpen}
         onClose={() => setIsNewPollOpen(false)}
         onCreatePoll={handleCreatePoll}
+        electionId={electionId}
       />
     </div>
   );

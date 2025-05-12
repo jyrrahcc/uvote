@@ -248,6 +248,8 @@ const TopicView = ({
         onCreatePoll={(question, options, description, multipleChoice, endsAt) => 
           onCreatePoll(question, options, description, topic.id, multipleChoice, endsAt)
         }
+        electionId={topic.election_id}
+        topicId={topic.id}
       />
     </div>
   );

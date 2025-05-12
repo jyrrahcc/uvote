@@ -19,13 +19,35 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface NewTopicDialogProps {
   onCreateTopic: (title: string, content: string) => Promise<any>;
   disabled?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const NewTopicDialog = ({ onCreateTopic, disabled = false }: NewTopicDialogProps) => {
-  const [open, setOpen] = useState(false);
+const NewTopicDialog = ({ 
+  onCreateTopic, 
+  disabled = false, 
+  isOpen, 
+  onClose 
+}: NewTopicDialogProps) => {
+  const [open, setOpen] = useState(isOpen || false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle controlled and uncontrolled state
+  const handleOpenChange = (newOpenState: boolean) => {
+    if (onClose && !newOpenState) {
+      onClose();
+    }
+    setOpen(newOpenState);
+  };
+
+  // Update internal state when isOpen changes
+  useState(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
+    }
+  });
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -42,7 +64,7 @@ const NewTopicDialog = ({ onCreateTopic, disabled = false }: NewTopicDialogProps
         console.log("Topic creation result:", result);
         setTitle('');
         setContent('');
-        setOpen(false);
+        handleOpenChange(false);
         toast.success('Topic created successfully');
       } else {
         console.error("Failed to create topic: No result returned");
@@ -57,7 +79,7 @@ const NewTopicDialog = ({ onCreateTopic, disabled = false }: NewTopicDialogProps
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen !== undefined ? isOpen : open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="default" disabled={disabled}>
           New Topic
@@ -100,7 +122,7 @@ const NewTopicDialog = ({ onCreateTopic, disabled = false }: NewTopicDialogProps
         </ScrollArea>
         
         <DialogFooter className="p-6 pt-2">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type="submit" onClick={handleSubmit} disabled={isSubmitting || !title.trim()}>
