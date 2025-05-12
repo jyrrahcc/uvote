@@ -36,7 +36,12 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
     : applications;
 
   if (loading) {
-    return <div className="text-center py-10">Loading applications...</div>;
+    return (
+      <div className="flex justify-center items-center py-10">
+        <Spinner className="h-6 w-6 mr-2" />
+        <span>Loading applications...</span>
+      </div>
+    );
   }
 
   if (error) {
