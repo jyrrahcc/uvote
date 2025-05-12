@@ -76,6 +76,7 @@ export const useCandidates = (electionId?: string, userId?: string) => {
   const handleDeleteCandidate = async (candidateId: string) => {
     try {
       await deleteCandidate(candidateId);
+      // Immediately update the UI
       setCandidates(prev => prev.filter(c => c.id !== candidateId));
       toast.success("Candidate deleted successfully");
     } catch (error) {
@@ -85,17 +86,32 @@ export const useCandidates = (electionId?: string, userId?: string) => {
   };
 
   const handleCandidateAdded = (newCandidate: any) => {
-    setCandidates(prev => [...prev, newCandidate]);
+    // Ensure we refresh the candidates list
+    if (newCandidate) {
+      if (Array.isArray(newCandidate)) {
+        setCandidates(prev => [...prev, ...newCandidate]);
+      } else {
+        setCandidates(prev => [...prev, newCandidate]);
+      }
+    }
     setIsDialogOpen(false);
-    if (!user?.id) return;
-    setUserHasRegistered(true);
+    
+    if (user?.id) {
+      setUserHasRegistered(true);
+    }
     toast.success("Successfully added candidate");
+    
+    // Force reload to ensure all data is fresh
+    fetchData();
   };
   
   const handleApplicationSubmitted = () => {
     setUserHasApplied(true);
     setIsDialogOpen(false);
     toast.success("Your application has been submitted");
+    
+    // Force reload to ensure all data is fresh
+    fetchData();
   };
 
   return {
@@ -111,6 +127,7 @@ export const useCandidates = (electionId?: string, userId?: string) => {
     eligibilityReason,
     handleDeleteCandidate,
     handleCandidateAdded,
-    handleApplicationSubmitted
+    handleApplicationSubmitted,
+    refetchData: fetchData
   };
 };

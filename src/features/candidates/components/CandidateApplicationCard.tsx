@@ -56,7 +56,15 @@ const CandidateApplicationCard = ({ application, isAdmin, onStatusChange }: Cand
   const handleDelete = async () => {
     try {
       setLoading("deleting");
-      await deleteCandidateApplication(application.id);
+      
+      // Direct database deletion to ensure it works
+      const { error } = await supabase
+        .from('candidate_applications')
+        .delete()
+        .eq('id', application.id);
+        
+      if (error) throw error;
+      
       toast.success("Application deleted successfully");
       if (onStatusChange) {
         onStatusChange();
