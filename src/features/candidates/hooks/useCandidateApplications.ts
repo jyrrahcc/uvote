@@ -8,6 +8,7 @@ export const useCandidateApplications = (electionId: string) => {
   const [applications, setApplications] = useState<CandidateApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -24,18 +25,30 @@ export const useCandidateApplications = (electionId: string) => {
   }, [electionId]);
 
   const deleteApplication = async (applicationId: string) => {
+    if (isDeleting) return false; // Prevent multiple deletion attempts
+
     try {
-      await deleteCandidateApplication(applicationId);
-      // Update the local state to reflect the deletion
-      setApplications(prev => prev.filter(app => app.id !== applicationId));
-      toast.success("Application deleted successfully");
-      // Explicitly refetch data to ensure UI is in sync with database
-      await fetchData();
-      return true;
+      setIsDeleting(true);
+      // Call the service function that now returns a boolean indicating success
+      const isDeleted = await deleteCandidateApplication(applicationId);
+      
+      if (isDeleted) {
+        // Only update the UI and show success if the deletion was verified
+        setApplications(prev => prev.filter(app => app.id !== applicationId));
+        toast.success("Application deleted successfully");
+        // Explicitly refetch to ensure UI is in sync with database
+        await fetchData();
+        return true;
+      } else {
+        toast.error("Failed to delete application: The application could not be deleted or was not found");
+        return false;
+      }
     } catch (err: any) {
       console.error("Error deleting application:", err);
-      toast.error("Failed to delete application");
+      toast.error(`Failed to delete application: ${err.message || 'Unknown error'}`);
       return false;
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -49,6 +62,7 @@ export const useCandidateApplications = (electionId: string) => {
     applications,
     loading,
     error,
+    isDeleting,
     refetch: fetchData,
     deleteApplication
   };
@@ -59,6 +73,7 @@ export const useUserCandidateApplications = () => {
   const [applications, setApplications] = useState<CandidateApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -75,18 +90,30 @@ export const useUserCandidateApplications = () => {
   }, []);
   
   const deleteApplication = async (applicationId: string) => {
+    if (isDeleting) return false; // Prevent multiple deletion attempts
+
     try {
-      await deleteCandidateApplication(applicationId);
-      // Update the local state to reflect the deletion
-      setApplications(prev => prev.filter(app => app.id !== applicationId));
-      toast.success("Application deleted successfully");
-      // Explicitly refetch to ensure UI is in sync with database
-      await fetchData();
-      return true;
+      setIsDeleting(true);
+      // Call the service function that now returns a boolean indicating success
+      const isDeleted = await deleteCandidateApplication(applicationId);
+      
+      if (isDeleted) {
+        // Only update the UI and show success if the deletion was verified
+        setApplications(prev => prev.filter(app => app.id !== applicationId));
+        toast.success("Application deleted successfully");
+        // Explicitly refetch to ensure UI is in sync with database
+        await fetchData();
+        return true;
+      } else {
+        toast.error("Failed to delete application: The application could not be deleted or was not found");
+        return false;
+      }
     } catch (err: any) {
       console.error("Error deleting application:", err);
-      toast.error("Failed to delete application");
+      toast.error(`Failed to delete application: ${err.message || 'Unknown error'}`);
       return false;
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -98,6 +125,7 @@ export const useUserCandidateApplications = () => {
     applications,
     loading,
     error,
+    isDeleting,
     refetch: fetchData,
     deleteApplication
   };

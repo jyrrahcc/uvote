@@ -137,8 +137,21 @@ export const updateCandidateApplication = async (
   }
 };
 
-export const deleteCandidateApplication = async (applicationId: string): Promise<void> => {
+export const deleteCandidateApplication = async (applicationId: string): Promise<boolean> => {
   try {
+    // First, verify the application exists
+    const { data: existingData, error: existingError } = await supabase
+      .from('candidate_applications')
+      .select('id')
+      .eq('id', applicationId)
+      .single();
+    
+    if (existingError || !existingData) {
+      console.error("Application not found:", existingError);
+      return false;
+    }
+    
+    // If it exists, proceed with deletion
     const { error } = await supabase
       .from('candidate_applications')
       .delete()
@@ -146,11 +159,31 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
     
     if (error) {
       console.error("Database error when deleting application:", error);
-      throw error;
+      return false;
     }
+    
+    // Verify deletion was successful
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('candidate_applications')
+      .select('id')
+      .eq('id', applicationId);
+      
+    if (verifyError) {
+      console.error("Error verifying deletion:", verifyError);
+      return false;
+    }
+    
+    // If the application still exists, deletion failed
+    if (verifyData && verifyData.length > 0) {
+      console.error("Deletion verification failed: application still exists");
+      return false;
+    }
+    
+    // Deletion successful
+    return true;
   } catch (error) {
     console.error("Error deleting application:", error);
-    throw error;
+    return false;
   }
 };
 

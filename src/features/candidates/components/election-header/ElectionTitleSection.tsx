@@ -3,9 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useState } from "react";
-import CandidateApplicationForm from "../CandidateApplicationForm";
 
 interface ElectionTitleSectionProps {
   title: string;
@@ -26,8 +23,6 @@ const ElectionTitleSection = ({
   canApply,
   onApply
 }: ElectionTitleSectionProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
   return (
     <div className="flex flex-col md:flex-row justify-between items-start">
       <div className="max-w-2xl">
