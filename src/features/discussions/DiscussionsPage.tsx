@@ -1,0 +1,129 @@
+
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDiscussions } from "./hooks/useDiscussions";
+import { usePolls } from "./hooks/usePolls";
+import { useParams } from "react-router-dom";
+
+// Components
+import DiscussionList from "./components/DiscussionList";
+import TopicView from "./components/TopicView";
+import PollsList from "./components/PollsList";
+import PollView from "./components/PollView";
+
+const DiscussionsPage = () => {
+  const { electionId } = useParams<{ electionId: string }>();
+  const [activeTab, setActiveTab] = useState("discussions");
+  const [viewingTopic, setViewingTopic] = useState(false);
+  const [viewingPoll, setViewingPoll] = useState(false);
+  
+  const {
+    topics,
+    selectedTopic,
+    comments,
+    loading: discussionLoading,
+    commentLoading,
+    loadTopic,
+    addTopic,
+    updateTopic,
+    removeTopic,
+    addComment,
+    editComment,
+    removeComment
+  } = useDiscussions(electionId || "");
+  
+  const {
+    polls,
+    selectedPoll,
+    pollResults,
+    userVote,
+    loading: pollLoading,
+    voteLoading,
+    loadPoll,
+    addPoll,
+    updatePoll,
+    removePoll,
+    vote
+  } = usePolls(electionId || "");
+  
+  const handleBackToDiscussions = () => {
+    setViewingTopic(false);
+  };
+  
+  const handleBackToPolls = () => {
+    setViewingPoll(false);
+  };
+  
+  const handleSelectTopic = async (topic) => {
+    await loadTopic(topic.id);
+    setViewingTopic(true);
+  };
+  
+  const handleSelectPoll = async (poll) => {
+    await loadPoll(poll.id);
+    setViewingPoll(true);
+  };
+  
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+        <TabsList className="mb-6">
+          <TabsTrigger value="discussions">Discussions</TabsTrigger>
+          <TabsTrigger value="polls">Polls</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="discussions">
+          {viewingTopic ? (
+            <TopicView
+              topic={selectedTopic}
+              comments={comments}
+              loading={discussionLoading}
+              commentLoading={commentLoading}
+              onBack={handleBackToDiscussions}
+              onAddComment={addComment}
+              onEditComment={editComment}
+              onDeleteComment={removeComment}
+              onDeleteTopic={removeTopic}
+              onEditTopic={updateTopic}
+              onCreatePoll={addPoll}
+            />
+          ) : (
+            <DiscussionList
+              topics={topics}
+              loading={discussionLoading}
+              onSelectTopic={handleSelectTopic}
+              onCreateTopic={addTopic}
+              electionId={electionId || ""}
+            />
+          )}
+        </TabsContent>
+        
+        <TabsContent value="polls">
+          {viewingPoll ? (
+            <PollView
+              poll={selectedPoll}
+              pollResults={pollResults}
+              userVote={userVote}
+              loading={pollLoading}
+              voteLoading={voteLoading}
+              onBack={handleBackToPolls}
+              onVote={vote}
+              onClosePoll={(pollId) => updatePoll(pollId, { is_closed: true })}
+              onDeletePoll={removePoll}
+            />
+          ) : (
+            <PollsList
+              polls={polls}
+              loading={pollLoading}
+              onSelectPoll={handleSelectPoll}
+              onCreatePoll={addPoll}
+              electionId={electionId || ""}
+            />
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default DiscussionsPage;
