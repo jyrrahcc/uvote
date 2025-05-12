@@ -25,7 +25,7 @@ const VotingSettingsForm = () => {
     defaultValues: {
       allowAbstain: true,
       showRealTimeResults: false,
-      minimumVotingPeriodHours: 8,
+      minimumVotingPeriodHours: 6,
       voterEmailVerificationRequired: true
     }
   });
@@ -45,11 +45,15 @@ const VotingSettingsForm = () => {
         if (error) throw error;
         
         if (data) {
+          const settingsValue = typeof data.settings_value === 'string' 
+            ? JSON.parse(data.settings_value) 
+            : data.settings_value;
+            
           form.reset({
-            allowAbstain: data.settings_value.allowAbstain ?? true,
-            showRealTimeResults: data.settings_value.showRealTimeResults ?? false,
-            minimumVotingPeriodHours: data.settings_value.minimumVotingPeriodHours ?? 8,
-            voterEmailVerificationRequired: data.settings_value.voterEmailVerificationRequired ?? true
+            allowAbstain: settingsValue.allowAbstain ?? true,
+            showRealTimeResults: settingsValue.showRealTimeResults ?? false,
+            minimumVotingPeriodHours: settingsValue.minimumVotingPeriodHours ?? 6,
+            voterEmailVerificationRequired: settingsValue.voterEmailVerificationRequired ?? true
           });
         }
       } catch (error) {
@@ -112,7 +116,7 @@ const VotingSettingsForm = () => {
                         Allow Abstain Option
                       </FormLabel>
                       <FormDescription>
-                        When enabled, voters can choose to abstain from voting for a position
+                        When enabled, voters can choose to abstain from voting for specific positions
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -135,7 +139,7 @@ const VotingSettingsForm = () => {
                         Show Real-Time Results
                       </FormLabel>
                       <FormDescription>
-                        When enabled, voting results are visible in real-time during the election
+                        When enabled, election results are shown in real-time as votes are cast
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -164,7 +168,7 @@ const VotingSettingsForm = () => {
                       />
                     </FormControl>
                     <FormDescription>
-                      Minimum duration that voting must remain open (1-168 hours)
+                      Minimum number of hours required for voting period
                     </FormDescription>
                   </FormItem>
                 )}

@@ -91,7 +91,12 @@ export const fetchCandidateApplicationsByUser = async (): Promise<CandidateAppli
 
 export const updateCandidateApplication = async (
   applicationId: string, 
-  updates: { status: "approved" | "rejected"; feedback?: string | null }
+  updates: { 
+    status: "approved" | "rejected"; 
+    feedback?: string | null;
+    reviewed_by?: string | null;
+    reviewed_at?: string | null;
+  }
 ): Promise<void> => {
   try {
     const { error } = await supabase
@@ -99,6 +104,8 @@ export const updateCandidateApplication = async (
       .update({
         status: updates.status,
         feedback: updates.feedback,
+        reviewed_by: updates.reviewed_by,
+        reviewed_at: updates.reviewed_at,
         updated_at: new Date().toISOString()
       })
       .eq('id', applicationId);

@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from "react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,9 +24,9 @@ const SecuritySettingsForm = () => {
   const form = useForm<SecuritySettings>({
     defaultValues: {
       requireAccessCodesForPrivateElections: true,
-      enableIpAddressVoting: true,
+      enableIpAddressVoting: false,
       maxLoginAttempts: 5,
-      voterVerificationRequired: true
+      voterVerificationRequired: true,
     }
   });
   
@@ -45,11 +45,15 @@ const SecuritySettingsForm = () => {
         if (error) throw error;
         
         if (data) {
+          const settingsValue = typeof data.settings_value === 'string' 
+            ? JSON.parse(data.settings_value) 
+            : data.settings_value;
+            
           form.reset({
-            requireAccessCodesForPrivateElections: data.settings_value.requireAccessCodesForPrivateElections ?? true,
-            enableIpAddressVoting: data.settings_value.enableIpAddressVoting ?? true,
-            maxLoginAttempts: data.settings_value.maxLoginAttempts ?? 5,
-            voterVerificationRequired: data.settings_value.voterVerificationRequired ?? true
+            requireAccessCodesForPrivateElections: settingsValue.requireAccessCodesForPrivateElections ?? true,
+            enableIpAddressVoting: settingsValue.enableIpAddressVoting ?? false,
+            maxLoginAttempts: settingsValue.maxLoginAttempts ?? 5,
+            voterVerificationRequired: settingsValue.voterVerificationRequired ?? true
           });
         }
       } catch (error) {
@@ -112,30 +116,7 @@ const SecuritySettingsForm = () => {
                         Require Access Codes
                       </FormLabel>
                       <FormDescription>
-                        When enabled, private elections must have access codes for voter entry
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="voterVerificationRequired"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Require Voter Verification
-                      </FormLabel>
-                      <FormDescription>
-                        When enabled, users must be verified as voters before participating
+                        When enabled, private elections require access codes for participation
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -155,10 +136,10 @@ const SecuritySettingsForm = () => {
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Log IP Addresses
+                        Enable IP Address Voting Restrictions
                       </FormLabel>
                       <FormDescription>
-                        When enabled, voter IP addresses are recorded with each vote for security
+                        When enabled, limits votes per IP address to prevent duplicate voting
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -176,19 +157,42 @@ const SecuritySettingsForm = () => {
                 name="maxLoginAttempts"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Max Login Attempts</FormLabel>
+                    <FormLabel>Maximum Login Attempts</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
                         {...field} 
                         min={1}
                         max={10}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 5)}
                       />
                     </FormControl>
                     <FormDescription>
-                      Maximum number of failed login attempts before temporary lockout
+                      Maximum number of login attempts before account lockout
                     </FormDescription>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="voterVerificationRequired"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">
+                        Require Voter Verification
+                      </FormLabel>
+                      <FormDescription>
+                        When enabled, voters must be verified before they can vote in any election
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />

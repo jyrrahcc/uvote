@@ -31,6 +31,8 @@ export interface CandidateApplication {
   updated_at?: string;
   status: 'pending' | 'approved' | 'rejected';
   feedback?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
 }
 
 /**
@@ -65,6 +67,8 @@ export interface DbCandidateApplication {
   updated_at?: string | null;
   status: string;
   feedback?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
 }
 
 /**
@@ -108,6 +112,8 @@ export const mapDbCandidateApplicationToCandidateApplication = (
     created_at: dbApplication.created_at || undefined,
     updated_at: dbApplication.updated_at || undefined,
     status: status,
-    feedback: dbApplication.feedback || undefined
+    feedback: dbApplication.feedback || undefined,
+    reviewed_by: dbApplication.reviewed_by || undefined,
+    reviewed_at: dbApplication.reviewed_at || undefined
   };
 };

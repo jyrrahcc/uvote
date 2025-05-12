@@ -45,11 +45,15 @@ const ElectionSettingsForm = () => {
         if (error) throw error;
         
         if (data) {
+          const settingsValue = typeof data.settings_value === 'string' 
+            ? JSON.parse(data.settings_value) 
+            : data.settings_value;
+            
           form.reset({
-            candidacyApprovalRequired: data.settings_value.candidacyApprovalRequired ?? true,
-            minimumCandidacyPeriodDays: data.settings_value.minimumCandidacyPeriodDays ?? 3,
-            allowSelfRegistration: data.settings_value.allowSelfRegistration ?? false,
-            defaultPositions: data.settings_value.defaultPositions ?? []
+            candidacyApprovalRequired: settingsValue.candidacyApprovalRequired ?? true,
+            minimumCandidacyPeriodDays: settingsValue.minimumCandidacyPeriodDays ?? 3,
+            allowSelfRegistration: settingsValue.allowSelfRegistration ?? false,
+            defaultPositions: settingsValue.defaultPositions ?? []
           });
         }
       } catch (error) {

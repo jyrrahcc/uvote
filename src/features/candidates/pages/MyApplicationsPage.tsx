@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Trash } from "lucide-react";
@@ -10,22 +11,34 @@ import { deleteCandidateApplication } from "../services/candidateApplicationServ
 import { toast } from "sonner";
 import { formatDate } from "@/utils/dateUtils";
 import { Link } from "react-router-dom";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const MyApplicationsPage = () => {
   const { applications, loading, error, refetch } = useUserCandidateApplications();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [applicationToWithdraw, setApplicationToWithdraw] = useState<string | null>(null);
   
-  const handleDelete = async (applicationId: string) => {
+  const confirmWithdraw = (applicationId: string) => {
+    setApplicationToWithdraw(applicationId);
+    setConfirmDialogOpen(true);
+  };
+  
+  const handleWithdraw = async () => {
+    if (!applicationToWithdraw) return;
+    
     try {
-      setDeletingId(applicationId);
-      await deleteCandidateApplication(applicationId);
-      toast.success("Application deleted successfully");
+      setDeletingId(applicationToWithdraw);
+      await deleteCandidateApplication(applicationToWithdraw);
+      toast.success("Application withdrawn successfully");
       refetch();
     } catch (error) {
-      console.error("Error deleting application:", error);
-      toast.error("Failed to delete application");
+      console.error("Error withdrawing application:", error);
+      toast.error("Failed to withdraw application");
     } finally {
       setDeletingId(null);
+      setConfirmDialogOpen(false);
+      setApplicationToWithdraw(null);
     }
   };
   
@@ -102,7 +115,7 @@ const MyApplicationsPage = () => {
                 )}
                 
                 <p className="text-xs text-muted-foreground mt-4">
-                  Submitted on {formatDate(application.created_at)}
+                  Submitted on {formatDate(application.created_at || '')}
                 </p>
               </CardContent>
               
@@ -118,7 +131,7 @@ const MyApplicationsPage = () => {
                     <Button 
                       variant="destructive" 
                       size="sm"
-                      onClick={() => handleDelete(application.id)}
+                      onClick={() => confirmWithdraw(application.id)}
                       disabled={deletingId === application.id}
                     >
                       {deletingId === application.id ? (
@@ -135,6 +148,26 @@ const MyApplicationsPage = () => {
           ))}
         </div>
       )}
+      
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Withdraw Application</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to withdraw your application? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleWithdraw}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deletingId ? "Withdrawing..." : "Withdraw Application"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
