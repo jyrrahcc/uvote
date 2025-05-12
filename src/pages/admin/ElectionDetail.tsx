@@ -27,7 +27,8 @@ import {
   ClipboardList,
   Check,
   RefreshCcw,
-  Pencil
+  Pencil,
+  Eye
 } from "lucide-react";
 import { Election, mapDbElectionToElection } from "@/types";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from "recharts";
