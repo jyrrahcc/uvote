@@ -24,7 +24,11 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
         first_name: poll.profiles.first_name || '',
         last_name: poll.profiles.last_name || '',
         image_url: poll.profiles.image_url
-      } : undefined
+      } : {
+        first_name: '',
+        last_name: '',
+        image_url: null
+      }
     })) as Poll[];
   } catch (error) {
     console.error("Error fetching polls:", error);
@@ -53,7 +57,11 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
         first_name: data.profiles.first_name || '',
         last_name: data.profiles.last_name || '',
         image_url: data.profiles.image_url
-      } : undefined
+      } : {
+        first_name: '',
+        last_name: '',
+        image_url: null
+      }
     } as Poll;
   } catch (error) {
     console.error("Error fetching poll:", error);

@@ -74,12 +74,17 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     question: string, 
     options: Record<string, string>,
     description?: string,
-    topicId?: string | null,
     multipleChoice: boolean = false,
-    endsAt?: string | null
+    endsAt?: string
   ) => {
     // Pass null as topicId since we're creating from the polls tab
-    return addPoll(question, options, description || null, topicId || null, multipleChoice, endsAt || null);
+    return addPoll(question, options, description || null, null, multipleChoice, endsAt || null);
+  };
+  
+  // Wrapper function to match expected signature in DiscussionList
+  const handleCreateTopic = async (title: string, content: string) => {
+    const result = await addTopic(finalElectionId, title, content);
+    return result as DiscussionTopic;
   };
   
   return (
@@ -110,7 +115,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
               topics={topics}
               loading={discussionLoading}
               onSelectTopic={handleSelectTopic}
-              onCreateTopic={addTopic}
+              onCreateTopic={handleCreateTopic}
               electionId={finalElectionId}
             />
           )}

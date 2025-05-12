@@ -117,7 +117,7 @@ export const useDiscussions = (electionId: string) => {
     }
   };
   
-  const addTopic = async (title: string, content: string) => {
+  const addTopic = async (electionId: string, title: string, content: string) => {
     try {
       if (!user) {
         throw new Error("You must be logged in to create a topic");
@@ -252,7 +252,7 @@ export const useDiscussions = (electionId: string) => {
     commentLoading,
     error,
     loadTopic,
-    addTopic: createDiscussionTopic,
+    addTopic,
     updateTopic,
     removeTopic,
     addComment,

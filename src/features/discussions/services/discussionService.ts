@@ -24,7 +24,11 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
         first_name: topic.profiles.first_name || '',
         last_name: topic.profiles.last_name || '',
         image_url: topic.profiles.image_url
-      } : undefined
+      } : {
+        first_name: '',
+        last_name: '',
+        image_url: null
+      }
     })) as DiscussionTopic[];
   } catch (error) {
     console.error("Error fetching discussion topics:", error);
@@ -52,7 +56,11 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
         first_name: data.profiles.first_name || '',
         last_name: data.profiles.last_name || '',
         image_url: data.profiles.image_url
-      } : undefined
+      } : {
+        first_name: '',
+        last_name: '',
+        image_url: null
+      }
     } as DiscussionTopic;
     
     // Increment view count
@@ -162,7 +170,11 @@ export const fetchComments = async (topicId: string): Promise<DiscussionComment[
         first_name: comment.profiles.first_name || '',
         last_name: comment.profiles.last_name || '',
         image_url: comment.profiles.image_url
-      } : undefined
+      } : {
+        first_name: '',
+        last_name: '',
+        image_url: null
+      }
     })) as DiscussionComment[];
   } catch (error) {
     console.error("Error fetching comments:", error);
