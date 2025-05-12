@@ -13,6 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface NewPollDialogProps {
   isOpen: boolean;
@@ -129,135 +130,137 @@ const NewPollDialog = ({ isOpen, onClose, onCreatePoll }: NewPollDialogProps) =>
       }
       onClose();
     }}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Create New Poll</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="question">Question</Label>
-            <Input
-              id="question"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="What is your poll question?"
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add additional context for your question"
-              rows={2}
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="space-y-3">
-            <Label>Options</Label>
-            {Object.entries(options).map(([id, value]) => (
-              <div key={id} className="flex gap-2">
-                <Input
-                  value={value}
-                  onChange={(e) => updateOption(id, e.target.value)}
-                  placeholder="Enter an option"
-                  disabled={loading}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeOption(id)}
-                  disabled={Object.keys(options).length <= 2 || loading}
-                  className="flex-shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+        <ScrollArea className="h-[70vh] pr-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="question">Question</Label>
+              <Input
+                id="question"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="What is your poll question?"
+                disabled={loading}
+              />
+            </div>
             
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addOption}
-              disabled={loading}
-              className="mt-2"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Option
-            </Button>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="multiple-choice"
-              checked={multipleChoice}
-              onCheckedChange={setMultipleChoice}
-              disabled={loading}
-            />
-            <Label htmlFor="multiple-choice">Allow multiple choices</Label>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="end-date">Poll End Date (Optional)</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  id="end-date"
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                  disabled={loading}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : "Select a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  disabled={(date) => date < new Date()}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <p className="text-xs text-muted-foreground">
-              If no end date is selected, the poll will remain open until manually closed.
-            </p>
-          </div>
-          
-          {error && (
-            <div className="text-red-500 text-sm">{error}</div>
-          )}
-          
-          <div className="flex justify-end space-x-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => {
-                resetForm();
-                onClose();
-              }}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" className="bg-[#008f50] hover:bg-[#007a45]" disabled={loading}>
-              {loading ? <Spinner className="mr-2" /> : null}
-              Create Poll
-            </Button>
-          </div>
-        </form>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add additional context for your question"
+                rows={2}
+                disabled={loading}
+              />
+            </div>
+            
+            <div className="space-y-3">
+              <Label>Options</Label>
+              {Object.entries(options).map(([id, value]) => (
+                <div key={id} className="flex gap-2">
+                  <Input
+                    value={value}
+                    onChange={(e) => updateOption(id, e.target.value)}
+                    placeholder="Enter an option"
+                    disabled={loading}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeOption(id)}
+                    disabled={Object.keys(options).length <= 2 || loading}
+                    className="flex-shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addOption}
+                disabled={loading}
+                className="mt-2"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Option
+              </Button>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="multiple-choice"
+                checked={multipleChoice}
+                onCheckedChange={setMultipleChoice}
+                disabled={loading}
+              />
+              <Label htmlFor="multiple-choice">Allow multiple choices</Label>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="end-date">Poll End Date (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="end-date"
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                    disabled={loading}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : "Select a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground">
+                If no end date is selected, the poll will remain open until manually closed.
+              </p>
+            </div>
+            
+            {error && (
+              <div className="text-red-500 text-sm">{error}</div>
+            )}
+            
+            <div className="flex justify-end space-x-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  resetForm();
+                  onClose();
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-[#008f50] hover:bg-[#007a45]" disabled={loading}>
+                {loading ? <Spinner className="mr-2" /> : null}
+                Create Poll
+              </Button>
+            </div>
+          </form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

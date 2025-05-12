@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { DiscussionTopic, DiscussionComment } from '@/types/discussions';
@@ -27,7 +28,9 @@ export const useDiscussions = (electionId: string) => {
     try {
       setLoading(true);
       setError(null);
+      console.log("Loading topics for election:", electionId);
       const data = await fetchDiscussionTopics(electionId);
+      console.log("Loaded topics:", data);
       setTopics(data);
     } catch (error) {
       console.error("Error loading discussions:", error);
@@ -51,6 +54,7 @@ export const useDiscussions = (electionId: string) => {
         table: 'discussion_topics',
         filter: `election_id=eq.${electionId}`
       }, () => {
+        console.log("Detected change in discussion topics, reloading...");
         loadTopics();
       })
       .subscribe();
@@ -123,13 +127,19 @@ export const useDiscussions = (electionId: string) => {
         throw new Error("You must be logged in to create a topic");
       }
       
+      console.log("Adding new topic:", { electionId, title, content });
+      
       const newTopic = await createDiscussionTopic(electionId, title, content);
+      
       if (newTopic) {
-        setTopics(prevTopics => [newTopic, ...prevTopics]);
+        console.log("New topic created:", newTopic);
+        // Reload topics to ensure we have the latest data with author information
+        await loadTopics();
         return newTopic;
       }
       return null;
     } catch (error: any) {
+      console.error("Error creating topic:", error);
       setError(error.message || "Failed to create topic");
       return null;
     }

@@ -75,10 +75,13 @@ export const createDiscussionTopic = async (
   content: string | null
 ): Promise<DiscussionTopic | null> => {
   try {
-    const { data: userData } = await supabase.auth.getSession();
+    const { data: userData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
     if (!userData.session) throw new Error("User not authenticated");
     
     const userId = userData.session.user.id;
+    
+    console.log("Creating topic with:", { electionId, userId, title, content });
     
     const { data, error } = await supabase
       .from('discussion_topics')
@@ -91,8 +94,12 @@ export const createDiscussionTopic = async (
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error("Database error:", error);
+      throw error;
+    }
     
+    console.log("Topic created successfully:", data);
     toast.success("Discussion topic created successfully");
     return data as DiscussionTopic;
   } catch (error: any) {

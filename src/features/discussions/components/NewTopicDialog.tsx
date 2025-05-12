@@ -31,7 +31,10 @@ const NewTopicDialog = ({ isOpen, onClose, onCreateTopic }: NewTopicDialogProps)
       setLoading(true);
       setError(null);
       
+      console.log("Submitting new topic:", { title, content });
+      
       const result = await onCreateTopic(title, content);
+      console.log("Topic creation result:", result);
       
       if (result) {
         setTitle("");
@@ -39,6 +42,7 @@ const NewTopicDialog = ({ isOpen, onClose, onCreateTopic }: NewTopicDialogProps)
         onClose();
       }
     } catch (error: any) {
+      console.error("Error in dialog when creating topic:", error);
       setError(error.message || "Failed to create topic");
     } finally {
       setLoading(false);
