@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { DiscussionTopic, DiscussionComment, Poll, PollVote } from "@/types/discussions";
 import { toast } from "sonner";
@@ -9,7 +8,7 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
       .from('discussion_topics')
       .select(`
         *,
-        profiles:created_by(first_name, last_name, image_url)
+        author:profiles(first_name, last_name, image_url)
       `)
       .eq('election_id', electionId)
       .order('is_pinned', { ascending: false })
@@ -17,10 +16,7 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
       
     if (error) throw error;
     
-    return data.map(topic => ({
-      ...topic,
-      author: topic.profiles
-    })) as DiscussionTopic[];
+    return data as DiscussionTopic[];
   } catch (error) {
     console.error("Error fetching discussion topics:", error);
     return [];
@@ -33,7 +29,7 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
       .from('discussion_topics')
       .select(`
         *,
-        profiles:created_by(first_name, last_name, image_url)
+        author:profiles(first_name, last_name, image_url)
       `)
       .eq('id', topicId)
       .single();
@@ -46,10 +42,7 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
       .update({ view_count: (data.view_count || 0) + 1 })
       .eq('id', topicId);
     
-    return {
-      ...data,
-      author: data.profiles
-    } as DiscussionTopic;
+    return data as DiscussionTopic;
   } catch (error) {
     console.error("Error fetching discussion topic:", error);
     return null;
@@ -136,17 +129,14 @@ export const fetchComments = async (topicId: string): Promise<DiscussionComment[
       .from('discussion_comments')
       .select(`
         *,
-        profiles:user_id(first_name, last_name, image_url)
+        author:profiles(first_name, last_name, image_url)
       `)
       .eq('topic_id', topicId)
       .order('created_at', { ascending: true });
       
     if (error) throw error;
     
-    return data.map(comment => ({
-      ...comment,
-      author: comment.profiles
-    })) as DiscussionComment[];
+    return data as DiscussionComment[];
   } catch (error) {
     console.error("Error fetching comments:", error);
     return [];

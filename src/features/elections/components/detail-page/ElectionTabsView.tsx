@@ -58,7 +58,7 @@ const ElectionTabsView = ({
       </TabsContent>
       
       <TabsContent value="discussions">
-        <DiscussionsPage />
+        <DiscussionsPage electionId={election.id} />
       </TabsContent>
     </Tabs>
   );

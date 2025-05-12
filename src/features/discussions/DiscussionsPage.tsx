@@ -11,8 +11,13 @@ import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
 
-const DiscussionsPage = () => {
-  const { electionId } = useParams<{ electionId: string }>();
+interface DiscussionsPageProps {
+  electionId?: string;
+}
+
+const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
+  const params = useParams<{ electionId: string }>();
+  const finalElectionId = electionId || params?.electionId || "";
   const [activeTab, setActiveTab] = useState("discussions");
   const [viewingTopic, setViewingTopic] = useState(false);
   const [viewingPoll, setViewingPoll] = useState(false);
@@ -30,7 +35,7 @@ const DiscussionsPage = () => {
     addComment,
     editComment,
     removeComment
-  } = useDiscussions(electionId || "");
+  } = useDiscussions(finalElectionId);
   
   const {
     polls,
@@ -44,7 +49,7 @@ const DiscussionsPage = () => {
     updatePoll,
     removePoll,
     vote
-  } = usePolls(electionId || "");
+  } = usePolls(finalElectionId);
   
   const handleBackToDiscussions = () => {
     setViewingTopic(false);
@@ -93,7 +98,7 @@ const DiscussionsPage = () => {
               loading={discussionLoading}
               onSelectTopic={handleSelectTopic}
               onCreateTopic={addTopic}
-              electionId={electionId || ""}
+              electionId={finalElectionId}
             />
           )}
         </TabsContent>
@@ -117,7 +122,7 @@ const DiscussionsPage = () => {
               loading={pollLoading}
               onSelectPoll={handleSelectPoll}
               onCreatePoll={addPoll}
-              electionId={electionId || ""}
+              electionId={finalElectionId}
             />
           )}
         </TabsContent>
