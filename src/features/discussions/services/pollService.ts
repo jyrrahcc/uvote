@@ -17,19 +17,20 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
     if (error) throw error;
     
     // Transform the data to match our types
-    return (data || []).map(poll => ({
-      ...poll,
-      options: poll.options as Record<string, string>,
-      author: poll.profiles ? {
-        first_name: poll.profiles.first_name || '',
-        last_name: poll.profiles.last_name || '',
-        image_url: poll.profiles.image_url
-      } : {
-        first_name: '',
-        last_name: '',
-        image_url: null
-      }
-    })) as Poll[];
+    return (data || []).map(poll => {
+      // Safely access profile data with proper type checking
+      const profileData = poll.profiles && typeof poll.profiles === 'object' ? poll.profiles : null;
+      
+      return {
+        ...poll,
+        options: poll.options as Record<string, string>,
+        author: {
+          first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
+          last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
+          image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
+        }
+      };
+    }) as Poll[];
   } catch (error) {
     console.error("Error fetching polls:", error);
     return [];
@@ -49,18 +50,17 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
       
     if (error) throw error;
     
+    // Safely access profile data with proper type checking
+    const profileData = data.profiles && typeof data.profiles === 'object' ? data.profiles : null;
+    
     // Transform the data to match our types
     return {
       ...data,
       options: data.options as Record<string, string>,
-      author: data.profiles ? {
-        first_name: data.profiles.first_name || '',
-        last_name: data.profiles.last_name || '',
-        image_url: data.profiles.image_url
-      } : {
-        first_name: '',
-        last_name: '',
-        image_url: null
+      author: {
+        first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
+        last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
+        image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
       }
     } as Poll;
   } catch (error) {

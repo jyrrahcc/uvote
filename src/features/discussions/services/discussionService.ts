@@ -18,18 +18,19 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
     if (error) throw error;
     
     // Transform data to match our types
-    return (data || []).map(topic => ({
-      ...topic,
-      author: topic.profiles ? {
-        first_name: topic.profiles.first_name || '',
-        last_name: topic.profiles.last_name || '',
-        image_url: topic.profiles.image_url
-      } : {
-        first_name: '',
-        last_name: '',
-        image_url: null
-      }
-    })) as DiscussionTopic[];
+    return (data || []).map(topic => {
+      // Safely access profile data with proper type checking
+      const profileData = topic.profiles && typeof topic.profiles === 'object' ? topic.profiles : null;
+      
+      return {
+        ...topic,
+        author: {
+          first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
+          last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
+          image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
+        }
+      };
+    }) as DiscussionTopic[];
   } catch (error) {
     console.error("Error fetching discussion topics:", error);
     return [];
@@ -49,17 +50,16 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
       
     if (error) throw error;
     
+    // Safely access profile data with proper type checking
+    const profileData = data.profiles && typeof data.profiles === 'object' ? data.profiles : null;
+    
     // Transform data to match our types
     const topic = {
       ...data,
-      author: data.profiles ? {
-        first_name: data.profiles.first_name || '',
-        last_name: data.profiles.last_name || '',
-        image_url: data.profiles.image_url
-      } : {
-        first_name: '',
-        last_name: '',
-        image_url: null
+      author: {
+        first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
+        last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
+        image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
       }
     } as DiscussionTopic;
     
@@ -164,18 +164,19 @@ export const fetchComments = async (topicId: string): Promise<DiscussionComment[
     if (error) throw error;
     
     // Transform data to match our types
-    return (data || []).map(comment => ({
-      ...comment,
-      author: comment.profiles ? {
-        first_name: comment.profiles.first_name || '',
-        last_name: comment.profiles.last_name || '',
-        image_url: comment.profiles.image_url
-      } : {
-        first_name: '',
-        last_name: '',
-        image_url: null
-      }
-    })) as DiscussionComment[];
+    return (data || []).map(comment => {
+      // Safely access profile data with proper type checking
+      const profileData = comment.profiles && typeof comment.profiles === 'object' ? comment.profiles : null;
+      
+      return {
+        ...comment,
+        author: {
+          first_name: profileData && 'first_name' in profileData ? profileData.first_name || '' : '',
+          last_name: profileData && 'last_name' in profileData ? profileData.last_name || '' : '',
+          image_url: profileData && 'image_url' in profileData ? profileData.image_url : null
+        }
+      };
+    }) as DiscussionComment[];
   } catch (error) {
     console.error("Error fetching comments:", error);
     return [];
