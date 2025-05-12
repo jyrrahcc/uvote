@@ -76,7 +76,7 @@ const SecuritySettingsForm = () => {
         .from("settings")
         .upsert({
           category: "security",
-          settings_value: values
+          settings_value: JSON.stringify(values) // Convert to string for JSON compatibility
         }, {
           onConflict: "category"
         });

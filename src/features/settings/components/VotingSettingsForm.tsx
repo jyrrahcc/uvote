@@ -76,7 +76,7 @@ const VotingSettingsForm = () => {
         .from("settings")
         .upsert({
           category: "voting",
-          settings_value: values
+          settings_value: JSON.stringify(values) // Convert to string for JSON compatibility
         }, {
           onConflict: "category"
         });
