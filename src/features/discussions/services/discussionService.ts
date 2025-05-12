@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { DiscussionTopic, DiscussionComment } from "@/types/discussions";
 import { toast } from "sonner";
@@ -20,7 +19,11 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
     // Transform data to match our types
     return (data || []).map(topic => ({
       ...topic,
-      author: topic.author as { first_name: string, last_name: string, image_url: string | null }
+      author: topic.author ? {
+        first_name: topic.author.first_name || '',
+        last_name: topic.author.last_name || '',
+        image_url: topic.author.image_url
+      } : undefined
     })) as DiscussionTopic[];
   } catch (error) {
     console.error("Error fetching discussion topics:", error);
@@ -44,7 +47,11 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
     // Transform data to match our types
     const topic = {
       ...data,
-      author: data.author as { first_name: string, last_name: string, image_url: string | null }
+      author: data.author ? {
+        first_name: data.author.first_name || '',
+        last_name: data.author.last_name || '',
+        image_url: data.author.image_url
+      } : undefined
     } as DiscussionTopic;
     
     // Increment view count
@@ -150,7 +157,11 @@ export const fetchComments = async (topicId: string): Promise<DiscussionComment[
     // Transform data to match our types
     return (data || []).map(comment => ({
       ...comment,
-      author: comment.author as { first_name: string, last_name: string, image_url: string | null }
+      author: comment.author ? {
+        first_name: comment.author.first_name || '',
+        last_name: comment.author.last_name || '',
+        image_url: comment.author.image_url
+      } : undefined
     })) as DiscussionComment[];
   } catch (error) {
     console.error("Error fetching comments:", error);

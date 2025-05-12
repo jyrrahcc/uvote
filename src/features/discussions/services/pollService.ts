@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollVote, PollResults } from "@/types/discussions";
 import { toast } from "sonner";
@@ -20,7 +19,11 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
     return (data || []).map(poll => ({
       ...poll,
       options: poll.options as Record<string, string>,
-      author: poll.author as { first_name: string, last_name: string, image_url: string | null }
+      author: poll.author ? {
+        first_name: poll.author.first_name || '',
+        last_name: poll.author.last_name || '',
+        image_url: poll.author.image_url
+      } : undefined
     })) as Poll[];
   } catch (error) {
     console.error("Error fetching polls:", error);
@@ -45,7 +48,11 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
     return {
       ...data,
       options: data.options as Record<string, string>,
-      author: data.author as { first_name: string, last_name: string, image_url: string | null }
+      author: data.author ? {
+        first_name: data.author.first_name || '',
+        last_name: data.author.last_name || '',
+        image_url: poll.author.image_url
+      } : undefined
     } as Poll;
   } catch (error) {
     console.error("Error fetching poll:", error);

@@ -1,5 +1,4 @@
 
-
 export interface DiscussionTopic {
   id: string;
   election_id: string;
