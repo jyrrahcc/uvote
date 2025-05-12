@@ -146,8 +146,13 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
       .eq('id', applicationId)
       .single();
     
-    if (existingError || !existingData) {
-      console.error("Application not found:", existingError);
+    if (existingError) {
+      console.error("Application not found or error checking:", existingError);
+      return false;
+    }
+    
+    if (!existingData) {
+      console.error("Application not found with ID:", applicationId);
       return false;
     }
     
