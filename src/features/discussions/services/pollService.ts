@@ -1,7 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollVote, PollResults } from "@/types/discussions";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { extractAuthor } from "../utils/profileUtils";
 
 export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
@@ -77,6 +76,15 @@ export const createPoll = async (
     
     const userId = userData.session.user.id;
     
+    console.log("Creating poll with data:", {
+      electionId,
+      topicId,
+      question,
+      options,
+      multipleChoice,
+      description
+    });
+    
     const { data, error } = await supabase
       .from('polls')
       .insert({
@@ -92,13 +100,30 @@ export const createPoll = async (
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error("Database error creating poll:", error);
+      throw error;
+    }
     
-    toast.success("Poll created successfully");
+    if (!data) {
+      console.error("No data returned after poll creation");
+      throw new Error("Poll created but no data returned");
+    }
+    
+    console.log("Poll created successfully:", data);
+    
+    toast({
+      title: "Success",
+      description: "Poll created successfully"
+    });
     return data as Poll;
   } catch (error: any) {
     console.error("Error creating poll:", error);
-    toast.error(`Failed to create poll: ${error.message}`);
+    toast({
+      title: "Error",
+      description: `Failed to create poll: ${error.message}`,
+      variant: "destructive"
+    });
     return null;
   }
 };
@@ -117,11 +142,18 @@ export const updatePoll = async (
       
     if (error) throw error;
     
-    toast.success("Poll updated successfully");
+    toast({
+      title: "Success",
+      description: "Poll updated successfully"
+    });
     return data as Poll;
   } catch (error: any) {
     console.error("Error updating poll:", error);
-    toast.error(`Failed to update poll: ${error.message}`);
+    toast({
+      title: "Error",
+      description: `Failed to update poll: ${error.message}`,
+      variant: "destructive"
+    });
     return null;
   }
 };
@@ -135,11 +167,18 @@ export const deletePoll = async (pollId: string): Promise<boolean> => {
       
     if (error) throw error;
     
-    toast.success("Poll deleted successfully");
+    toast({
+      title: "Success",
+      description: "Poll deleted successfully"
+    });
     return true;
   } catch (error: any) {
     console.error("Error deleting poll:", error);
-    toast.error(`Failed to delete poll: ${error.message}`);
+    toast({
+      title: "Error",
+      description: `Failed to delete poll: ${error.message}`,
+      variant: "destructive"
+    });
     return false;
   }
 };
@@ -256,11 +295,18 @@ export const votePoll = async (pollId: string, options: string[]): Promise<boole
       if (error) throw error;
     }
     
-    toast.success("Vote recorded successfully");
+    toast({
+      title: "Success",
+      description: "Vote recorded successfully"
+    });
     return true;
   } catch (error: any) {
     console.error("Error voting:", error);
-    toast.error(`Failed to vote: ${error.message}`);
+    toast({
+      title: "Error",
+      description: `Failed to vote: ${error.message}`,
+      variant: "destructive"
+    });
     return false;
   }
 };

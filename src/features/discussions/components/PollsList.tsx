@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import NewPollDialog from "./NewPollDialog";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { toast } from "@/hooks/use-toast";
 
 interface PollsListProps {
   polls: Poll[];

@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { X, PlusCircle } from 'lucide-react';
 
@@ -75,7 +75,11 @@ const NewPollDialog = ({
 
   const handleRemoveOption = (id: string) => {
     if (options.length <= 2) {
-      toast.error('A poll must have at least 2 options');
+      toast({
+        title: "Error",
+        description: "A poll must have at least 2 options",
+        variant: "destructive"
+      });
       return;
     }
     setOptions(options.filter(option => option.id !== id));
@@ -89,17 +93,25 @@ const NewPollDialog = ({
 
   const handleSubmit = async () => {
     if (!question.trim()) {
-      toast.error('Please enter a poll question');
+      toast({
+        title: "Error",
+        description: "Please enter a poll question",
+        variant: "destructive"
+      });
       return;
     }
 
     const optionsValid = options.every(option => option.text.trim() !== '');
     if (!optionsValid) {
-      toast.error('All poll options must have text');
+      toast({
+        title: "Error",
+        description: "All poll options must have text",
+        variant: "destructive"
+      });
       return;
     }
 
-    const optionsObject = options.reduce((acc, option, index) => {
+    const optionsObject = options.reduce((acc, option) => {
       acc[option.id] = option.text;
       return acc;
     }, {} as Record<string, string>);
@@ -122,12 +134,23 @@ const NewPollDialog = ({
         ]);
         setMultipleChoice(false);
         handleOpenChange(false);
-        toast.success('Poll created successfully');
+        toast({
+          title: "Success",
+          description: "Poll created successfully"
+        });
       } else {
-        toast.error('Failed to create poll');
+        toast({
+          title: "Error",
+          description: "Failed to create poll",
+          variant: "destructive"
+        });
       }
     } catch (error: any) {
-      toast.error(`Error creating poll: ${error.message}`);
+      toast({
+        title: "Error", 
+        description: `Error creating poll: ${error.message}`,
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -140,15 +163,15 @@ const NewPollDialog = ({
           New Poll
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] p-0">
-        <DialogHeader className="p-6 pb-2">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
+        <DialogHeader className="pb-2">
           <DialogTitle>Create a New Poll</DialogTitle>
           <DialogDescription>
             Get feedback from voters with a poll.
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="p-6 pt-0 max-h-[600px]">
+        <ScrollArea className="max-h-[450px] pr-3">
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="question" className="text-right">
@@ -225,7 +248,7 @@ const NewPollDialog = ({
           </div>
         </ScrollArea>
         
-        <DialogFooter className="p-6 pt-2">
+        <DialogFooter className="pt-2">
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
