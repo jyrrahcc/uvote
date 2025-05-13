@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -60,11 +60,11 @@ const NewPollDialog = ({
   };
 
   // Update internal state when isOpen changes
-  useState(() => {
+  useEffect(() => {
     if (isOpen !== undefined) {
       setOpen(isOpen);
     }
-  });
+  }, [isOpen]);
 
   const handleAddOption = () => {
     setOptions([
@@ -158,7 +158,7 @@ const NewPollDialog = ({
 
   return (
     <Dialog open={isOpen !== undefined ? isOpen : open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col">
         <DialogHeader className="pb-2">
           <DialogTitle>Create a New Poll</DialogTitle>
           <DialogDescription>
@@ -166,7 +166,7 @@ const NewPollDialog = ({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-grow pr-4 -mr-6 overflow-y-auto">
+        <ScrollArea className="flex-grow pr-4 -mr-6 max-h-[calc(80vh-180px)] overflow-y-auto">
           <div className="space-y-4 py-2 pr-6">
             <div className="space-y-2">
               <Label htmlFor="question" className="text-right">

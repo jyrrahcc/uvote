@@ -1,14 +1,13 @@
 
 import * as React from "react"
-import {
-  type ToastActionElement,
-  type ToastProps as ToastPrimitiveProps,
-} from "@/components/ui/toast"
+import type { ToastProps } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 5
 const TOAST_REMOVE_DELAY = 1000000
 
-type ToasterToast = ToastPrimitiveProps & {
+export type ToastActionElement = React.ReactElement
+
+export type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
@@ -146,7 +145,7 @@ export function useToast() {
   return {
     ...state,
     toast: (props: Omit<ToasterToast, "id">) => {
-      const id = props.id || String(Date.now())
+      const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
 
       dispatch({
         type: "ADD_TOAST",
@@ -175,7 +174,7 @@ export function useToast() {
 }
 
 export function toast(props: Omit<ToasterToast, "id">) {
-  const id = props.id || String(Date.now())
+  const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
 
   dispatch({
     type: "ADD_TOAST",
@@ -199,5 +198,3 @@ export function toast(props: Omit<ToasterToast, "id">) {
       }),
   }
 }
-
-export type { ToasterToast }
