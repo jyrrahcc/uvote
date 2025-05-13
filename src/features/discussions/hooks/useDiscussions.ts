@@ -14,7 +14,7 @@ import {
   deleteComment
 } from '../services/discussionService';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast'; // Updated import path
+import { toast } from '@/hooks/use-toast';
 
 export const useDiscussions = (electionId: string) => {
   const { user } = useAuth();

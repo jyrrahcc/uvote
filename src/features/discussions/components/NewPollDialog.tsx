@@ -12,147 +12,156 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { DateTimePicker } from '@/components/ui/datetime-picker';
-import { Switch } from '@/components/ui/switch';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { X } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 interface NewPollDialogProps {
-  isOpen?: boolean;
-  onClose: () => void;
   onCreatePoll: (
-    question: string,
-    options: Record<string, string>,
+    question: string, 
+    options: Record<string, string>, 
     description?: string,
     multipleChoice?: boolean,
     endsAt?: string
   ) => Promise<any>;
+  isOpen?: boolean;
+  onClose?: () => void;
   electionId: string;
-  topicId?: string;
 }
 
 const NewPollDialog = ({ 
-  isOpen, 
-  onClose, 
   onCreatePoll, 
-  electionId,
-  topicId 
+  isOpen: controlledIsOpen, 
+  onClose,
+  electionId 
 }: NewPollDialogProps) => {
-  const [open, setOpen] = useState<boolean>(false);
+  const [isOpen, setIsOpen] = useState(controlledIsOpen || false);
   const [question, setQuestion] = useState('');
   const [description, setDescription] = useState('');
-  const [options, setOptions] = useState<{ id: string; text: string }[]>([
-    { id: '1', text: '' },
-    { id: '2', text: '' },
-  ]);
+  const [options, setOptions] = useState<Record<string, string>>(() => {
+    const initialOptions: Record<string, string> = {};
+    const id1 = uuidv4();
+    const id2 = uuidv4();
+    initialOptions[id1] = '';
+    initialOptions[id2] = '';
+    return initialOptions;
+  });
   const [multipleChoice, setMultipleChoice] = useState(false);
-  const [endsAt, setEndsAt] = useState<Date | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset form state when dialog is opened
   useEffect(() => {
-    if (isOpen) {
-      setQuestion('');
-      setDescription('');
-      setOptions([
-        { id: '1', text: '' },
-        { id: '2', text: '' },
-      ]);
-      setMultipleChoice(false);
-      setEndsAt(undefined);
+    if (controlledIsOpen !== undefined) {
+      setIsOpen(controlledIsOpen);
     }
-  }, [isOpen]);
+  }, [controlledIsOpen]);
 
   const handleOpenChange = (open: boolean) => {
-    setOpen(open);
-    if (!open) {
+    if (onClose && !open) {
       onClose();
     }
+    setIsOpen(open);
   };
 
-  // Update internal state when isOpen changes
-  useEffect(() => {
-    if (isOpen !== undefined) {
-      setOpen(isOpen);
-    }
-  }, [isOpen]);
-
-  const handleAddOption = () => {
-    setOptions([
-      ...options,
-      { id: crypto.randomUUID(), text: '' },
-    ]);
+  const addOption = () => {
+    setOptions(prev => {
+      const newOptions = { ...prev };
+      newOptions[uuidv4()] = '';
+      return newOptions;
+    });
   };
 
-  const handleRemoveOption = (id: string) => {
-    if (options.length <= 2) {
+  const removeOption = (id: string) => {
+    if (Object.keys(options).length <= 2) {
       toast({
         title: "Error",
-        description: "You need at least two options for a poll.",
-        variant: "destructive",
+        description: "A poll must have at least two options",
+        variant: "destructive"
       });
       return;
     }
-    setOptions(options.filter((option) => option.id !== id));
+    
+    setOptions(prev => {
+      const newOptions = { ...prev };
+      delete newOptions[id];
+      return newOptions;
+    });
   };
 
-  const handleOptionChange = (id: string, text: string) => {
-    setOptions(
-      options.map((option) =>
-        option.id === id ? { ...option, text } : option
-      )
-    );
+  const updateOption = (id: string, value: string) => {
+    setOptions(prev => {
+      const newOptions = { ...prev };
+      newOptions[id] = value;
+      return newOptions;
+    });
   };
 
   const handleSubmit = async () => {
-    // Validate form
     if (!question.trim()) {
       toast({
         title: "Error",
-        description: "Please enter a question for the poll.",
-        variant: "destructive",
+        description: "Please enter a poll question",
+        variant: "destructive"
       });
       return;
     }
 
-    const validOptions = options.filter((option) => option.text.trim());
-    if (validOptions.length < 2) {
+    // Check if any option is empty
+    const hasEmptyOption = Object.values(options).some(option => !option.trim());
+    if (hasEmptyOption) {
       toast({
         title: "Error",
-        description: "Please enter at least two options for the poll.",
-        variant: "destructive",
+        description: "All poll options must have text",
+        variant: "destructive"
       });
       return;
     }
 
-    const optionsObject: Record<string, string> = {};
-    validOptions.forEach((option) => {
-      optionsObject[option.id] = option.text.trim();
-    });
-
-    setIsSubmitting(true);
+    // Check for duplicate options
+    const optionValues = Object.values(options).map(o => o.trim().toLowerCase());
+    const uniqueOptions = new Set(optionValues);
+    if (uniqueOptions.size !== optionValues.length) {
+      toast({
+        title: "Error",
+        description: "Poll options must be unique",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
-      await onCreatePoll(
-        question.trim(),
-        optionsObject,
+      setIsSubmitting(true);
+      const result = await onCreatePoll(
+        question.trim(), 
+        options, 
         description.trim() || undefined,
-        multipleChoice,
-        endsAt ? endsAt.toISOString() : undefined
+        multipleChoice
       );
-
-      toast({
-        title: "Success",
-        description: "Poll created successfully!",
-      });
       
-      onClose();
+      if (result) {
+        setQuestion('');
+        setDescription('');
+        setOptions(() => {
+          const newOptions: Record<string, string> = {};
+          const id1 = uuidv4();
+          const id2 = uuidv4();
+          newOptions[id1] = '';
+          newOptions[id2] = '';
+          return newOptions;
+        });
+        setMultipleChoice(false);
+        handleOpenChange(false);
+        toast({
+          title: "Success",
+          description: "Poll created successfully"
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
         description: `Failed to create poll: ${error.message}`,
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -160,111 +169,90 @@ const NewPollDialog = ({
   };
 
   return (
-    <Dialog open={isOpen !== undefined ? isOpen : open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col">
-        <DialogHeader className="pb-2">
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>Create a New Poll</DialogTitle>
           <DialogDescription>
-            Create a poll for users to vote on and gather opinions.
+            Create a poll to gather opinions on this election.
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-grow pr-4 -mr-6 max-h-[calc(80vh-180px)] overflow-y-auto">
-          <div className="space-y-4 py-2 pr-6">
+        <ScrollArea className="p-6 pt-0 max-h-[calc(90vh-170px)]">
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="question" className="text-right">
-                Poll Question
-              </Label>
+              <Label htmlFor="question">Question</Label>
               <Input
                 id="question"
-                placeholder="What would you like to ask?"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
+                placeholder="What would you like to ask?"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-right">
-                Description (Optional)
-              </Label>
+              <Label htmlFor="description">Description (Optional)</Label>
               <Textarea
                 id="description"
-                placeholder="Provide more context about the poll"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                placeholder="Provide additional context for your poll"
                 className="min-h-[80px]"
               />
             </div>
-
+            
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label>Poll Options</Label>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleAddOption}
-                  type="button"
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Option
-                </Button>
-              </div>
-              
-              {options.map((option) => (
-                <div key={option.id} className="flex gap-2 items-center">
+              <Label>Options</Label>
+              {Object.entries(options).map(([id, value]) => (
+                <div key={id} className="flex items-center gap-2">
                   <Input
-                    placeholder={`Option ${options.indexOf(option) + 1}`}
-                    value={option.text}
-                    onChange={(e) => handleOptionChange(option.id, e.target.value)}
+                    value={value}
+                    onChange={(e) => updateOption(id, e.target.value)}
+                    placeholder="Option text"
                     className="flex-1"
                   />
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
-                    type="button"
-                    onClick={() => handleRemoveOption(option.id)}
+                    onClick={() => removeOption(id)}
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addOption}
+                className="w-full mt-2"
+              >
+                Add Option
+              </Button>
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="multipleChoice">Allow Multiple Choices</Label>
-                <Switch
-                  id="multipleChoice"
-                  checked={multipleChoice}
-                  onCheckedChange={setMultipleChoice}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Poll End Date (Optional)</Label>
-              <DateTimePicker
-                date={endsAt}
-                setDate={setEndsAt}
-                showTimePicker
-                className="w-full"
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox 
+                id="multipleChoice" 
+                checked={multipleChoice} 
+                onCheckedChange={(checked) => setMultipleChoice(!!checked)}
               />
+              <Label htmlFor="multipleChoice">Allow multiple choices</Label>
             </div>
           </div>
         </ScrollArea>
-
-        <DialogFooter className="pt-4">
+        
+        <DialogFooter className="p-6 pt-2">
           <Button
-            variant="outline"
-            onClick={onClose}
+            variant="outline" 
+            onClick={() => handleOpenChange(false)}
             disabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="bg-[#008f50] hover:bg-[#007a45]"
+            disabled={isSubmitting || !question.trim()}
           >
             {isSubmitting ? 'Creating...' : 'Create Poll'}
           </Button>

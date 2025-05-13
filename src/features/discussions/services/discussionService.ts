@@ -1,6 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DiscussionTopic, DiscussionComment } from "@/types/discussions";
-import { toast } from "@/hooks/use-toast"; // Import from hooks directly
+import { toast } from "@/hooks/use-toast"; 
 import { extractAuthor } from "../utils/profileUtils";
 
 export const fetchDiscussionTopics = async (electionId: string): Promise<DiscussionTopic[]> => {

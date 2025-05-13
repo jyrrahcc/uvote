@@ -1,8 +1,13 @@
+
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDiscussions } from "./hooks/useDiscussions";
 import { usePolls } from "./hooks/usePolls";
 import { useParams } from "react-router-dom";
+import { useRole } from "@/features/auth/context/RoleContext";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 // Components
 import DiscussionList from "./components/DiscussionList";
@@ -10,7 +15,8 @@ import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
 import { DiscussionTopic, Poll } from "@/types/discussions";
-import { toast } from "@/hooks/use-toast"; // Updated import path
+import { toast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui/spinner";
 
 interface DiscussionsPageProps {
   electionId?: string;
@@ -22,6 +28,14 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
   const [activeTab, setActiveTab] = useState("discussions");
   const [viewingTopic, setViewingTopic] = useState(false);
   const [viewingPoll, setViewingPoll] = useState(false);
+  const [election, setElection] = useState<any>(null);
+  const [eligibilityChecked, setEligibilityChecked] = useState(false);
+  const [isEligible, setIsEligible] = useState(false);
+  const [eligibilityReason, setEligibilityReason] = useState<string | null>(null);
+  const [eligibilityLoading, setEligibilityLoading] = useState(true);
+  
+  const { isAdmin, isVoter } = useRole();
+  const { user } = useAuth();
   
   // Add initial logging
   useEffect(() => {
@@ -29,6 +43,62 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     console.log("🔍 DiscussionsPage params electionId:", params?.electionId);
     console.log("🔍 DiscussionsPage finalElectionId:", finalElectionId);
   }, [electionId, params?.electionId, finalElectionId]);
+  
+  // Fetch election details for eligibility check
+  useEffect(() => {
+    const fetchElection = async () => {
+      if (!finalElectionId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('elections')
+          .select('*')
+          .eq('id', finalElectionId)
+          .single();
+          
+        if (error) throw error;
+        setElection(data);
+      } catch (error) {
+        console.error("Error fetching election:", error);
+        toast({
+          title: "Error",
+          description: "Could not fetch election details",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    fetchElection();
+  }, [finalElectionId]);
+  
+  // Check user eligibility when election data is available
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!election || !user) {
+        setEligibilityLoading(false);
+        return;
+      }
+      
+      try {
+        setEligibilityLoading(true);
+        const { isEligible, reason } = await checkUserEligibility(user.id, election);
+        
+        console.log("Eligibility check result:", { isEligible, reason });
+        
+        setIsEligible(isEligible);
+        setEligibilityReason(reason);
+        setEligibilityChecked(true);
+      } catch (error) {
+        console.error("Error checking eligibility:", error);
+        setIsEligible(false);
+        setEligibilityReason("Error checking eligibility");
+      } finally {
+        setEligibilityLoading(false);
+      }
+    };
+    
+    checkEligibility();
+  }, [election, user, isAdmin]);
   
   const {
     topics,
@@ -160,15 +230,41 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     return result;
   };
   
-  // Log loading states
-  useEffect(() => {
-    console.log("🔍 Discussion loading state:", discussionLoading);
-  }, [discussionLoading]);
+  // Show loading state while checking eligibility
+  if (eligibilityLoading) {
+    return (
+      <div className="container mx-auto py-12 flex items-center justify-center">
+        <Spinner className="mr-2 h-6 w-6" />
+        <span>Checking access...</span>
+      </div>
+    );
+  }
   
-  useEffect(() => {
-    console.log("🔍 Poll loading state:", pollLoading);
-  }, [pollLoading]);
+  // Show access denied message if user is not eligible and isn't an admin
+  if (eligibilityChecked && !isEligible && !isAdmin) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-amber-800 mb-2">Access Restricted</h2>
+          <p className="text-amber-700 mb-4">
+            {eligibilityReason || "You don't have permission to view discussions for this election."}
+          </p>
+          {!user && (
+            <p className="text-amber-700">
+              Please log in to participate in discussions.
+            </p>
+          )}
+          {user && !isVoter && (
+            <p className="text-amber-700">
+              Your account needs to be verified before you can participate in discussions.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
   
+  // Show main discussions content for eligible users
   return (
     <div className="container mx-auto py-8 px-4">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
