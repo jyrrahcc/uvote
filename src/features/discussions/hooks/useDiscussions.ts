@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { DiscussionTopic, DiscussionComment } from '@/types/discussions';
@@ -13,7 +14,7 @@ import {
   deleteComment
 } from '../services/discussionService';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast'; // Updated import path
 
 export const useDiscussions = (electionId: string) => {
   const { user } = useAuth();
@@ -24,23 +25,30 @@ export const useDiscussions = (electionId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [commentLoading, setCommentLoading] = useState(false);
 
+  // Add debugging for the current election ID
+  useEffect(() => {
+    console.log("🔍 useDiscussions hook initialized with electionId:", electionId);
+  }, [electionId]);
+
   const loadTopics = useCallback(async () => {
     try {
       if (!electionId) {
-        console.error("No election ID provided, skipping topic load");
+        console.error("📛 No election ID provided, skipping topic load");
         setTopics([]);
         setLoading(false);
         return;
       }
 
+      console.log("🔄 Starting to load topics for election:", electionId);
       setLoading(true);
       setError(null);
-      console.log("Loading topics for election:", electionId);
+      
       const data = await fetchDiscussionTopics(electionId);
-      console.log("Loaded topics:", data);
+      
+      console.log(`✅ Loaded ${data.length} topics in useDiscussions hook:`, data);
       setTopics(data);
     } catch (error: any) {
-      console.error("Error loading discussions:", error);
+      console.error("📛 Error loading discussions:", error);
       setError("Failed to load discussion topics");
       toast({
         title: "Error",
@@ -54,11 +62,18 @@ export const useDiscussions = (electionId: string) => {
 
   // Set up initial load and realtime subscription
   useEffect(() => {
-    if (!electionId) return;
+    if (!electionId) {
+      console.warn("⚠️ No electionId provided to useDiscussions, skipping setup");
+      return;
+    }
     
+    console.log("🔄 Setting up initial load and realtime for electionId:", electionId);
+    
+    // Load topics immediately
     loadTopics();
     
     // Set up realtime subscription
+    console.log("🔄 Setting up Supabase realtime subscription for discussions");
     const channel = supabase
       .channel('discussion-changes')
       .on('postgres_changes', {
@@ -66,26 +81,30 @@ export const useDiscussions = (electionId: string) => {
         schema: 'public',
         table: 'discussion_topics',
         filter: `election_id=eq.${electionId}`
-      }, () => {
-        console.log("Detected change in discussion topics, reloading...");
+      }, (payload) => {
+        console.log("🔔 Detected change in discussion topics:", payload);
         loadTopics();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log("✅ Supabase channel status:", status);
+      });
       
     return () => {
+      console.log("🧹 Cleaning up Supabase channel for discussions");
       supabase.removeChannel(channel);
     };
   }, [electionId, loadTopics]);
   
   const loadTopic = async (topicId: string) => {
     try {
+      console.log("🔄 Loading topic details:", topicId);
       setLoading(true);
       setError(null);
-      console.log("Loading topic details:", topicId);
+      
       const topic = await fetchDiscussionTopicById(topicId);
       
       if (!topic) {
-        console.error("Failed to load topic, no data returned");
+        console.error("📛 Failed to load topic, no data returned");
         toast({
           title: "Error",
           description: "Failed to load topic details",
@@ -94,12 +113,12 @@ export const useDiscussions = (electionId: string) => {
         return null;
       }
       
-      console.log("Topic loaded:", topic);
+      console.log("✅ Topic loaded successfully:", topic);
       setSelectedTopic(topic);
       await loadComments(topicId);
       return topic;
     } catch (error: any) {
-      console.error("Error loading topic:", error);
+      console.error("📛 Error loading topic:", error);
       setError("Failed to load discussion topic");
       toast({
         title: "Error",
@@ -160,7 +179,7 @@ export const useDiscussions = (electionId: string) => {
       if (!user) {
         const errorMsg = "You must be logged in to create a topic";
         setError(errorMsg);
-        console.error(errorMsg);
+        console.error("📛", errorMsg);
         toast({
           title: "Authentication Error",
           description: errorMsg,
@@ -172,7 +191,7 @@ export const useDiscussions = (electionId: string) => {
       if (!electionId) {
         const errorMsg = "No election ID provided";
         setError(errorMsg);
-        console.error(errorMsg);
+        console.error("📛", errorMsg);
         toast({
           title: "Error",
           description: errorMsg,
@@ -181,18 +200,20 @@ export const useDiscussions = (electionId: string) => {
         return null;
       }
       
-      console.log("Adding new topic:", { electionId, title, content });
+      console.log("🔄 Adding new topic:", { electionId, title, content });
       setLoading(true);
       
       const newTopic = await createDiscussionTopic(electionId, title, content);
       
       if (newTopic) {
-        console.log("New topic created successfully:", newTopic);
-        // Update local state with the new topic
-        await loadTopics(); // Reload topics instead of manually updating state
+        console.log("✅ New topic created successfully, reloading topics");
+        
+        // Force reload all topics to ensure we have the latest data
+        await loadTopics();
+        
         return newTopic;
       } else {
-        console.error("Failed to create topic: No topic data returned");
+        console.error("📛 Failed to create topic: No topic data returned");
         toast({
           title: "Error",
           description: "Failed to create topic",
@@ -202,7 +223,7 @@ export const useDiscussions = (electionId: string) => {
         return null;
       }
     } catch (error: any) {
-      console.error("Error creating topic:", error);
+      console.error("📛 Error creating topic:", error);
       setError(error.message || "Failed to create topic");
       toast({
         title: "Error",

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDiscussions } from "./hooks/useDiscussions";
@@ -11,7 +10,7 @@ import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
 import { DiscussionTopic, Poll } from "@/types/discussions";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast"; // Updated import path
 
 interface DiscussionsPageProps {
   electionId?: string;
@@ -23,6 +22,13 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
   const [activeTab, setActiveTab] = useState("discussions");
   const [viewingTopic, setViewingTopic] = useState(false);
   const [viewingPoll, setViewingPoll] = useState(false);
+  
+  // Add initial logging
+  useEffect(() => {
+    console.log("🔍 DiscussionsPage mounted with props electionId:", electionId);
+    console.log("🔍 DiscussionsPage params electionId:", params?.electionId);
+    console.log("🔍 DiscussionsPage finalElectionId:", finalElectionId);
+  }, [electionId, params?.electionId, finalElectionId]);
   
   const {
     topics,
@@ -55,9 +61,19 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     loadPolls
   } = usePolls(finalElectionId);
   
+  // Log topics and polls whenever they change
+  useEffect(() => {
+    console.log("🔍 Current topics in DiscussionsPage:", topics);
+  }, [topics]);
+  
+  useEffect(() => {
+    console.log("🔍 Current polls in DiscussionsPage:", polls);
+  }, [polls]);
+  
   // Ensure we have an electionId and load data properly
   useEffect(() => {
     if (!finalElectionId) {
+      console.error("📛 No election ID provided to DiscussionsPage");
       toast({
         title: "Error",
         description: "No election ID provided",
@@ -66,10 +82,18 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
       return;
     }
     
-    console.log("Initial load for election ID:", finalElectionId);
-    loadTopics();
-    loadPolls();
+    console.log("🔄 Initial data load in DiscussionsPage for election ID:", finalElectionId);
     
+    // Add a small delay before loading to ensure all hooks are properly initialized
+    const loadTimer = setTimeout(() => {
+      console.log("🔄 Executing delayed loadTopics and loadPolls");
+      loadTopics();
+      loadPolls();
+    }, 100);
+    
+    return () => {
+      clearTimeout(loadTimer);
+    };
   }, [finalElectionId, loadTopics, loadPolls]);
   
   const handleBackToDiscussions = () => {
@@ -81,11 +105,13 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
   };
   
   const handleSelectTopic = async (topic: DiscussionTopic) => {
+    console.log("🔄 Selecting topic:", topic.id);
     await loadTopic(topic.id);
     setViewingTopic(true);
   };
   
   const handleSelectPoll = async (poll: Poll) => {
+    console.log("🔄 Selecting poll:", poll.id);
     await loadPoll(poll.id);
     setViewingPoll(true);
   };
@@ -97,9 +123,11 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     multipleChoice: boolean = false,
     endsAt?: string
   ) => {
+    console.log("🔄 Creating poll:", { question, options, description, multipleChoice, endsAt });
     // Pass null as topicId since we're creating from the polls tab
     const result = await addPoll(question, options, description || null, null, multipleChoice, endsAt || null);
     if (result) {
+      console.log("✅ Poll created successfully, reloading polls");
       // Reload polls to ensure we're displaying the latest data
       await loadPolls();
     }
@@ -109,6 +137,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
   // Wrapper function to match expected signature in DiscussionList
   const handleCreateTopic = async (title: string, content: string) => {
     if (!finalElectionId) {
+      console.error("📛 No election ID provided for topic creation");
       toast({
         title: "Error",
         description: "No election ID provided",
@@ -117,18 +146,28 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
       return null;
     }
     
-    console.log("Creating topic with:", { title, content });
+    console.log("🔄 Creating topic with:", { title, content, electionId: finalElectionId });
     const result = await addTopic(finalElectionId, title, content || null);
+    
     if (result) {
+      console.log("✅ Topic created successfully, reloading topics");
       // Reload topics to ensure we're displaying the latest data
-      console.log("Topic created, reloading topics");
       await loadTopics();
+    } else {
+      console.error("📛 Failed to create topic");
     }
+    
     return result;
   };
   
-  console.log("Current topics:", topics);
-  console.log("Current polls:", polls);
+  // Log loading states
+  useEffect(() => {
+    console.log("🔍 Discussion loading state:", discussionLoading);
+  }, [discussionLoading]);
+  
+  useEffect(() => {
+    console.log("🔍 Poll loading state:", pollLoading);
+  }, [pollLoading]);
   
   return (
     <div className="container mx-auto py-8 px-4">

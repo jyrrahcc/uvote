@@ -1,12 +1,31 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { DiscussionTopic, DiscussionComment } from "@/types/discussions";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast"; // Import from hooks directly
 import { extractAuthor } from "../utils/profileUtils";
 
 export const fetchDiscussionTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
   try {
-    console.log("Fetching discussion topics for election:", electionId);
+    console.log("🔍 Fetching discussion topics for election:", electionId);
+    
+    if (!electionId) {
+      console.error("📛 Invalid electionId provided:", electionId);
+      return [];
+    }
+    
+    // First, check if the election exists
+    const { data: electionData, error: electionError } = await supabase
+      .from('elections')
+      .select('id')
+      .eq('id', electionId)
+      .single();
+      
+    if (electionError) {
+      console.error("📛 Election not found:", electionError);
+      console.log("Provided election ID was:", electionId);
+      return [];
+    }
+    
+    console.log("✅ Election found:", electionData);
     
     const { data, error } = await supabase
       .from('discussion_topics')
@@ -19,16 +38,31 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
       .order('created_at', { ascending: false });
       
     if (error) {
-      console.error("Error in fetchDiscussionTopics:", error);
+      console.error("📛 Error in fetchDiscussionTopics:", error);
+      console.log("Query parameters:", { electionId });
+      console.log("Tables being accessed:", "discussion_topics", "profiles");
       throw error;
     }
     
-    console.log("Raw topics data:", data);
+    console.log(`✅ Raw topics data (${data?.length || 0} records):`, data);
+    
+    // Verify we have valid data
+    if (!data || data.length === 0) {
+      console.log("ℹ️ No discussion topics found for election:", electionId);
+      return [];
+    }
     
     // Transform data to match our types
-    const transformedData = (data || []).map(topic => {
+    const transformedData = data.map(topic => {
       // Safely access profile data
       const profileData = topic.profiles;
+      
+      // Log profile data for debugging
+      if (!profileData) {
+        console.warn("⚠️ No profile data found for topic:", topic.id);
+      } else {
+        console.log("✅ Profile data found for topic:", topic.id, profileData);
+      }
       
       return {
         ...topic,
@@ -36,11 +70,11 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
       };
     }) as DiscussionTopic[];
     
-    console.log("Transformed topics:", transformedData);
+    console.log("✅ Transformed topics:", transformedData);
     
     return transformedData;
   } catch (error) {
-    console.error("Error fetching discussion topics:", error);
+    console.error("📛 Error fetching discussion topics:", error);
     return [];
   }
 };
@@ -86,19 +120,30 @@ export const createDiscussionTopic = async (
   content: string | null
 ): Promise<DiscussionTopic | null> => {
   try {
+    console.log("🔍 Creating topic with:", { electionId, title, content });
+    
+    if (!electionId) {
+      console.error("📛 Invalid electionId provided");
+      toast({
+        title: "Error",
+        description: "Invalid election ID",
+        variant: "destructive"
+      });
+      return null;
+    }
+    
     const { data: userData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
-      console.error("Session error:", sessionError);
+      console.error("📛 Session error:", sessionError);
       throw sessionError;
     }
     if (!userData.session) {
-      console.error("No user session found");
+      console.error("📛 No user session found");
       throw new Error("User not authenticated");
     }
     
     const userId = userData.session.user.id;
-    
-    console.log("Creating topic with:", { electionId, userId, title, content });
+    console.log("✅ User authenticated:", userId);
     
     // First, check if the election exists
     const { data: electionData, error: electionError } = await supabase
@@ -108,11 +153,21 @@ export const createDiscussionTopic = async (
       .single();
       
     if (electionError) {
-      console.error("Election not found:", electionError);
+      console.error("📛 Election not found:", electionError);
       throw new Error(`Invalid election: ${electionError.message}`);
     }
     
-    // Create the discussion topic without using .single() initially
+    console.log("✅ Election validated:", electionData);
+    
+    // Log insertion attempt
+    console.log("🔄 Attempting to insert discussion topic:", {
+      election_id: electionId,
+      created_by: userId,
+      title,
+      content
+    });
+    
+    // Create the discussion topic
     const { data, error } = await supabase
       .from('discussion_topics')
       .insert({
@@ -124,17 +179,17 @@ export const createDiscussionTopic = async (
       .select();
       
     if (error) {
-      console.error("Database error creating topic:", error);
+      console.error("📛 Database error creating topic:", error);
       throw error;
     }
     
     if (!data || data.length === 0) {
-      console.error("No data returned after insertion");
+      console.error("📛 No data returned after insertion");
       throw new Error("Topic created but no data returned");
     }
     
     const createdTopic = data[0];
-    console.log("Topic created successfully:", createdTopic);
+    console.log("✅ Topic created successfully:", createdTopic);
     
     toast({
       title: "Success",
@@ -142,11 +197,17 @@ export const createDiscussionTopic = async (
     });
     
     // Get the author information to return a complete topic object
-    const { data: authorData } = await supabase
+    const { data: authorData, error: authorError } = await supabase
       .from('profiles')
       .select('first_name, last_name, image_url')
       .eq('id', userId)
       .single();
+    
+    if (authorError) {
+      console.warn("⚠️ Could not fetch author data:", authorError);
+    } else {
+      console.log("✅ Author data fetched:", authorData);
+    }
       
     const topicWithAuthor = {
       ...createdTopic,
@@ -155,7 +216,7 @@ export const createDiscussionTopic = async (
     
     return topicWithAuthor;
   } catch (error: any) {
-    console.error("Error creating discussion topic:", error);
+    console.error("📛 Error creating discussion topic:", error);
     toast({
       title: "Error",
       description: `Failed to create topic: ${error.message}`,
@@ -255,12 +316,42 @@ export const createComment = async (
   parentId?: string | null
 ): Promise<DiscussionComment | null> => {
   try {
-    const { data: userData } = await supabase.auth.getSession();
-    if (!userData.session) throw new Error("User not authenticated");
+    console.log("🔍 Creating comment:", { topicId, content, parentId });
+    
+    const { data: userData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error("📛 Session error:", sessionError);
+      throw sessionError;
+    }
+    if (!userData.session) {
+      console.error("📛 No user session found");
+      throw new Error("User not authenticated");
+    }
     
     const userId = userData.session.user.id;
+    console.log("✅ User authenticated:", userId);
     
-    console.log("Creating comment:", { topicId, content, parentId });
+    // Check if topic exists
+    const { data: topicData, error: topicError } = await supabase
+      .from('discussion_topics')
+      .select('id')
+      .eq('id', topicId)
+      .single();
+      
+    if (topicError) {
+      console.error("📛 Topic not found:", topicError);
+      throw new Error(`Invalid topic: ${topicError.message}`);
+    }
+    
+    console.log("✅ Topic validated:", topicData);
+    
+    // Log comment creation attempt
+    console.log("🔄 Attempting to insert comment:", {
+      topic_id: topicId,
+      user_id: userId,
+      content,
+      parent_id: parentId || null
+    });
     
     const { data, error } = await supabase
       .from('discussion_comments')
@@ -274,19 +365,38 @@ export const createComment = async (
       .single();
       
     if (error) {
-      console.error("Database error creating comment:", error);
+      console.error("📛 Database error creating comment:", error);
       throw error;
     }
     
-    console.log("Comment created successfully:", data);
+    console.log("✅ Comment created successfully:", data);
     
     toast({
       title: "Success",
       description: "Comment posted successfully"
     });
-    return data as DiscussionComment;
+    
+    // Get the author information
+    const { data: authorData, error: authorError } = await supabase
+      .from('profiles')
+      .select('first_name, last_name, image_url')
+      .eq('id', userId)
+      .single();
+    
+    if (authorError) {
+      console.warn("⚠️ Could not fetch author data:", authorError);
+    } else {
+      console.log("✅ Author data fetched:", authorData);
+    }
+    
+    const commentWithAuthor = {
+      ...data,
+      author: authorData || null
+    } as DiscussionComment;
+    
+    return commentWithAuthor;
   } catch (error: any) {
-    console.error("Error posting comment:", error);
+    console.error("📛 Error posting comment:", error);
     toast({
       title: "Error",
       description: `Failed to post comment: ${error.message}`,
