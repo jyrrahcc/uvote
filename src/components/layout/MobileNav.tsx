@@ -25,6 +25,7 @@ import {
   FileSpreadsheet
 } from "lucide-react";
 import Logo from "./Logo";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SidebarItem {
   icon: React.ReactNode;
@@ -90,64 +91,66 @@ const MobileNav = () => {
             <Menu className="h-5 w-5" />
           </Button>
         </DrawerTrigger>
-        <DrawerContent className="h-[80vh]">
+        <DrawerContent className="h-[80vh] flex flex-col">
           <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
           
-          <div className="p-4 flex flex-col h-full">
-            {/* User info */}
-            <div className="flex items-center gap-3 mb-6 p-2">
-              <Avatar className="h-10 w-10 border border-[#008f50]/20">
-                <AvatarFallback className="bg-[#008f50]/10 text-[#008f50]">
-                  {getUserInitials()}
-                </AvatarFallback>
-                {user?.user_metadata?.avatar_url && (
-                  <AvatarImage src={user.user_metadata.avatar_url} />
-                )}
-              </Avatar>
-              <div>
-                <p className="text-sm font-medium">
-                  {user?.user_metadata?.first_name 
-                    ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`
-                    : user?.email}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {isAdmin ? "Administrator" : "Voter"}
-                </p>
+          <ScrollArea className="flex-1 overflow-y-auto">
+            <div className="p-4 flex flex-col h-full">
+              {/* User info */}
+              <div className="flex items-center gap-3 mb-6 p-2">
+                <Avatar className="h-10 w-10 border border-[#008f50]/20">
+                  <AvatarFallback className="bg-[#008f50]/10 text-[#008f50]">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                  {user?.user_metadata?.avatar_url && (
+                    <AvatarImage src={user.user_metadata.avatar_url} />
+                  )}
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium">
+                    {user?.user_metadata?.first_name 
+                      ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`
+                      : user?.email}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isAdmin ? "Administrator" : "Voter"}
+                  </p>
+                </div>
               </div>
+              
+              {/* Navigation */}
+              <div className="flex-1">
+                <nav className="flex flex-col space-y-1">
+                  {filteredNavItems.map((item) => (
+                    <DrawerClose asChild key={item.to}>
+                      <Link to={item.to}>
+                        <Button
+                          variant={isActive(item.to) ? "secondary" : "ghost"}
+                          className={cn(
+                            "w-full justify-start",
+                            isActive(item.to) ? "bg-green-100 hover:bg-green-200 text-green-800" : ""
+                          )}
+                        >
+                          {item.icon}
+                          <span className="ml-2">{item.label}</span>
+                        </Button>
+                      </Link>
+                    </DrawerClose>
+                  ))}
+                </nav>
+              </div>
+              
+              {/* Logout button */}
+              <Button
+                variant="ghost"
+                onClick={() => signOut()}
+                className="mt-4 w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
+              >
+                <LogOut size={20} />
+                <span className="ml-2">Logout</span>
+              </Button>
             </div>
-            
-            {/* Navigation */}
-            <div className="flex-1">
-              <nav className="flex flex-col space-y-1">
-                {filteredNavItems.map((item) => (
-                  <DrawerClose asChild key={item.to}>
-                    <Link to={item.to}>
-                      <Button
-                        variant={isActive(item.to) ? "secondary" : "ghost"}
-                        className={cn(
-                          "w-full justify-start",
-                          isActive(item.to) ? "bg-green-100 hover:bg-green-200 text-green-800" : ""
-                        )}
-                      >
-                        {item.icon}
-                        <span className="ml-2">{item.label}</span>
-                      </Button>
-                    </Link>
-                  </DrawerClose>
-                ))}
-              </nav>
-            </div>
-            
-            {/* Logout button */}
-            <Button
-              variant="ghost"
-              onClick={() => signOut()}
-              className="mt-4 w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
-            >
-              <LogOut size={20} />
-              <span className="ml-2">Logout</span>
-            </Button>
-          </div>
+          </ScrollArea>
         </DrawerContent>
       </Drawer>
     </div>
