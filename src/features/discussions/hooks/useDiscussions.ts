@@ -13,7 +13,7 @@ import {
   deleteComment
 } from '../services/discussionService';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/use-toast';
 
 export const useDiscussions = (electionId: string) => {
   const { user } = useAuth();
@@ -155,7 +155,7 @@ export const useDiscussions = (electionId: string) => {
     }
   };
   
-  const addTopic = async (electionId: string, title: string, content: string) => {
+  const addTopic = async (electionId: string, title: string, content: string | null) => {
     try {
       if (!user) {
         const errorMsg = "You must be logged in to create a topic";
@@ -189,7 +189,7 @@ export const useDiscussions = (electionId: string) => {
       if (newTopic) {
         console.log("New topic created successfully:", newTopic);
         // Update local state with the new topic
-        setTopics(prevTopics => [newTopic, ...prevTopics]);
+        await loadTopics(); // Reload topics instead of manually updating state
         return newTopic;
       } else {
         console.error("Failed to create topic: No topic data returned");

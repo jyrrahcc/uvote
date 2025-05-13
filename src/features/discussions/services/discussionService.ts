@@ -1,10 +1,13 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DiscussionTopic, DiscussionComment } from "@/types/discussions";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { extractAuthor } from "../utils/profileUtils";
 
 export const fetchDiscussionTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
   try {
+    console.log("Fetching discussion topics for election:", electionId);
+    
     const { data, error } = await supabase
       .from('discussion_topics')
       .select(`
@@ -15,10 +18,15 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error in fetchDiscussionTopics:", error);
+      throw error;
+    }
+    
+    console.log("Raw topics data:", data);
     
     // Transform data to match our types
-    return (data || []).map(topic => {
+    const transformedData = (data || []).map(topic => {
       // Safely access profile data
       const profileData = topic.profiles;
       
@@ -27,6 +35,10 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
         author: extractAuthor(profileData)
       };
     }) as DiscussionTopic[];
+    
+    console.log("Transformed topics:", transformedData);
+    
+    return transformedData;
   } catch (error) {
     console.error("Error fetching discussion topics:", error);
     return [];

@@ -11,7 +11,7 @@ import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
 import { DiscussionTopic, Poll } from "@/types/discussions";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 
 interface DiscussionsPageProps {
   electionId?: string;
@@ -66,12 +66,11 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
       return;
     }
     
-    // Initial load
+    console.log("Initial load for election ID:", finalElectionId);
     loadTopics();
     loadPolls();
     
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalElectionId]);
+  }, [finalElectionId, loadTopics, loadPolls]);
   
   const handleBackToDiscussions = () => {
     setViewingTopic(false);
@@ -118,13 +117,18 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
       return null;
     }
     
+    console.log("Creating topic with:", { title, content });
     const result = await addTopic(finalElectionId, title, content || null);
     if (result) {
       // Reload topics to ensure we're displaying the latest data
+      console.log("Topic created, reloading topics");
       await loadTopics();
     }
     return result;
   };
+  
+  console.log("Current topics:", topics);
+  console.log("Current polls:", polls);
   
   return (
     <div className="container mx-auto py-8 px-4">

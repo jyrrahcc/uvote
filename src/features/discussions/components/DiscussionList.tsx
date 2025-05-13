@@ -46,6 +46,8 @@ const DiscussionList = ({
     setIsNewTopicOpen(true);
   };
 
+  console.log("Rendering discussion list with topics:", topics);
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
