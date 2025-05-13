@@ -15,12 +15,13 @@ const BioField = ({ form }: BioFieldProps) => {
       name="bio"
       render={({ field }) => (
         <FormItem>
-          <FormLabel>Bio</FormLabel>
+          <FormLabel>Bio <span className="text-destructive">*</span></FormLabel>
           <FormControl>
             <Textarea 
               placeholder="Tell voters about yourself, your qualifications, and why you're running" 
               className="min-h-[120px]"
               {...field} 
+              required
             />
           </FormControl>
           <FormMessage />

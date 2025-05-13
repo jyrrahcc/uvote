@@ -20,12 +20,12 @@ const PositionSelector = ({
   return (
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="position" className="text-right">
-        Position
+        Position {required && <span className="text-destructive">*</span>}
       </Label>
       {availablePositions.length > 0 ? (
         <div className="col-span-3">
           <Select
-            value={position || "select-position"} // Ensure value is never empty
+            value={position || ""} 
             onValueChange={setPosition}
             required={required}
           >

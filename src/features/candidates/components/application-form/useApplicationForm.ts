@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Election, mapDbElectionToElection } from "@/types";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/features/elections/components/candidate-manager/constants";
 
 interface UseApplicationFormProps {
   electionId: string;
@@ -30,6 +30,8 @@ export const useApplicationForm = ({
   const [bio, setBio] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
+  const [department, setDepartment] = useState<string>("");
+  const [yearLevel, setYearLevel] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -39,8 +41,11 @@ export const useApplicationForm = ({
   const [eligibilityReason, setEligibilityReason] = useState<string | null>(initialEligibilityReason || null);
   const [election, setElection] = useState<Election | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  
+  // Make these available in the component
+  const departments = DLSU_DEPARTMENTS;
+  const yearLevels = YEAR_LEVELS;
 
-  // Load user profile & election details
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -125,6 +130,21 @@ export const useApplicationForm = ({
         return;
       }
 
+      if (!bio || bio.trim().length < 10) {
+        setValidationError("Bio must be at least 10 characters");
+        return;
+      }
+
+      if (!department) {
+        setValidationError("Department/College is required");
+        return;
+      }
+
+      if (!yearLevel) {
+        setValidationError("Year level is required");
+        return;
+      }
+
       // Create the application data
       const applicationData = {
         id: uuidv4(),
@@ -132,9 +152,11 @@ export const useApplicationForm = ({
         election_id: electionId,
         name,
         position,
-        bio: bio.trim() || null,
+        bio: bio.trim(),
         image_url: imageUrl || null,
-        status: 'pending'
+        status: 'pending',
+        department,
+        year_level: yearLevel
       };
 
       // Insert into the database
@@ -176,6 +198,12 @@ export const useApplicationForm = ({
     setImage,
     imageUrl,
     setImageUrl,
+    department,
+    setDepartment,
+    yearLevel,
+    setYearLevel,
+    departments,
+    yearLevels,
     submitting,
     imageUploading,
     setImageUploading,

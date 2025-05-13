@@ -1,8 +1,15 @@
 
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
 import type { CandidateFormData } from "../../schemas/candidateFormSchema";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/features/elections/components/candidate-manager/constants";
 
 interface AcademicInfoFieldsProps {
   form: UseFormReturn<CandidateFormData>;
@@ -16,9 +23,24 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
         name="department"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Department/College</FormLabel>
+            <FormLabel>Department/College <span className="text-destructive">*</span></FormLabel>
             <FormControl>
-              <Input placeholder="Your department (optional)" {...field} />
+              <Select
+                value={field.value || ""}
+                onValueChange={field.onChange}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DLSU_DEPARTMENTS.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -30,9 +52,24 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
         name="year_level"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Year Level</FormLabel>
+            <FormLabel>Year Level <span className="text-destructive">*</span></FormLabel>
             <FormControl>
-              <Input placeholder="Your year level (optional)" {...field} />
+              <Select
+                value={field.value || ""}
+                onValueChange={field.onChange}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select year level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEAR_LEVELS.map((year) => (
+                    <SelectItem key={year} value={year}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormControl>
             <FormMessage />
           </FormItem>

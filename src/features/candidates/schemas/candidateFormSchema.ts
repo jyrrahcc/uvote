@@ -7,8 +7,8 @@ export const candidateFormSchema = z.object({
   position: z.string().min(2, { message: "Position must be at least 2 characters" }),
   image_url: z.string().optional(),
   student_id: z.string().optional(),
-  department: z.string().optional(),
-  year_level: z.string().optional(),
+  department: z.string().min(2, { message: "Department/College is required" }),
+  year_level: z.string().min(1, { message: "Year level is required" }),
 });
 
 export type CandidateFormData = z.infer<typeof candidateFormSchema>;

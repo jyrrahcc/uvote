@@ -22,7 +22,7 @@ const BioTextarea = ({
   return (
     <div className="grid grid-cols-4 items-start gap-4">
       <Label htmlFor="bio" className="text-right mt-2">
-        Bio
+        Bio <span className="text-destructive">*</span>
       </Label>
       <div className="col-span-3 space-y-1">
         <Textarea
