@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { 
@@ -35,6 +34,7 @@ import { useRole } from "@/features/auth/context/RoleContext";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import MobileNav from "./MobileNav";
 
 interface MenuItem {
   name: string;
@@ -133,7 +133,11 @@ const DashboardLayout = () => {
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen w-full bg-muted/10">
-        <Sidebar className="border-r border-border bg-card">
+        {/* Mobile Navigation - Only visible on small screens */}
+        <MobileNav />
+        
+        {/* Desktop Sidebar - Hidden on small screens */}
+        <Sidebar className="border-r border-border bg-card hidden md:block">
           <SidebarHeader className="p-4">
             <div className="flex items-center gap-2">
               <University className="h-6 w-6 text-[#008f50]" />
