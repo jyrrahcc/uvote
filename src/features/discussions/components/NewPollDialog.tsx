@@ -8,13 +8,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { X, PlusCircle } from 'lucide-react';
 
@@ -50,6 +49,7 @@ const NewPollDialog = ({
   ]);
   const [multipleChoice, setMultipleChoice] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   // Handle controlled and uncontrolled state
   const handleOpenChange = (newOpenState: boolean) => {
@@ -158,7 +158,7 @@ const NewPollDialog = ({
 
   return (
     <Dialog open={isOpen !== undefined ? isOpen : open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
         <DialogHeader className="pb-2">
           <DialogTitle>Create a New Poll</DialogTitle>
           <DialogDescription>
@@ -166,8 +166,8 @@ const NewPollDialog = ({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[400px] pr-3 -mr-6 overflow-y-auto">
-          <div className="space-y-4 py-4 pr-6">
+        <ScrollArea className="flex-grow pr-4 -mr-6 overflow-y-auto">
+          <div className="space-y-4 py-2 pr-6">
             <div className="space-y-2">
               <Label htmlFor="question" className="text-right">
                 Question
@@ -243,7 +243,7 @@ const NewPollDialog = ({
           </div>
         </ScrollArea>
         
-        <DialogFooter className="pt-2">
+        <DialogFooter className="pt-2 mt-4">
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>

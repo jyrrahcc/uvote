@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import PageLayout from "@/components/layout/PageLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast as sonnerToast } from "sonner";
 import { KeyRound, CheckCircle } from "lucide-react";
 
 const ResetPassword = () => {
@@ -17,14 +17,14 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isReset, setIsReset] = useState(false);
-  const { toast: uiToast } = useToast();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check if there's a hash fragment in the URL (from Supabase auth)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     if (!hashParams.get("access_token")) {
-      toast.error("Invalid reset link", {
+      sonnerToast.error("Invalid reset link", {
         description: "This password reset link is invalid or has expired.",
       });
       setTimeout(() => navigate("/login"), 3000);
@@ -58,7 +58,7 @@ const ResetPassword = () => {
       
       if (error) throw error;
       
-      toast.success("Password updated successfully", {
+      sonnerToast.success("Password updated successfully", {
         description: "Your password has been updated. You can now log in with your new password.",
         duration: 5000,
       });
@@ -73,7 +73,7 @@ const ResetPassword = () => {
       }, 3000);
     } catch (error) {
       console.error("Password reset error:", error);
-      toast.error("Failed to update password", {
+      sonnerToast.error("Failed to update password", {
         description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
       });
     } finally {

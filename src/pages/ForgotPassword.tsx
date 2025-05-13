@@ -9,13 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import PageLayout from "@/components/layout/PageLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, KeyRound, MailCheck } from "lucide-react";
-import { toast } from "sonner";
+import { toast as sonnerToast } from "sonner";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const { toast: uiToast } = useToast();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +29,7 @@ const ForgotPassword = () => {
       if (error) throw error;
       
       setIsSubmitted(true);
-      toast.success("Password reset email sent", {
+      sonnerToast.success("Password reset email sent", {
         description: "Please check your email for the password reset link.",
         duration: 5000,
       });
@@ -37,7 +37,7 @@ const ForgotPassword = () => {
       console.log("Password reset email sent successfully:", data);
     } catch (error) {
       console.error("Password reset error:", error);
-      toast.error("Failed to send password reset email", {
+      sonnerToast.error("Failed to send password reset email", {
         description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
       });
     } finally {
