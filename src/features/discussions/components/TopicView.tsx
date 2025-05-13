@@ -242,6 +242,7 @@ const TopicView = ({
         )}
       </div>
       
+      {/* Updated NewPollDialog with the correct props */}
       <NewPollDialog
         isOpen={isPollOpen}
         onClose={() => setIsPollOpen(false)}

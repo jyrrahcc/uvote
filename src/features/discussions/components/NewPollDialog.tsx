@@ -29,13 +29,15 @@ interface NewPollDialogProps {
   isOpen?: boolean;
   onClose?: () => void;
   electionId: string;
+  topicId?: string; // Add the missing topicId prop as optional
 }
 
 const NewPollDialog = ({ 
   onCreatePoll, 
   isOpen: controlledIsOpen, 
   onClose,
-  electionId 
+  electionId,
+  topicId 
 }: NewPollDialogProps) => {
   const [isOpen, setIsOpen] = useState(controlledIsOpen || false);
   const [question, setQuestion] = useState('');
