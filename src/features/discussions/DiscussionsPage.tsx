@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDiscussions } from "./hooks/useDiscussions";
 import { usePolls } from "./hooks/usePolls";
@@ -11,6 +11,7 @@ import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
 import { DiscussionTopic, Poll } from "@/types/discussions";
+import { toast } from "@/hooks/use-toast";
 
 interface DiscussionsPageProps {
   electionId?: string;
@@ -35,7 +36,8 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     removeTopic,
     addComment,
     editComment,
-    removeComment
+    removeComment,
+    loadTopics
   } = useDiscussions(finalElectionId);
   
   const {
@@ -49,8 +51,27 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     addPoll,
     updatePoll,
     removePoll,
-    vote
+    vote,
+    loadPolls
   } = usePolls(finalElectionId);
+  
+  // Ensure we have an electionId and load data properly
+  useEffect(() => {
+    if (!finalElectionId) {
+      toast({
+        title: "Error",
+        description: "No election ID provided",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Initial load
+    loadTopics();
+    loadPolls();
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalElectionId]);
   
   const handleBackToDiscussions = () => {
     setViewingTopic(false);
@@ -78,13 +99,31 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     endsAt?: string
   ) => {
     // Pass null as topicId since we're creating from the polls tab
-    return addPoll(question, options, description || null, null, multipleChoice, endsAt || null);
+    const result = await addPoll(question, options, description || null, null, multipleChoice, endsAt || null);
+    if (result) {
+      // Reload polls to ensure we're displaying the latest data
+      await loadPolls();
+    }
+    return result;
   };
   
   // Wrapper function to match expected signature in DiscussionList
   const handleCreateTopic = async (title: string, content: string) => {
+    if (!finalElectionId) {
+      toast({
+        title: "Error",
+        description: "No election ID provided",
+        variant: "destructive"
+      });
+      return null;
+    }
+    
     const result = await addTopic(finalElectionId, title, content || null);
-    return result as DiscussionTopic;
+    if (result) {
+      // Reload topics to ensure we're displaying the latest data
+      await loadTopics();
+    }
+    return result;
   };
   
   return (

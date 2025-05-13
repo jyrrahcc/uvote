@@ -158,12 +158,7 @@ const NewPollDialog = ({
 
   return (
     <Dialog open={isOpen !== undefined ? isOpen : open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" disabled={disabled}>
-          New Poll
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader className="pb-2">
           <DialogTitle>Create a New Poll</DialogTitle>
           <DialogDescription>
@@ -171,8 +166,8 @@ const NewPollDialog = ({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[450px] pr-3">
-          <div className="space-y-4 py-4">
+        <ScrollArea className="max-h-[400px] pr-3 -mr-6 overflow-y-auto">
+          <div className="space-y-4 py-4 pr-6">
             <div className="space-y-2">
               <Label htmlFor="question" className="text-right">
                 Question

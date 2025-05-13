@@ -42,13 +42,17 @@ const DiscussionList = ({
     );
   }
 
+  const handleNewTopic = () => {
+    setIsNewTopicOpen(true);
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold">Discussions</h2>
         {user && isVoter && (
           <Button 
-            onClick={() => setIsNewTopicOpen(true)}
+            onClick={handleNewTopic}
             className="bg-[#008f50] hover:bg-[#007a45]"
           >
             <Plus size={16} className="mr-2" />
@@ -64,7 +68,7 @@ const DiscussionList = ({
           </p>
           {user && isVoter && (
             <Button 
-              onClick={() => setIsNewTopicOpen(true)}
+              onClick={handleNewTopic}
               className="bg-[#008f50] hover:bg-[#007a45]"
             >
               <Plus size={16} className="mr-2" />

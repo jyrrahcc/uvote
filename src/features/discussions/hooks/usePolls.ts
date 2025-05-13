@@ -53,6 +53,7 @@ export const usePolls = (electionId: string) => {
     }
   }, [electionId]);
 
+  // Set up initial load and realtime subscription
   useEffect(() => {
     if (!electionId) return;
     
@@ -197,8 +198,8 @@ export const usePolls = (electionId: string) => {
       
       if (newPoll) {
         console.log("Poll created successfully:", newPoll);
+        // Update local state with the new poll
         setPolls(prevPolls => [newPoll, ...prevPolls]);
-        await loadPolls(); // Reload polls to ensure we have the latest data
         return newPoll;
       } else {
         console.error("Failed to create poll: No poll data returned");

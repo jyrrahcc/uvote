@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +44,10 @@ const PollsList = ({
     return onCreatePoll(question, options, description, multipleChoice, endsAt);
   };
 
+  const handleNewPoll = () => {
+    setIsNewPollOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -58,7 +63,7 @@ const PollsList = ({
         <h2 className="text-2xl font-semibold">Polls</h2>
         {user && isVoter && (
           <Button 
-            onClick={() => setIsNewPollOpen(true)}
+            onClick={handleNewPoll}
             className="bg-[#008f50] hover:bg-[#007a45]"
           >
             <Plus size={16} className="mr-2" />
@@ -74,7 +79,7 @@ const PollsList = ({
           </p>
           {user && isVoter && (
             <Button 
-              onClick={() => setIsNewPollOpen(true)}
+              onClick={handleNewPoll}
               className="bg-[#008f50] hover:bg-[#007a45]"
             >
               <Plus size={16} className="mr-2" />

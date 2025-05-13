@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { DiscussionTopic, DiscussionComment } from '@/types/discussions';
@@ -53,6 +52,7 @@ export const useDiscussions = (electionId: string) => {
     }
   }, [electionId]);
 
+  // Set up initial load and realtime subscription
   useEffect(() => {
     if (!electionId) return;
     
@@ -188,8 +188,8 @@ export const useDiscussions = (electionId: string) => {
       
       if (newTopic) {
         console.log("New topic created successfully:", newTopic);
-        // Reload topics to ensure we have the latest data
-        await loadTopics();
+        // Update local state with the new topic
+        setTopics(prevTopics => [newTopic, ...prevTopics]);
         return newTopic;
       } else {
         console.error("Failed to create topic: No topic data returned");
