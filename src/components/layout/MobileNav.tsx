@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { 
   BarChart3, 
-  CalendarDays, 
   FileText, 
   Home, 
   Settings,
@@ -71,13 +70,23 @@ const MobileNav = () => {
     return location.pathname === path;
   };
 
+  // Get current page name for display
+  const getCurrentPageName = () => {
+    const currentItem = filteredNavItems.find(item => isActive(item.to));
+    return currentItem?.label || "Dashboard";
+  };
+
   return (
-    <div className="md:hidden flex items-center justify-between p-4 border-b bg-card">
+    <div className="md:hidden flex items-center justify-between p-4 border-b bg-card shadow-sm">
       <Logo size="small" />
+      
+      <div className="flex-1 text-center font-medium">
+        {getCurrentPageName()}
+      </div>
       
       <Drawer>
         <DrawerTrigger asChild>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" className="ml-2">
             <Menu className="h-5 w-5" />
           </Button>
         </DrawerTrigger>

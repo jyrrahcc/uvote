@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { 
@@ -35,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import MobileNav from "./MobileNav";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MenuItem {
   name: string;
@@ -50,6 +52,7 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const isMobile = useIsMobile();
   
   // Define menu items with required roles
   const menuItems: MenuItem[] = [
@@ -134,7 +137,9 @@ const DashboardLayout = () => {
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen w-full bg-muted/10">
         {/* Mobile Navigation - Only visible on small screens */}
-        <MobileNav />
+        <div className="fixed top-0 left-0 right-0 z-30">
+          <MobileNav />
+        </div>
         
         {/* Desktop Sidebar - Hidden on small screens */}
         <Sidebar className="border-r border-border bg-card hidden md:block">
@@ -284,7 +289,7 @@ const DashboardLayout = () => {
         </Sidebar>
         
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="p-6 flex-1 overflow-auto">
+          <div className="p-6 flex-1 overflow-auto md:pt-6 pt-20">
             <Outlet />
           </div>
         </div>
