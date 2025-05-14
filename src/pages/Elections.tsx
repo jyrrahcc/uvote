@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import { useRole } from "@/features/auth/context/RoleContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Election, mapDbElectionToElection } from "@/types";
 import ElectionCard from "@/features/elections/components/ElectionCard";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 /**
  * Elections listing page component
@@ -69,8 +69,10 @@ const Elections = () => {
       
       const transformedElections = data?.map(mapDbElectionToElection) || [];
       
-      // For non-admin users, check if they're eligible for each election
+      // For non-admin users, check if they're eligible for each election using eligibilityUtils
       if (!isAdmin) {
+        const eligibleElections = [];
+        
         // Get eligible_voters records for this user
         const { data: eligibleVotersData } = await supabase
           .from('eligible_voters')
@@ -79,38 +81,27 @@ const Elections = () => {
         
         const eligibleElectionIds = new Set(eligibleVotersData?.map(ev => ev.election_id) || []);
         
-        // Filter elections based on eligibility
-        const eligibleElections = transformedElections.filter(election => {
+        // Check eligibility for each election
+        for (const election of transformedElections) {
           // Public elections with no restrictions are accessible to all
           if (!election.restrictVoting && !election.isPrivate) {
-            return true;
+            eligibleElections.push(election);
+            continue;
           }
           
           // If user is explicitly added to eligible_voters
           if (eligibleElectionIds.has(election.id)) {
-            return true;
+            eligibleElections.push(election);
+            continue;
           }
           
-          // If election restricts by college, check college match
-          const departmentMatch = election.colleges?.includes(userProfile.department) || 
-                                 election.department === userProfile.department;
+          // Use eligibilityUtils to check user eligibility
+          const { isEligible } = await checkUserEligibility(user?.id, election);
           
-          // If election restricts by year level, check year level match
-          const yearLevelMatch = election.eligibleYearLevels?.includes(userProfile.year_level);
-          
-          if (election.restrictVoting) {
-            if (election.colleges?.length && election.eligibleYearLevels?.length) {
-              return departmentMatch && yearLevelMatch;
-            } else if (election.colleges?.length) {
-              return departmentMatch;
-            } else if (election.eligibleYearLevels?.length) {
-              return yearLevelMatch;
-            }
+          if (isEligible) {
+            eligibleElections.push(election);
           }
-          
-          // Default to showing the election if none of the above apply
-          return true;
-        });
+        }
         
         setElections(eligibleElections);
       } else {
