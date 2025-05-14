@@ -17,8 +17,8 @@ interface TopicViewProps {
   loading: boolean;
   commentLoading: boolean;
   onBack: () => void;
-  onAddComment: (content: string, parentId?: string) => Promise<any>;
-  onEditComment: (commentId: string, content: string) => Promise<any>;
+  onAddComment: (topicId: string, content: string, parentId?: string | null) => Promise<boolean>;
+  onEditComment: (commentId: string, content: string) => Promise<boolean>;
   onDeleteComment: (commentId: string) => Promise<boolean>;
   onDeleteTopic: (topicId: string) => Promise<boolean>;
   onEditTopic: (topicId: string, updates: Partial<DiscussionTopic>) => Promise<any>;
@@ -51,11 +51,13 @@ const TopicView = ({
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!commentContent.trim()) return;
+    if (!commentContent.trim() || !topic) return;
     
     try {
-      await onAddComment(commentContent);
-      setCommentContent("");
+      const success = await onAddComment(topic.id, commentContent);
+      if (success) {
+        setCommentContent("");
+      }
     } catch (error) {
       console.error("Failed to add comment:", error);
     }
@@ -305,9 +307,9 @@ const TopicView = ({
               <CommentItem
                 key={comment.id}
                 comment={comment}
-                onReply={onAddComment}
                 onEdit={onEditComment}
                 onDelete={onDeleteComment}
+                showReplyButton={false}
               />
             ))}
           </div>

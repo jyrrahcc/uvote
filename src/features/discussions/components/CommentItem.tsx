@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
-import { MoreVertical, Reply, Trash, Edit, Check, X } from "lucide-react";
+import { MoreVertical, Trash, Edit, Check, X } from "lucide-react";
 import { DiscussionComment } from "@/types/discussions";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
@@ -18,7 +18,6 @@ import {
 
 interface CommentItemProps {
   comment: DiscussionComment;
-  onReply?: (parentId: string) => void;
   onDelete?: (commentId: string) => Promise<boolean>;
   onEdit?: (commentId: string, content: string) => Promise<boolean>;
   isReply?: boolean;
@@ -27,11 +26,10 @@ interface CommentItemProps {
 
 const CommentItem = ({
   comment,
-  onReply,
   onDelete,
   onEdit,
   isReply = false,
-  showReplyButton = true,
+  showReplyButton = false, // Changed default to false to remove reply button
 }: CommentItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -73,12 +71,6 @@ const CommentItem = ({
     } catch (error) {
       console.error("Error deleting comment:", error);
       setIsDeleting(false);
-    }
-  };
-  
-  const handleReply = () => {
-    if (onReply) {
-      onReply(comment.id);
     }
   };
   
@@ -167,21 +159,7 @@ const CommentItem = ({
                 </div>
               </div>
             ) : (
-              <>
-                <div className="text-sm">{comment.content}</div>
-                
-                {showReplyButton && onReply && !isReply && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2 text-xs"
-                    onClick={handleReply}
-                  >
-                    <Reply className="mr-1 h-3 w-3" />
-                    Reply
-                  </Button>
-                )}
-              </>
+              <div className="text-sm">{comment.content}</div>
             )}
           </div>
         </div>

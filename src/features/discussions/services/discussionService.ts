@@ -362,9 +362,11 @@ export const createComment = async (
       parent_id: parentId || null
     };
 
+    console.log("Creating comment with data:", commentData);
+
     const { data, error } = await supabase
       .from('discussion_comments')
-      .insert(commentData)
+      .insert([commentData])
       .select()
       .maybeSingle();
 
