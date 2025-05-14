@@ -159,7 +159,7 @@ const CommentItem = ({ comment, onReply, onEdit, onDelete }: CommentItemProps) =
         )}
       </CardContent>
       
-      {!isEditing && !comment.parent_id && (
+      {!isEditing && !comment.parent_id && user && (
         <CardFooter className="flex justify-start">
           {isReplying ? (
             <div className="space-y-2 w-full">

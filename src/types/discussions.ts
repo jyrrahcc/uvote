@@ -65,4 +65,10 @@ export interface PollResults {
   optionText: string;
   votes: number;
   percentage: number;
+  voters?: {
+    userId: string;
+    firstName: string;
+    lastName: string;
+    imageUrl?: string | null;
+  }[];
 }

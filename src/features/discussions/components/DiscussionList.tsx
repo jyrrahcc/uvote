@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Pin, MessageSquare, Calendar } from "lucide-react";
+import { Plus, MessageCircle, Pin, Lock, Calendar, User } from "lucide-react";
 import { DiscussionTopic } from "@/types/discussions";
 import { formatDistanceToNow } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
@@ -33,6 +33,24 @@ const DiscussionList = ({
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
 
+  const handleCreateTopic = async (title: string, content: string) => {
+    return onCreateTopic(title, content);
+  };
+
+  const handleNewTopic = () => {
+    setIsNewTopicOpen(true);
+  };
+
+  // Sort topics: pinned first, then by creation date
+  const sortedTopics = [...topics].sort((a, b) => {
+    // First by pinned status
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    
+    // Then by creation date (newest first)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -41,12 +59,6 @@ const DiscussionList = ({
       </div>
     );
   }
-
-  const handleNewTopic = () => {
-    setIsNewTopicOpen(true);
-  };
-
-  console.log("Rendering discussion list with topics:", topics);
 
   return (
     <div>
@@ -63,7 +75,7 @@ const DiscussionList = ({
         )}
       </div>
       
-      {topics.length === 0 ? (
+      {sortedTopics.length === 0 ? (
         <Card className="text-center p-6">
           <p className="text-muted-foreground mb-4">
             No discussions have been started yet.
@@ -80,21 +92,18 @@ const DiscussionList = ({
         </Card>
       ) : (
         <div className="space-y-4">
-          {topics.map((topic) => (
+          {sortedTopics.map((topic) => (
             <Card 
               key={topic.id} 
-              className={`cursor-pointer hover:border-green-300 transition-colors ${
-                topic.is_pinned ? 'border-green-200 bg-green-50' : ''
-              }`}
+              className="cursor-pointer hover:border-green-300 transition-colors"
               onClick={() => onSelectTopic(topic)}
             >
               <CardHeader className="pb-2">
-                <div className="flex justify-between">
-                  <CardTitle className="text-lg">
-                    {topic.is_pinned && <Pin size={16} className="inline mr-2 text-green-600" />}
-                    {topic.title}
-                  </CardTitle>
-                </div>
+                <CardTitle className="text-lg flex items-center">
+                  {topic.is_pinned && <Pin size={16} className="mr-2 text-green-600" />}
+                  {topic.is_locked && <Lock size={16} className="mr-2 text-yellow-600" />}
+                  {topic.title}
+                </CardTitle>
               </CardHeader>
               <CardContent className="pb-2">
                 {topic.content && (
@@ -112,8 +121,8 @@ const DiscussionList = ({
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <MessageSquare size={14} className="mr-1" />
-                    {topic.view_count || 0} views
+                    <MessageCircle size={14} className="mr-1" />
+                    View Discussion
                   </div>
                 </div>
               </CardFooter>
@@ -122,10 +131,11 @@ const DiscussionList = ({
         </div>
       )}
       
-      <NewTopicDialog 
+      <NewTopicDialog
         isOpen={isNewTopicOpen}
         onClose={() => setIsNewTopicOpen(false)}
-        onCreateTopic={onCreateTopic}
+        onCreateTopic={handleCreateTopic}
+        electionId={electionId}
       />
     </div>
   );

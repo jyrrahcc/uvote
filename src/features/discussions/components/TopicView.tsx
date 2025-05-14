@@ -9,7 +9,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
-import NewPollDialog from "./NewPollDialog";
 import CommentItem from "./CommentItem";
 
 interface TopicViewProps {
@@ -23,14 +22,6 @@ interface TopicViewProps {
   onDeleteComment: (commentId: string) => Promise<boolean>;
   onDeleteTopic: (topicId: string) => Promise<boolean>;
   onEditTopic: (topicId: string, updates: Partial<DiscussionTopic>) => Promise<any>;
-  onCreatePoll: (
-    question: string,
-    options: Record<string, string>,
-    description?: string,
-    topicId?: string,
-    multipleChoice?: boolean,
-    endsAt?: string
-  ) => Promise<any>;
 }
 
 const TopicView = ({
@@ -43,11 +34,13 @@ const TopicView = ({
   onEditComment,
   onDeleteComment,
   onDeleteTopic,
-  onEditTopic,
-  onCreatePoll
+  onEditTopic
 }: TopicViewProps) => {
   const [commentContent, setCommentContent] = useState("");
-  const [isPollOpen, setIsPollOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { isAdmin, isVoter } = useRole();
   
@@ -88,6 +81,34 @@ const TopicView = ({
       }
     }
   };
+
+  const handleStartEdit = () => {
+    if (!topic) return;
+    setEditTitle(topic.title);
+    setEditContent(topic.content || "");
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!topic || !editTitle.trim()) return;
+    
+    try {
+      setIsSubmitting(true);
+      await onEditTopic(topic.id, { 
+        title: editTitle,
+        content: editContent.trim() ? editContent : null
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to update topic:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   const canManageTopic = () => {
     if (!user || !topic) return false;
@@ -115,21 +136,39 @@ const TopicView = ({
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle className="text-xl flex items-center">
-                  {topic.is_pinned && <Pin size={18} className="mr-2 text-green-600" />}
-                  {topic.is_locked && <Lock size={18} className="mr-2 text-yellow-600" />}
-                  {topic.title}
-                </CardTitle>
-                <CardDescription className="flex items-center mt-2">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  <span className="mr-2">Posted {format(new Date(topic.created_at), 'PPp')}</span>
-                  <span className="mx-1">•</span>
-                  <User className="h-4 w-4 mr-1" />
-                  <span>{topic.author?.first_name} {topic.author?.last_name}</span>
-                </CardDescription>
+                {isEditing ? (
+                  <div className="space-y-4 w-full">
+                    <div>
+                      <label htmlFor="topicTitle" className="block text-sm font-medium mb-1">Topic Title</label>
+                      <input
+                        id="topicTitle"
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Enter topic title"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <CardTitle className="text-xl flex items-center">
+                      {topic.is_pinned && <Pin size={18} className="mr-2 text-green-600" />}
+                      {topic.is_locked && <Lock size={18} className="mr-2 text-yellow-600" />}
+                      {topic.title}
+                    </CardTitle>
+                    <CardDescription className="flex items-center mt-2">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      <span className="mr-2">Posted {format(new Date(topic.created_at), 'PPp')}</span>
+                      <span className="mx-1">•</span>
+                      <User className="h-4 w-4 mr-1" />
+                      <span>{topic.author?.first_name} {topic.author?.last_name}</span>
+                    </CardDescription>
+                  </>
+                )}
               </div>
               
-              {canManageTopic() && (
+              {canManageTopic() && !isEditing && (
                 <div className="flex gap-2">
                   {isAdmin && (
                     <>
@@ -156,6 +195,15 @@ const TopicView = ({
                   <Button 
                     variant="outline" 
                     size="sm"
+                    onClick={handleStartEdit}
+                  >
+                    <Edit size={16} className="mr-1" />
+                    Edit
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
                     onClick={handleDeleteTopic}
                     className="text-red-500 hover:text-red-600"
                   >
@@ -168,22 +216,46 @@ const TopicView = ({
           </CardHeader>
           
           <CardContent>
-            {topic.content ? (
-              <div className="prose max-w-none">
-                <p className="whitespace-pre-wrap">{topic.content}</p>
+            {isEditing ? (
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="topicContent" className="block text-sm font-medium mb-1">Topic Content</label>
+                  <Textarea
+                    id="topicContent"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="min-h-[150px]"
+                    placeholder="Enter topic content (optional)"
+                  />
+                </div>
               </div>
             ) : (
-              <p className="text-muted-foreground italic">No content provided</p>
+              topic.content ? (
+                <div className="prose max-w-none">
+                  <p className="whitespace-pre-wrap">{topic.content}</p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic">No content provided</p>
+              )
             )}
           </CardContent>
           
-          {user && isVoter && !topic.is_locked && (
-            <CardFooter className="border-t pt-4 flex justify-between">
+          {isEditing && (
+            <CardFooter className="border-t pt-4 flex justify-end space-x-2">
               <Button 
                 variant="outline"
-                onClick={() => setIsPollOpen(true)}
+                onClick={handleCancelEdit}
+                disabled={isSubmitting}
               >
-                Create Poll
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveEdit}
+                disabled={!editTitle.trim() || isSubmitting}
+                className="bg-[#008f50] hover:bg-[#007a45]"
+              >
+                {isSubmitting ? <Spinner className="mr-2" /> : null}
+                Save Changes
               </Button>
             </CardFooter>
           )}
@@ -241,17 +313,6 @@ const TopicView = ({
           </div>
         )}
       </div>
-      
-      {/* Updated NewPollDialog with the correct props */}
-      <NewPollDialog
-        isOpen={isPollOpen}
-        onClose={() => setIsPollOpen(false)}
-        onCreatePoll={(question, options, description, multipleChoice, endsAt) => 
-          onCreatePoll(question, options, description, topic.id, multipleChoice, endsAt)
-        }
-        electionId={topic.election_id}
-        topicId={topic.id}
-      />
     </div>
   );
 };

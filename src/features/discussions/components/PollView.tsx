@@ -13,6 +13,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "../utils/profileUtils";
 
 interface PollViewProps {
   poll: Poll | null;
@@ -172,7 +174,7 @@ const PollView = ({
                 )}
               </div>
               
-              {canManagePoll() && (
+              {(canManagePoll()) && (
                 <div className="flex gap-2">
                   {!poll.is_closed && (
                     <Button 
@@ -210,16 +212,16 @@ const PollView = ({
               Poll Results
             </h3>
             
-            {userVote ? (
-              // Show results if user has voted
+            {userVote || !isPollActive() ? (
+              // Show results if user has voted or poll is closed/expired
               <div className="space-y-4">
                 {pollResults.map((result) => (
                   <div key={result.optionId} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center">
-                        <span className={`mr-2 ${userVote.includes(result.optionId) ? 'font-medium text-green-600' : ''}`}>
+                        <span className={`mr-2 ${userVote?.includes(result.optionId) ? 'font-medium text-green-600' : ''}`}>
                           {result.optionText}
-                          {userVote.includes(result.optionId) && (
+                          {userVote?.includes(result.optionId) && (
                             <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                               Your vote
                             </span>
@@ -231,6 +233,28 @@ const PollView = ({
                       </span>
                     </div>
                     <Progress value={result.percentage} className="h-2" />
+                    
+                    {/* Show voters for this option */}
+                    {result.voters && result.voters.length > 0 && (
+                      <div className="mt-2 ml-2">
+                        <div className="text-xs text-muted-foreground mb-1">Voters:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {result.voters.map((voter, idx) => (
+                            <div key={idx} className="flex items-center" title={`${voter.firstName} ${voter.lastName}`}>
+                              <Avatar className="h-6 w-6">
+                                {voter.imageUrl ? (
+                                  <AvatarImage src={voter.imageUrl} alt={`${voter.firstName} ${voter.lastName}`} />
+                                ) : (
+                                  <AvatarFallback className="text-xs">
+                                    {getInitials(voter.firstName, voter.lastName)}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -282,6 +306,28 @@ const PollView = ({
                           </span>
                         </div>
                         <Progress value={result.percentage} className="h-2" />
+                        
+                        {/* Show voters for this option */}
+                        {result.voters && result.voters.length > 0 && (
+                          <div className="mt-2 ml-2">
+                            <div className="text-xs text-muted-foreground mb-1">Voters:</div>
+                            <div className="flex flex-wrap gap-1">
+                              {result.voters.map((voter, idx) => (
+                                <div key={idx} className="flex items-center" title={`${voter.firstName} ${voter.lastName}`}>
+                                  <Avatar className="h-6 w-6">
+                                    {voter.imageUrl ? (
+                                      <AvatarImage src={voter.imageUrl} alt={`${voter.firstName} ${voter.lastName}`} />
+                                    ) : (
+                                      <AvatarFallback className="text-xs">
+                                        {getInitials(voter.firstName, voter.lastName)}
+                                      </AvatarFallback>
+                                    )}
+                                  </Avatar>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                     

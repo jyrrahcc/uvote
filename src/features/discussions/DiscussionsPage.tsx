@@ -286,7 +286,6 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
               onDeleteComment={removeComment}
               onDeleteTopic={removeTopic}
               onEditTopic={updateTopic}
-              onCreatePoll={addPoll}
             />
           ) : (
             <DiscussionList
