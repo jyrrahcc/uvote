@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollResults, PollVoter } from "@/types";
 
@@ -243,7 +244,7 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
         id,
         options,
         user_id,
-        profiles:user_id (
+        voter:profiles!user_id (
           id,
           first_name,
           last_name,
@@ -276,12 +277,13 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
           return voteOptions.includes(optionId);
         })
         .map(vote => {
-          if (!vote.profiles) return null;
+          // Make sure voter profile data exists before trying to access it
+          if (!vote.voter) return null;
           return {
             userId: vote.user_id,
-            firstName: vote.profiles.first_name,
-            lastName: vote.profiles.last_name,
-            imageUrl: vote.profiles.image_url
+            firstName: vote.voter.first_name,
+            lastName: vote.voter.last_name,
+            imageUrl: vote.voter.image_url
           };
         })
         .filter((voter): voter is PollVoter => voter !== null);

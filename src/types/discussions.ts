@@ -38,12 +38,12 @@ export interface DiscussionComment {
   replies?: DiscussionComment[];
 }
 
-// Poll voter type
+// Poll voter type - updated to match the structure we need
 export interface PollVoter {
   userId: string;
   firstName: string;
   lastName: string;
-  imageUrl?: string | null;
+  imageUrl?: string | null; // Made imageUrl optional to match implementation
 }
 
 // Poll results type
