@@ -49,7 +49,7 @@ export interface Poll {
     first_name: string;
     last_name: string;
     image_url: string | null;
-  } | null | undefined;
+  } | null;
 }
 
 export interface PollVote {

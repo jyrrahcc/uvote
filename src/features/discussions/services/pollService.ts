@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollResults } from "@/types/discussions";
 import { toast } from "@/hooks/use-toast";
@@ -19,17 +18,7 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    
-    // Explicitly cast the options to the correct type and handle potential null author
-    return (data || []).map(poll => ({
-      ...poll,
-      options: poll.options as Record<string, string>,
-      author: poll.author && typeof poll.author === 'object' ? {
-        first_name: (poll.author as any).first_name || '',
-        last_name: (poll.author as any).last_name || '',
-        image_url: (poll.author as any).image_url
-      } : undefined
-    })) as Poll[];
+    return data || [];
   } catch (error: any) {
     console.error("Error fetching polls:", error);
     toast({
@@ -57,20 +46,7 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
       .single();
     
     if (error) throw error;
-    
-    // Handle null data
-    if (!data) return null;
-    
-    // Cast the options property to the correct type and handle potential null author
-    return {
-      ...data,
-      options: data.options as Record<string, string>,
-      author: data.author && typeof data.author === 'object' ? {
-        first_name: (data.author as any).first_name || '',
-        last_name: (data.author as any).last_name || '',
-        image_url: (data.author as any).image_url
-      } : undefined
-    } as Poll;
+    return data;
   } catch (error: any) {
     console.error("Error fetching poll:", error);
     toast({
@@ -120,20 +96,7 @@ export const createPoll = async (
       .single();
     
     if (error) throw error;
-    
-    // Handle null data
-    if (!data) return null;
-    
-    // Cast the options property to the correct type and handle potential null author
-    return {
-      ...data,
-      options: data.options as Record<string, string>,
-      author: data.author && typeof data.author === 'object' ? {
-        first_name: (data.author as any).first_name || '',
-        last_name: (data.author as any).last_name || '',
-        image_url: (data.author as any).image_url
-      } : undefined
-    } as Poll;
+    return data;
   } catch (error: any) {
     console.error("Error creating poll:", error);
     toast({
@@ -162,20 +125,7 @@ export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promis
       .single();
     
     if (error) throw error;
-    
-    // Handle null data
-    if (!data) return null;
-    
-    // Cast the options property to the correct type and handle potential null author
-    return {
-      ...data,
-      options: data.options as Record<string, string>,
-      author: data.author && typeof data.author === 'object' ? {
-        first_name: (data.author as any).first_name || '',
-        last_name: (data.author as any).last_name || '',
-        image_url: (data.author as any).image_url
-      } : undefined
-    } as Poll;
+    return data;
   } catch (error: any) {
     console.error("Error updating poll:", error);
     toast({
@@ -310,7 +260,7 @@ export const fetchPollResults = async (pollId: string): Promise<PollResults[]> =
     
     // Fetch voter profiles for all user IDs
     const userIds = votes?.map(vote => vote.user_id) || [];
-    let voterProfiles: Record<string, { firstName: string, lastName: string, imageUrl?: string | null, userId: string }> = {};
+    let voterProfiles: Record<string, { firstName: string, lastName: string, imageUrl?: string | null }> = {};
     
     if (userIds.length > 0) {
       const { data: profiles, error: profilesError } = await supabase
@@ -323,7 +273,6 @@ export const fetchPollResults = async (pollId: string): Promise<PollResults[]> =
       if (profiles) {
         profiles.forEach(profile => {
           voterProfiles[profile.id] = {
-            userId: profile.id,
             firstName: profile.first_name,
             lastName: profile.last_name,
             imageUrl: profile.image_url
@@ -361,12 +310,7 @@ export const fetchPollResults = async (pollId: string): Promise<PollResults[]> =
         optionText: options[optionId],
         votes: optionVotes[optionId].size,
         percentage: totalVoters > 0 ? (optionVotes[optionId].size / totalVoters) * 100 : 0,
-        voters: voterIds.map(userId => ({
-          userId,
-          firstName: voterProfiles[userId]?.firstName || '',
-          lastName: voterProfiles[userId]?.lastName || '',
-          imageUrl: voterProfiles[userId]?.imageUrl
-        }))
+        voters: voterIds.map(userId => voterProfiles[userId])
       };
     });
     
