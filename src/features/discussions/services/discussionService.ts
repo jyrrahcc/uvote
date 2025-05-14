@@ -28,52 +28,56 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
     
     console.log("✅ Election found:", electionData);
     
-    const { data, error } = await supabase
+    // First fetch the discussion topics
+    const { data: topicsData, error: topicsError } = await supabase
       .from('discussion_topics')
-      .select(`
-        *,
-        profiles:created_by(first_name, last_name, image_url)
-      `)
+      .select('*')
       .eq('election_id', electionId)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
       
-    if (error) {
-      console.error("📛 Error in fetchDiscussionTopics:", error);
+    if (topicsError) {
+      console.error("📛 Error fetching discussion topics:", topicsError);
       console.log("Query parameters:", { electionId });
-      console.log("Tables being accessed:", "discussion_topics", "profiles");
-      throw error;
+      throw topicsError;
     }
     
-    console.log(`✅ Raw topics data (${data?.length || 0} records):`, data);
-    
-    // Verify we have valid data
-    if (!data || data.length === 0) {
+    // If no topics found, return empty array
+    if (!topicsData || topicsData.length === 0) {
       console.log("ℹ️ No discussion topics found for election:", electionId);
       return [];
     }
     
-    // Transform data to match our types
-    const transformedData = data.map(topic => {
-      // Safely access profile data
-      const profileData = topic.profiles;
-      
-      // Log profile data for debugging
-      if (!profileData) {
-        console.warn("⚠️ No profile data found for topic:", topic.id);
-      } else {
-        console.log("✅ Profile data found for topic:", topic.id, profileData);
-      }
-      
-      return {
-        ...topic,
-        author: extractAuthor(profileData)
-      };
-    }) as DiscussionTopic[];
+    console.log(`✅ Raw topics data (${topicsData.length} records):`, topicsData);
     
-    console.log("✅ Transformed topics:", transformedData);
+    // Now for each topic, fetch the author information
+    const topicsWithAuthors = await Promise.all(
+      topicsData.map(async (topic) => {
+        // Fetch the author information for each topic
+        const { data: authorData, error: authorError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, image_url')
+          .eq('id', topic.created_by)
+          .single();
+          
+        if (authorError) {
+          console.warn(`⚠️ Could not fetch author data for topic ${topic.id}:`, authorError);
+          return {
+            ...topic,
+            author: null
+          };
+        }
+        
+        return {
+          ...topic,
+          author: authorData
+        };
+      })
+    );
     
-    return transformedData;
+    console.log("✅ Topics with authors:", topicsWithAuthors);
+    
+    return topicsWithAuthors as DiscussionTopic[];
   } catch (error) {
     console.error("📛 Error fetching discussion topics:", error);
     return [];
@@ -82,30 +86,36 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
 
 export const fetchDiscussionTopicById = async (topicId: string): Promise<DiscussionTopic | null> => {
   try {
-    const { data, error } = await supabase
+    // Fetch the topic first
+    const { data: topicData, error: topicError } = await supabase
       .from('discussion_topics')
-      .select(`
-        *,
-        profiles:created_by(first_name, last_name, image_url)
-      `)
+      .select('*')
       .eq('id', topicId)
       .single();
       
-    if (error) throw error;
+    if (topicError) throw topicError;
     
-    // Safely access profile data
-    const profileData = data.profiles;
+    // Fetch author information separately
+    const { data: authorData, error: authorError } = await supabase
+      .from('profiles')
+      .select('first_name, last_name, image_url')
+      .eq('id', topicData.created_by)
+      .single();
+      
+    if (authorError) {
+      console.warn(`⚠️ Could not fetch author data for topic ${topicId}:`, authorError);
+    }
     
     // Transform data to match our types
     const topic = {
-      ...data,
-      author: extractAuthor(profileData)
+      ...topicData,
+      author: authorData || null
     } as DiscussionTopic;
     
     // Increment view count
     await supabase
       .from('discussion_topics')
-      .update({ view_count: (data.view_count || 0) + 1 })
+      .update({ view_count: (topicData.view_count || 0) + 1 })
       .eq('id', topicId);
     
     return topic;
@@ -284,27 +294,72 @@ export const deleteDiscussionTopic = async (topicId: string): Promise<boolean> =
 
 export const fetchComments = async (topicId: string): Promise<DiscussionComment[]> => {
   try {
-    const { data, error } = await supabase
+    // First, fetch all comments for the topic
+    const { data: commentsData, error: commentsError } = await supabase
       .from('discussion_comments')
-      .select(`
-        *,
-        profiles:user_id(first_name, last_name, image_url)
-      `)
+      .select('*')
       .eq('topic_id', topicId)
       .order('created_at', { ascending: true });
       
-    if (error) throw error;
+    if (commentsError) throw commentsError;
     
-    // Transform data to match our types
-    return (data || []).map(comment => {
-      // Safely access profile data
-      const profileData = comment.profiles;
-      
-      return {
-        ...comment,
-        author: extractAuthor(profileData)
-      };
-    }) as DiscussionComment[];
+    if (!commentsData || commentsData.length === 0) {
+      return [];
+    }
+    
+    // Now fetch author information for each comment
+    const commentsWithAuthors = await Promise.all(
+      commentsData.map(async (comment) => {
+        const { data: authorData, error: authorError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, image_url')
+          .eq('id', comment.user_id)
+          .single();
+          
+        if (authorError) {
+          console.warn(`⚠️ Could not fetch author data for comment ${comment.id}:`, authorError);
+          return {
+            ...comment,
+            author: null,
+            replies: []
+          };
+        }
+        
+        return {
+          ...comment,
+          author: authorData,
+          replies: []
+        };
+      })
+    );
+    
+    // Organize comments into a hierarchical structure
+    const commentMap = new Map<string, DiscussionComment>();
+    const rootComments: DiscussionComment[] = [];
+    
+    // First pass: Create a map of all comments
+    commentsWithAuthors.forEach(comment => {
+      commentMap.set(comment.id, comment);
+    });
+    
+    // Second pass: Build the hierarchy
+    commentsWithAuthors.forEach(comment => {
+      if (comment.parent_id) {
+        // This is a reply, add it to parent's replies array
+        const parent = commentMap.get(comment.parent_id);
+        if (parent) {
+          parent.replies?.push(comment);
+        } else {
+          // If parent is not found, treat it as a root comment
+          rootComments.push(comment);
+        }
+      } else {
+        // This is a root comment
+        rootComments.push(comment);
+      }
+    });
+    
+    return rootComments;
   } catch (error) {
     console.error("Error fetching comments:", error);
     return [];

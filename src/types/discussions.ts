@@ -14,7 +14,7 @@ export interface DiscussionTopic {
     first_name: string;
     last_name: string;
     image_url: string | null;
-  };
+  } | null;
 }
 
 export interface DiscussionComment {
@@ -29,7 +29,7 @@ export interface DiscussionComment {
     first_name: string;
     last_name: string;
     image_url: string | null;
-  };
+  } | null;
   replies?: DiscussionComment[];
 }
 
@@ -49,7 +49,7 @@ export interface Poll {
     first_name: string;
     last_name: string;
     image_url: string | null;
-  };
+  } | null;
 }
 
 export interface PollVote {
