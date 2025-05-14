@@ -12,7 +12,7 @@ interface VoterVerificationProps {
   showToast?: boolean;
 }
 
-const VoterVerification = ({ isVoterProp, showToast = false }: VoterVerificationProps) => {
+const VoterVerification = ({ isVoter: isVoterProp, showToast = false }: VoterVerificationProps) => {
   // Use the role context to get the current voter status
   const { isVoter, isAdmin } = useRole();
   
