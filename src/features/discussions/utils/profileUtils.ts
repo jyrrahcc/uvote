@@ -11,3 +11,13 @@ export const extractAuthor = (profileData: any) => {
     image_url: profileData.image_url || null
   };
 };
+
+/**
+ * Generates initials from a user's first and last name
+ */
+export const getInitials = (firstName: string = '', lastName: string = '') => {
+  const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
+  const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+  
+  return firstInitial + lastInitial || 'U'; // Return 'U' for Unknown if no initials are available
+};
