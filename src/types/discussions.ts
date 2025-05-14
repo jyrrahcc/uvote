@@ -66,7 +66,7 @@ export interface PollResults {
   votes: number;
   percentage: number;
   voters?: {
-    userId: string;
+    userId: string;  // This field was missing
     firstName: string;
     lastName: string;
     imageUrl?: string | null;

@@ -21,13 +21,15 @@ interface NewTopicDialogProps {
   disabled?: boolean;
   isOpen?: boolean;
   onClose?: () => void;
+  electionId?: string; // Add electionId to the props interface
 }
 
 const NewTopicDialog = ({ 
   onCreateTopic, 
   disabled = false, 
   isOpen, 
-  onClose 
+  onClose,
+  electionId // Add electionId to destructuring
 }: NewTopicDialogProps) => {
   const [open, setOpen] = useState(isOpen || false);
   const [title, setTitle] = useState('');

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollResults } from "@/types/discussions";
 import { toast } from "@/hooks/use-toast";
@@ -18,7 +19,12 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    
+    // Explicitly cast the options to the correct type
+    return (data || []).map(poll => ({
+      ...poll,
+      options: poll.options as Record<string, string>
+    })) as Poll[];
   } catch (error: any) {
     console.error("Error fetching polls:", error);
     toast({
@@ -46,7 +52,12 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
       .single();
     
     if (error) throw error;
-    return data;
+    
+    // Cast the options property to the correct type
+    return data ? {
+      ...data,
+      options: data.options as Record<string, string>
+    } as Poll : null;
   } catch (error: any) {
     console.error("Error fetching poll:", error);
     toast({
@@ -96,7 +107,12 @@ export const createPoll = async (
       .single();
     
     if (error) throw error;
-    return data;
+    
+    // Cast the options property to the correct type
+    return data ? {
+      ...data,
+      options: data.options as Record<string, string>
+    } as Poll : null;
   } catch (error: any) {
     console.error("Error creating poll:", error);
     toast({
@@ -125,7 +141,12 @@ export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promis
       .single();
     
     if (error) throw error;
-    return data;
+    
+    // Cast the options property to the correct type
+    return data ? {
+      ...data,
+      options: data.options as Record<string, string>
+    } as Poll : null;
   } catch (error: any) {
     console.error("Error updating poll:", error);
     toast({
@@ -260,7 +281,7 @@ export const fetchPollResults = async (pollId: string): Promise<PollResults[]> =
     
     // Fetch voter profiles for all user IDs
     const userIds = votes?.map(vote => vote.user_id) || [];
-    let voterProfiles: Record<string, { firstName: string, lastName: string, imageUrl?: string | null }> = {};
+    let voterProfiles: Record<string, { firstName: string, lastName: string, imageUrl?: string | null, userId: string }> = {};
     
     if (userIds.length > 0) {
       const { data: profiles, error: profilesError } = await supabase
@@ -273,6 +294,7 @@ export const fetchPollResults = async (pollId: string): Promise<PollResults[]> =
       if (profiles) {
         profiles.forEach(profile => {
           voterProfiles[profile.id] = {
+            userId: profile.id, // Add userId to match the required type
             firstName: profile.first_name,
             lastName: profile.last_name,
             imageUrl: profile.image_url
@@ -310,7 +332,12 @@ export const fetchPollResults = async (pollId: string): Promise<PollResults[]> =
         optionText: options[optionId],
         votes: optionVotes[optionId].size,
         percentage: totalVoters > 0 ? (optionVotes[optionId].size / totalVoters) * 100 : 0,
-        voters: voterIds.map(userId => voterProfiles[userId])
+        voters: voterIds.map(userId => ({
+          userId, // Add userId to match the required type
+          firstName: voterProfiles[userId]?.firstName || '',
+          lastName: voterProfiles[userId]?.lastName || '',
+          imageUrl: voterProfiles[userId]?.imageUrl
+        }))
       };
     });
     
