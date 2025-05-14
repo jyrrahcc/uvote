@@ -20,10 +20,15 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
     
     if (error) throw error;
     
-    // Explicitly cast the options to the correct type
+    // Explicitly cast the options to the correct type and handle potential null author
     return (data || []).map(poll => ({
       ...poll,
-      options: poll.options as Record<string, string>
+      options: poll.options as Record<string, string>,
+      author: poll.author && typeof poll.author === 'object' ? {
+        first_name: poll.author.first_name || '',
+        last_name: poll.author.last_name || '',
+        image_url: poll.author.image_url
+      } : undefined
     })) as Poll[];
   } catch (error: any) {
     console.error("Error fetching polls:", error);
@@ -53,11 +58,19 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
     
     if (error) throw error;
     
-    // Cast the options property to the correct type
-    return data ? {
+    // Handle null data
+    if (!data) return null;
+    
+    // Cast the options property to the correct type and handle potential null author
+    return {
       ...data,
-      options: data.options as Record<string, string>
-    } as Poll : null;
+      options: data.options as Record<string, string>,
+      author: data.author && typeof data.author === 'object' ? {
+        first_name: data.author.first_name || '',
+        last_name: data.author.last_name || '',
+        image_url: data.author.image_url
+      } : undefined
+    } as Poll;
   } catch (error: any) {
     console.error("Error fetching poll:", error);
     toast({
@@ -108,11 +121,19 @@ export const createPoll = async (
     
     if (error) throw error;
     
-    // Cast the options property to the correct type
-    return data ? {
+    // Handle null data
+    if (!data) return null;
+    
+    // Cast the options property to the correct type and handle potential null author
+    return {
       ...data,
-      options: data.options as Record<string, string>
-    } as Poll : null;
+      options: data.options as Record<string, string>,
+      author: data.author && typeof data.author === 'object' ? {
+        first_name: data.author.first_name || '',
+        last_name: data.author.last_name || '',
+        image_url: data.author.image_url
+      } : undefined
+    } as Poll;
   } catch (error: any) {
     console.error("Error creating poll:", error);
     toast({
@@ -142,11 +163,19 @@ export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promis
     
     if (error) throw error;
     
-    // Cast the options property to the correct type
-    return data ? {
+    // Handle null data
+    if (!data) return null;
+    
+    // Cast the options property to the correct type and handle potential null author
+    return {
       ...data,
-      options: data.options as Record<string, string>
-    } as Poll : null;
+      options: data.options as Record<string, string>,
+      author: data.author && typeof data.author === 'object' ? {
+        first_name: data.author.first_name || '',
+        last_name: data.author.last_name || '',
+        image_url: data.author.image_url
+      } : undefined
+    } as Poll;
   } catch (error: any) {
     console.error("Error updating poll:", error);
     toast({
@@ -294,7 +323,7 @@ export const fetchPollResults = async (pollId: string): Promise<PollResults[]> =
       if (profiles) {
         profiles.forEach(profile => {
           voterProfiles[profile.id] = {
-            userId: profile.id, // Add userId to match the required type
+            userId: profile.id,
             firstName: profile.first_name,
             lastName: profile.last_name,
             imageUrl: profile.image_url
@@ -333,7 +362,7 @@ export const fetchPollResults = async (pollId: string): Promise<PollResults[]> =
         votes: optionVotes[optionId].size,
         percentage: totalVoters > 0 ? (optionVotes[optionId].size / totalVoters) * 100 : 0,
         voters: voterIds.map(userId => ({
-          userId, // Add userId to match the required type
+          userId,
           firstName: voterProfiles[userId]?.firstName || '',
           lastName: voterProfiles[userId]?.lastName || '',
           imageUrl: voterProfiles[userId]?.imageUrl

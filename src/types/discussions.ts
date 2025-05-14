@@ -49,7 +49,7 @@ export interface Poll {
     first_name: string;
     last_name: string;
     image_url: string | null;
-  } | null;
+  } | null | undefined;
 }
 
 export interface PollVote {
@@ -66,7 +66,7 @@ export interface PollResults {
   votes: number;
   percentage: number;
   voters?: {
-    userId: string;  // This field was missing
+    userId: string;
     firstName: string;
     lastName: string;
     imageUrl?: string | null;
