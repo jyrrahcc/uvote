@@ -25,9 +25,9 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
       ...poll,
       options: poll.options as Record<string, string>,
       author: poll.author && typeof poll.author === 'object' ? {
-        first_name: poll.author.first_name || '',
-        last_name: poll.author.last_name || '',
-        image_url: poll.author.image_url
+        first_name: (poll.author as any).first_name || '',
+        last_name: (poll.author as any).last_name || '',
+        image_url: (poll.author as any).image_url
       } : undefined
     })) as Poll[];
   } catch (error: any) {
@@ -66,9 +66,9 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
       ...data,
       options: data.options as Record<string, string>,
       author: data.author && typeof data.author === 'object' ? {
-        first_name: data.author.first_name || '',
-        last_name: data.author.last_name || '',
-        image_url: data.author.image_url
+        first_name: (data.author as any).first_name || '',
+        last_name: (data.author as any).last_name || '',
+        image_url: (data.author as any).image_url
       } : undefined
     } as Poll;
   } catch (error: any) {
@@ -129,9 +129,9 @@ export const createPoll = async (
       ...data,
       options: data.options as Record<string, string>,
       author: data.author && typeof data.author === 'object' ? {
-        first_name: data.author.first_name || '',
-        last_name: data.author.last_name || '',
-        image_url: data.author.image_url
+        first_name: (data.author as any).first_name || '',
+        last_name: (data.author as any).last_name || '',
+        image_url: (data.author as any).image_url
       } : undefined
     } as Poll;
   } catch (error: any) {
@@ -171,9 +171,9 @@ export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promis
       ...data,
       options: data.options as Record<string, string>,
       author: data.author && typeof data.author === 'object' ? {
-        first_name: data.author.first_name || '',
-        last_name: data.author.last_name || '',
-        image_url: data.author.image_url
+        first_name: (data.author as any).first_name || '',
+        last_name: (data.author as any).last_name || '',
+        image_url: (data.author as any).image_url
       } : undefined
     } as Poll;
   } catch (error: any) {
