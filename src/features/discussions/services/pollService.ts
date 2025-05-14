@@ -237,16 +237,16 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
       return [];
     }
 
-    // Get all votes for this poll
+    // Get all votes for this poll and directly join with profiles
     const { data: votesData, error: votesError } = await supabase
       .from('poll_votes')
       .select(`
         id,
         options,
         user_id,
-        voter:profiles!user_id (
+        user:profiles!user_id(
           id,
-          first_name,
+          first_name, 
           last_name,
           image_url
         )
@@ -257,6 +257,9 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
       console.error("Error fetching poll votes:", votesError);
       return [];
     }
+
+    // Log the voter data structure for debugging
+    console.log("Vote data structure:", votesData[0]);
 
     // Count votes for each option
     const options = pollData.options as Record<string, string>;
@@ -277,13 +280,14 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
           return voteOptions.includes(optionId);
         })
         .map(vote => {
-          // Make sure voter profile data exists before trying to access it
-          if (!vote.voter) return null;
+          // Skip if user profile data is missing
+          if (!vote.user) return null;
+          
           return {
             userId: vote.user_id,
-            firstName: vote.voter.first_name,
-            lastName: vote.voter.last_name,
-            imageUrl: vote.voter.image_url
+            firstName: vote.user.first_name,
+            lastName: vote.user.last_name,
+            imageUrl: vote.user.image_url
           };
         })
         .filter((voter): voter is PollVoter => voter !== null);
