@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Candidate } from "@/types";
 import CandidateItem from "./CandidateItem";
 import EmptyCandidatesList from "./EmptyCandidatesList";
-import { DLSU_DEPARTMENTS, YEAR_LEVELS, DEFAULT_POSITIONS } from "./constants";
+import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "./constants";
 
 interface CandidatesListProps {
   candidates: Candidate[];
@@ -24,9 +24,6 @@ const CandidatesList = ({
   onUpdateCandidate,
   onPreviewImage
 }: CandidatesListProps) => {
-  // Make sure we have a non-empty array of positions
-  const validPositions = positions && positions.length > 0 ? positions : DEFAULT_POSITIONS;
-
   if (candidates.length === 0) {
     return <EmptyCandidatesList onAddCandidate={onAddCandidate} />;
   }
@@ -40,7 +37,7 @@ const CandidatesList = ({
             index={index}
             onUpdate={onUpdateCandidate}
             onRemove={onRemoveCandidate}
-            positions={validPositions}
+            positions={positions}
             departments={DLSU_DEPARTMENTS}
             yearLevels={YEAR_LEVELS}
             onPreviewImage={onPreviewImage}

@@ -9,7 +9,19 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/features/elections/components/candidate-manager/constants";
+
+// DLSU-D Departments for filtering
+const DLSU_DEPARTMENTS = [
+  "College of Business Administration and Accountancy",
+  "College of Education",
+  "College of Engineering, Architecture and Technology",
+  "College of Humanities, Arts and Social Sciences",
+  "College of Science and Computer Studies",
+  "College of Criminal Justice Education",
+  "College of Tourism and Hospitality Management"
+];
+
+const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
 
 interface VoterSearchProps {
   searchTerm: string;
@@ -60,12 +72,7 @@ const VoterSearch = ({
           <SelectContent>
             <SelectItem value="all">All Departments</SelectItem>
             {DLSU_DEPARTMENTS.map(dept => (
-              <SelectItem 
-                key={dept || "unknown-department"} 
-                value={dept || "unknown-department"}
-              >
-                {dept || "Unknown Department"}
-              </SelectItem>
+              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -85,12 +92,7 @@ const VoterSearch = ({
           <SelectContent>
             <SelectItem value="all">All Years</SelectItem>
             {YEAR_LEVELS.map(year => (
-              <SelectItem 
-                key={year || "unknown-year"} 
-                value={year || "unknown-year"}
-              >
-                {year || "Unknown Year"}
-              </SelectItem>
+              <SelectItem key={year} value={year}>{year}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -99,4 +101,5 @@ const VoterSearch = ({
   );
 };
 
+export { DLSU_DEPARTMENTS, YEAR_LEVELS };
 export default VoterSearch;

@@ -1,5 +1,4 @@
 
-import React from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { UseFormReturn } from "react-hook-form";
 import type { CandidateFormData } from "../../schemas/candidateFormSchema";
@@ -10,7 +9,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { DLSU_DEPARTMENTS, YEAR_LEVELS, UNKNOWN_DEPARTMENT, UNKNOWN_YEAR } from "@/features/elections/components/candidate-manager/constants";
+import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/features/elections/components/candidate-manager/constants";
 
 interface AcademicInfoFieldsProps {
   form: UseFormReturn<CandidateFormData>;
@@ -27,7 +26,7 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
             <FormLabel>Department/College <span className="text-destructive">*</span></FormLabel>
             <FormControl>
               <Select
-                value={field.value || UNKNOWN_DEPARTMENT}
+                value={field.value || ""}
                 onValueChange={field.onChange}
                 required
               >
@@ -36,11 +35,8 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   {DLSU_DEPARTMENTS.map((dept) => (
-                    <SelectItem 
-                      key={dept || UNKNOWN_DEPARTMENT} 
-                      value={dept || UNKNOWN_DEPARTMENT}
-                    >
-                      {dept || "Unknown Department"}
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -59,7 +55,7 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
             <FormLabel>Year Level <span className="text-destructive">*</span></FormLabel>
             <FormControl>
               <Select
-                value={field.value || UNKNOWN_YEAR}
+                value={field.value || ""}
                 onValueChange={field.onChange}
                 required
               >
@@ -68,11 +64,8 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   {YEAR_LEVELS.map((year) => (
-                    <SelectItem 
-                      key={year || UNKNOWN_YEAR} 
-                      value={year || UNKNOWN_YEAR}
-                    >
-                      {year || "Unknown Year"}
+                    <SelectItem key={year} value={year}>
+                      {year}
                     </SelectItem>
                   ))}
                 </SelectContent>
