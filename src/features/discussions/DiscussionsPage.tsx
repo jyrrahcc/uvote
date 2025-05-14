@@ -206,7 +206,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     return result;
   };
   
-  // Wrapper function to match expected signature in DiscussionList
+  // Wrapper function to create a topic
   const handleCreateTopic = async (title: string, content: string) => {
     if (!finalElectionId) {
       console.error("📛 No election ID provided for topic creation");
@@ -318,6 +318,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
             <PollsList
               polls={polls}
               loading={pollLoading}
+              onSelectTopic={handleSelectTopic}
               onSelectPoll={handleSelectPoll}
               onCreatePoll={handleCreatePoll}
               electionId={finalElectionId}

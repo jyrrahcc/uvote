@@ -34,9 +34,7 @@ const DiscussionList = ({
   
   const handleCreateTopic = async (title: string, content: string) => {
     if (!user) throw new Error("User not authenticated");
-    const newTopic = await onCreateTopic(title, content);
-    onRefresh();
-    return newTopic;
+    return onCreateTopic(title, content);
   };
   
   const filteredTopics = topics.filter((topic) => {

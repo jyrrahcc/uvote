@@ -72,7 +72,7 @@ export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> 
     const topicsWithRepliesCount = data.map((topic: any) => {
       return {
         ...topic,
-        replies_count: topic.replies_count.count || 0
+        replies_count: topic.replies_count[0]?.count || 0 
       };
     });
 
@@ -112,7 +112,7 @@ export const getTopic = async (topicId: string): Promise<DiscussionTopic | null>
 
     const topicWithRepliesCount = {
       ...data,
-      replies_count: data.replies_count?.count || 0
+      replies_count: data.replies_count[0]?.count || 0
     };
 
     return transformTopic(topicWithRepliesCount);
@@ -291,13 +291,13 @@ export const createComment = async (
     const commentData = {
       content,
       topic_id: topicId,
-      created_by: userData.user.id,
+      user_id: userData.user.id,
       parent_id: parentId || null
     };
 
     const { data, error } = await supabase
       .from('discussion_comments')
-      .insert([commentData])
+      .insert(commentData)
       .select(`
         *,
         author:profiles (

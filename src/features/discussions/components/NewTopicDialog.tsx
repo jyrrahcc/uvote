@@ -34,15 +34,17 @@ const NewTopicDialog = ({ isOpen, onClose, onCreateTopic, electionId }: NewTopic
     
     try {
       setIsSubmitting(true);
-      await onCreateTopic(title, content);
-      setTitle("");
-      setContent("");
-      onClose();
-      toast({
-        title: "Success",
-        description: "Discussion topic created successfully",
-        variant: "default"
-      });
+      const result = await onCreateTopic(title, content);
+      if (result) {
+        setTitle("");
+        setContent("");
+        onClose();
+        toast({
+          title: "Success",
+          description: "Discussion topic created successfully",
+          variant: "default"
+        });
+      }
     } catch (error) {
       console.error("Error creating topic:", error);
       toast({

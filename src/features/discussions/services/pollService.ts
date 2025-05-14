@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollResults, PollVoter } from "@/types/discussions";
 
@@ -6,15 +7,15 @@ const transformPoll = (pollData: any): Poll => {
   return {
     id: pollData.id,
     question: pollData.question,
-    options: pollData.options as Record<string, string>,
-    description: pollData.description || '',
+    options: pollData.options,
+    description: pollData.description || null,
     electionId: pollData.election_id,
-    topicId: pollData.topic_id || null,
+    topicId: pollData.topic_id,
     createdBy: pollData.created_by,
     createdAt: pollData.created_at,
-    endsAt: pollData.ends_at || null,
-    isClosed: pollData.is_closed,
-    multipleChoice: pollData.multiple_choice,
+    endsAt: pollData.ends_at,
+    isClosed: pollData.is_closed || false,
+    multipleChoice: pollData.multiple_choice || false,
     author: pollData.author ? {
       id: pollData.author.id,
       firstName: pollData.author.first_name,
@@ -24,17 +25,8 @@ const transformPoll = (pollData: any): Poll => {
   };
 };
 
-const transformVoters = (voters: any[]): PollVoter[] => {
-  return voters.map(voter => ({
-    userId: voter.user_id || voter.id || 'unknown',
-    firstName: voter.first_name || voter.firstName,
-    lastName: voter.last_name || voter.lastName,
-    imageUrl: voter.image_url || voter.imageUrl
-  }));
-};
-
 // Get all polls for an election
-export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
+export const getPolls = async (electionId: string): Promise<Poll[]> => {
   try {
     const { data, error } = await supabase
       .from('polls')
@@ -63,11 +55,6 @@ export const fetchPolls = async (electionId: string): Promise<Poll[]> => {
 };
 
 // Get a single poll by ID
-export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
-  return getPoll(pollId);
-};
-
-// Original function kept for compatibility
 export const getPoll = async (pollId: string): Promise<Poll | null> => {
   try {
     const { data, error } = await supabase
@@ -88,7 +75,7 @@ export const getPoll = async (pollId: string): Promise<Poll | null> => {
       console.error("Error fetching poll:", error);
       return null;
     }
-    
+
     if (!data) {
       return null;
     }
@@ -100,88 +87,15 @@ export const getPoll = async (pollId: string): Promise<Poll | null> => {
   }
 };
 
-// Get poll results
-export const getPollResults = async (pollId: string): Promise<PollResults[]> => {
-  try {
-    const { data: pollData, error: pollError } = await supabase
-      .from('polls')
-      .select('options')
-      .eq('id', pollId)
-      .maybeSingle();
-
-    if (pollError) {
-      console.error("Error fetching poll options:", pollError);
-      return [];
-    }
-    
-    if (!pollData) {
-      return [];
-    }
-
-    const options = pollData?.options || {};
-    const optionKeys = Object.keys(options);
-
-    const results: PollResults[] = [];
-
-    // For each option, get the votes
-    for (const optionId of optionKeys) {
-      const { data: votes, error: voteError } = await supabase
-        .from('poll_votes')
-        .select(`
-          user_id,
-          profiles (
-            first_name,
-            last_name,
-            image_url
-          )
-        `)
-        .eq('poll_id', pollId)
-        .contains('options', [optionId]);
-
-      if (voteError) {
-        console.error(`Error fetching votes for option ${optionId}:`, voteError);
-        continue;
-      }
-
-      const voters = votes?.map(vote => ({
-        userId: vote.user_id,
-        firstName: vote.profiles?.first_name || 'Unknown',
-        lastName: vote.profiles?.last_name || 'Voter',
-        imageUrl: vote.profiles?.image_url || null
-      })) || [];
-
-      const result: PollResults = {
-        optionId: optionId,
-        optionText: options[optionId],
-        votes: votes?.length || 0,
-        percentage: 0, // will be calculated later
-        voters: transformVoters(voters)
-      };
-      results.push(result);
-    }
-
-    // Calculate percentages
-    const totalVotes = results.reduce((sum, result) => sum + result.votes, 0);
-    results.forEach(result => {
-      result.percentage = totalVotes > 0 ? (result.votes / totalVotes) * 100 : 0;
-    });
-
-    return results;
-  } catch (error) {
-    console.error("Error fetching poll results:", error);
-    return [];
-  }
-};
-
 // Create a new poll
 export const createPoll = async (
   electionId: string,
   question: string,
   options: Record<string, string>,
-  topicId: string | null = null,
-  description: string | null = null,
-  multipleChoice: boolean = false,
-  endsAt: string | null = null
+  description?: string | null,
+  topicId?: string | null,
+  multipleChoice?: boolean,
+  endsAt?: string | null
 ): Promise<Poll | null> => {
   try {
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -192,13 +106,12 @@ export const createPoll = async (
     const pollData = {
       question,
       options,
-      description,
+      description: description || null,
       election_id: electionId,
-      topic_id: topicId,
+      topic_id: topicId || null,
       created_by: userData.user.id,
-      multiple_choice: multipleChoice,
-      ends_at: endsAt,
-      is_closed: false
+      multiple_choice: multipleChoice || false,
+      ends_at: endsAt || null
     };
 
     const { data, error } = await supabase
@@ -231,20 +144,21 @@ export const createPoll = async (
   }
 };
 
-// Update an existing poll
-export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promise<Poll | null> => {
+// Update a poll
+export const updatePoll = async (
+  pollId: string,
+  updates: Partial<Poll>
+): Promise<Poll | null> => {
   try {
-    // Convert camelCase to snake_case for database fields
     const dbUpdates: Record<string, any> = {};
     
     if (updates.question !== undefined) dbUpdates.question = updates.question;
     if (updates.options !== undefined) dbUpdates.options = updates.options;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
-    if (updates.topicId !== undefined) dbUpdates.topic_id = updates.topicId;
+    if (updates.isClosed !== undefined) dbUpdates.is_closed = updates.isClosed;
     if (updates.multipleChoice !== undefined) dbUpdates.multiple_choice = updates.multipleChoice;
     if (updates.endsAt !== undefined) dbUpdates.ends_at = updates.endsAt;
-    if (updates.isClosed !== undefined) dbUpdates.is_closed = updates.isClosed;
-    
+
     const { data, error } = await supabase
       .from('polls')
       .update(dbUpdates)
@@ -279,13 +193,25 @@ export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promis
 // Delete a poll
 export const deletePoll = async (pollId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    // First delete all votes associated with the poll
+    const { error: votesError } = await supabase
+      .from('poll_votes')
+      .delete()
+      .eq('poll_id', pollId);
+
+    if (votesError) {
+      console.error("Error deleting poll votes:", votesError);
+      return false;
+    }
+
+    // Then delete the poll itself
+    const { error: pollError } = await supabase
       .from('polls')
       .delete()
       .eq('id', pollId);
 
-    if (error) {
-      console.error("Error deleting poll:", error);
+    if (pollError) {
+      console.error("Error deleting poll:", pollError);
       return false;
     }
 
@@ -296,68 +222,94 @@ export const deletePoll = async (pollId: string): Promise<boolean> => {
   }
 };
 
-// Vote on a poll
-export const votePoll = async (pollId: string, optionIds: string[]): Promise<boolean> => {
+// Get poll results
+export const getPollResults = async (pollId: string): Promise<PollResults[]> => {
   try {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user) {
-      throw new Error("User not authenticated");
-    }
-
-    // First check if user already voted on this poll
-    const { data: existingVote, error: checkError } = await supabase
-      .from('poll_votes')
-      .select('id')
-      .eq('poll_id', pollId)
-      .eq('user_id', userData.user.id)
+    // Get the poll to get its options
+    const { data: pollData, error: pollError } = await supabase
+      .from('polls')
+      .select('options')
+      .eq('id', pollId)
       .maybeSingle();
 
-    if (checkError) {
-      console.error("Error checking existing vote:", checkError);
-      return false;
+    if (pollError || !pollData) {
+      console.error("Error fetching poll options:", pollError);
+      return [];
     }
 
-    // If user already voted, update their vote
-    if (existingVote) {
-      const { error: updateError } = await supabase
-        .from('poll_votes')
-        .update({ options: optionIds })
-        .eq('poll_id', pollId)
-        .eq('user_id', userData.user.id);
+    // Get all votes for this poll
+    const { data: votesData, error: votesError } = await supabase
+      .from('poll_votes')
+      .select(`
+        id,
+        options,
+        user_id,
+        profiles:user_id (
+          id,
+          first_name,
+          last_name,
+          image_url
+        )
+      `)
+      .eq('poll_id', pollId);
 
-      if (updateError) {
-        console.error("Error updating vote:", updateError);
-        return false;
-      }
-    } else {
-      // Otherwise create a new vote
-      const { error: insertError } = await supabase
-        .from('poll_votes')
-        .insert([{
-          poll_id: pollId,
-          user_id: userData.user.id,
-          options: optionIds
-        }]);
-
-      if (insertError) {
-        console.error("Error casting vote:", insertError);
-        return false;
-      }
+    if (votesError) {
+      console.error("Error fetching poll votes:", votesError);
+      return [];
     }
 
-    return true;
+    // Count votes for each option
+    const options = pollData.options as Record<string, string>;
+    const optionIds = Object.keys(options);
+    const totalVotes = votesData.length;
+    
+    const results: PollResults[] = optionIds.map(optionId => {
+      // Count votes for this option
+      const votes = votesData.filter(vote => {
+        const voteOptions = vote.options as string[];
+        return voteOptions.includes(optionId);
+      }).length;
+      
+      // Get voters who selected this option
+      const voters: PollVoter[] = votesData
+        .filter(vote => {
+          const voteOptions = vote.options as string[];
+          return voteOptions.includes(optionId);
+        })
+        .map(vote => {
+          if (!vote.profiles) return null;
+          return {
+            userId: vote.user_id,
+            firstName: vote.profiles.first_name,
+            lastName: vote.profiles.last_name,
+            imageUrl: vote.profiles.image_url
+          };
+        })
+        .filter((voter): voter is PollVoter => voter !== null);
+
+      return {
+        optionId,
+        optionText: options[optionId],
+        votes,
+        percentage: totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0,
+        voters
+      };
+    });
+
+    // Sort by number of votes (descending)
+    return results.sort((a, b) => b.votes - a.votes);
   } catch (error) {
-    console.error("Error voting on poll:", error);
-    return false;
+    console.error("Error getting poll results:", error);
+    return [];
   }
 };
 
-// Get the user's vote for a poll
-export const fetchUserVote = async (pollId: string): Promise<{ options: string[] } | null> => {
+// Get user's vote for a poll
+export const getUserVote = async (pollId: string): Promise<string[] | null> => {
   try {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) {
-      return null;
+      return null; // User not authenticated
     }
 
     const { data, error } = await supabase
@@ -372,14 +324,68 @@ export const fetchUserVote = async (pollId: string): Promise<{ options: string[]
       return null;
     }
 
-    return data;
+    if (!data) {
+      return null; // User hasn't voted
+    }
+
+    return data.options as string[];
   } catch (error) {
-    console.error("Error fetching user vote:", error);
+    console.error("Error getting user vote:", error);
     return null;
   }
 };
 
-// Alias for getPollResults for API consistency
-export const fetchPollResults = async (pollId: string): Promise<PollResults[]> => {
-  return getPollResults(pollId);
+// Vote in a poll
+export const vote = async (pollId: string, options: string[]): Promise<boolean> => {
+  try {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      throw new Error("User not authenticated");
+    }
+
+    // Check if user has already voted
+    const { data: existingVote, error: checkError } = await supabase
+      .from('poll_votes')
+      .select('id')
+      .eq('poll_id', pollId)
+      .eq('user_id', userData.user.id)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("Error checking existing vote:", checkError);
+      return false;
+    }
+
+    if (existingVote) {
+      // Update existing vote
+      const { error: updateError } = await supabase
+        .from('poll_votes')
+        .update({ options })
+        .eq('id', existingVote.id);
+
+      if (updateError) {
+        console.error("Error updating vote:", updateError);
+        return false;
+      }
+    } else {
+      // Create new vote
+      const { error: insertError } = await supabase
+        .from('poll_votes')
+        .insert({
+          poll_id: pollId,
+          user_id: userData.user.id,
+          options
+        });
+
+      if (insertError) {
+        console.error("Error creating vote:", insertError);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error voting:", error);
+    return false;
+  }
 };
