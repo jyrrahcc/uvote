@@ -25,22 +25,32 @@ import {
 
 interface ElectionDetailHeaderProps {
   election: Election;
-  navigate: ReturnType<typeof useNavigate>;
-  onCompleteElection: () => Promise<void>;
-  onResetVotes: () => Promise<void>;
+  navigate?: ReturnType<typeof useNavigate>;
+  onCompleteElection?: () => Promise<void>;
+  onResetVotes?: () => Promise<void>;
+  onBackClick?: () => void;
 }
 
 const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
   election,
   navigate,
   onCompleteElection,
-  onResetVotes
+  onResetVotes,
+  onBackClick
 }) => {
+  const defaultNavigate = useNavigate();
+  const nav = navigate || defaultNavigate;
+
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
         <div className="flex items-center mb-4">
-          <Button variant="outline" size="sm" onClick={() => navigate('/admin/elections')} className="mr-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onBackClick || (() => nav('/admin/elections'))} 
+            className="mr-4"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Elections
           </Button>
           <Badge variant={election.status === 'active' ? 'default' : election.status === 'upcoming' ? 'outline' : 'secondary'} className="capitalize">
@@ -58,7 +68,7 @@ const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
       <div className="flex flex-wrap gap-2">
         <Button 
           variant="outline"
-          onClick={() => navigate(`/elections/${election.id}`)}
+          onClick={() => nav(`/elections/${election.id}`)}
         >
           <Eye className="mr-2 h-4 w-4" />
           View Public Page
@@ -66,13 +76,13 @@ const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
         
         <Button 
           variant="outline"
-          onClick={() => navigate(`/admin/elections/edit/${election.id}`)}
+          onClick={() => nav(`/admin/elections/edit/${election.id}`)}
         >
           <Pencil className="mr-2 h-4 w-4" />
           Edit Election
         </Button>
         
-        {election.status !== "completed" && (
+        {election.status !== "completed" && onCompleteElection && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button 
@@ -104,32 +114,34 @@ const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
           </AlertDialog>
         )}
         
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" className="text-amber-600">
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Reset Votes
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Reset Election Votes?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete all votes for this election. 
-                All voters will be able to vote again. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                className="bg-amber-600 text-white hover:bg-amber-700"
-                onClick={onResetVotes}
-              >
+        {onResetVotes && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="text-amber-600">
+                <RefreshCcw className="mr-2 h-4 w-4" />
                 Reset Votes
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset Election Votes?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all votes for this election. 
+                  All voters will be able to vote again. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  className="bg-amber-600 text-white hover:bg-amber-700"
+                  onClick={onResetVotes}
+                >
+                  Reset Votes
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </div>
   );

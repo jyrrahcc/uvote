@@ -25,7 +25,7 @@ const ElectionDetailPage = () => {
     error
   } = useElection(electionId || "");
   
-  const { positionVotes } = usePositionVotes(electionId || "");
+  const { positionVotes } = usePositionVotes(election, candidates, electionId);
   
   useEffect(() => {
     // Check if we have an election ID from the URL
@@ -47,31 +47,55 @@ const ElectionDetailPage = () => {
     return <ElectionErrorState error={error} />;
   }
 
+  // Calculate stats
+  const stats = {
+    totalVoters: election.totalEligibleVoters || 0,
+    totalVotes: 0, // Would need to calculate from positionVotes
+    participationRate: 0, // Would need to calculate
+    positionsCount: election.positions?.length || 0,
+    candidatesCount: candidates?.length || 0
+  };
+
+  // Handle completion of election
+  const handleCompleteElection = async () => {
+    console.log("Election completed");
+    // Implementation would go here
+  };
+
+  // Handle reset of votes
+  const handleResetVotes = async () => {
+    console.log("Votes reset");
+    // Implementation would go here
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <ElectionDetailHeader 
         election={election}
         onBackClick={() => navigate("/admin/elections")}
+        onCompleteElection={handleCompleteElection}
+        onResetVotes={handleResetVotes}
       />
       
       <ElectionTitleSection 
         title={election.title}
         description={election.description || ""}
-        status={election.status}
       />
       
       <ElectionStatCards 
         election={election}
         positionVotes={positionVotes}
         formatDate={formatDate}
+        stats={stats}
       />
       
       <ElectionDetailTabs 
         election={election}
-        candidates={candidates}
+        candidates={candidates || []}
         positionVotes={positionVotes}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        stats={stats}
       />
     </div>
   );

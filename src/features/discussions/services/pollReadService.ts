@@ -86,6 +86,16 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
       return [];
     }
 
+    // Ensure options is treated as Record<string, string>
+    const optionsMap: Record<string, string> = {};
+    if (typeof pollData.options === 'object' && pollData.options !== null) {
+      Object.entries(pollData.options as Record<string, any>).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          optionsMap[key] = value;
+        }
+      });
+    }
+
     // Then, get all votes for this poll
     const { data: votesData, error: votesError } = await supabase
       .from('poll_votes')
@@ -106,7 +116,6 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
     }
 
     // Initialize results for each option
-    const optionsMap: Record<string, string> = pollData.options || {};
     const results: Record<string, {
       optionId: string;
       optionText: string;
@@ -118,7 +127,7 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
     Object.entries(optionsMap).forEach(([optionId, optionText]) => {
       results[optionId] = {
         optionId,
-        optionText: optionText as string,
+        optionText,
         votes: 0,
         voters: []
       };
@@ -127,12 +136,20 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
     // Count votes and collect voters
     votesData.forEach(vote => {
       const options = vote.options || {};
-      const voter = vote.voter ? {
-        userId: vote.voter.id,
-        firstName: vote.voter.first_name,
-        lastName: vote.voter.last_name,
-        imageUrl: vote.voter.image_url
-      } : null;
+      // Safely handle voter data
+      let voter: PollVoter | null = null;
+      
+      if (vote.voter && typeof vote.voter === 'object') {
+        const voterData = vote.voter as any;
+        if (voterData && voterData.id) {
+          voter = {
+            userId: voterData.id,
+            firstName: voterData.first_name || '',
+            lastName: voterData.last_name || '',
+            imageUrl: voterData.image_url || null
+          };
+        }
+      }
 
       Object.keys(options).forEach(optionId => {
         if (options[optionId] && results[optionId]) {

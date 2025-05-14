@@ -5,17 +5,35 @@ import { Election } from "@/types";
 import { Users, CalendarDays, ClipboardList } from "lucide-react";
 
 interface ElectionStatCardsProps {
-  stats: {
+  election: Election;
+  positionVotes?: Record<string, any>;
+  formatDate?: (dateString: string) => string;
+  stats?: {
     totalVoters: number;
     totalVotes: number;
     participationRate: number;
     positionsCount: number;
     candidatesCount: number;
   };
-  election: Election;
 }
 
-const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({ stats, election }) => {
+const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({ 
+  stats, 
+  election, 
+  positionVotes,
+  formatDate = (date) => new Date(date).toLocaleDateString() 
+}) => {
+  // Calculate default stats if not provided
+  const defaultStats = {
+    totalVoters: election.totalEligibleVoters || 0,
+    totalVotes: 0,
+    participationRate: 0,
+    positionsCount: election.positions?.length || 0,
+    candidatesCount: 0
+  };
+
+  const displayStats = stats || defaultStats;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card>
@@ -25,12 +43,12 @@ const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({ stats, election }
           </CardTitle>
           <div className="flex items-center justify-between">
             <div className="text-3xl font-bold">
-              {stats.participationRate}%
+              {displayStats.participationRate}%
             </div>
             <Users className="h-5 w-5 text-muted-foreground" />
           </div>
           <CardDescription>
-            {stats.totalVotes} out of {stats.totalVoters} eligible voters
+            {displayStats.totalVotes} out of {displayStats.totalVoters} eligible voters
           </CardDescription>
         </CardHeader>
       </Card>
@@ -48,10 +66,10 @@ const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({ stats, election }
           </div>
           <CardDescription>
             {election.status === 'upcoming' 
-              ? `Starts ${new Date(election.startDate).toLocaleDateString()}`
+              ? `Starts ${formatDate(election.startDate)}`
               : election.status === 'active'
-              ? `Ends ${new Date(election.endDate).toLocaleDateString()}`
-              : `Ended ${new Date(election.endDate).toLocaleDateString()}`
+              ? `Ends ${formatDate(election.endDate)}`
+              : `Ended ${formatDate(election.endDate)}`
             }
           </CardDescription>
         </CardHeader>
@@ -64,12 +82,12 @@ const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({ stats, election }
           </CardTitle>
           <div className="flex items-center justify-between">
             <div className="text-3xl font-bold">
-              {stats.candidatesCount}
+              {displayStats.candidatesCount}
             </div>
             <ClipboardList className="h-5 w-5 text-muted-foreground" />
           </div>
           <CardDescription>
-            Across {stats.positionsCount} {stats.positionsCount === 1 ? 'position' : 'positions'}
+            Across {displayStats.positionsCount} {displayStats.positionsCount === 1 ? 'position' : 'positions'}
           </CardDescription>
         </CardHeader>
       </Card>

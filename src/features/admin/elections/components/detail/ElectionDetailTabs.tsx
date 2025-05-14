@@ -13,14 +13,17 @@ import VotersTab from "./tabs/VotersTab";
 interface ElectionDetailTabsProps {
   election: Election;
   candidates: any[];
-  stats: {
+  positionVotes?: Record<string, any>;
+  activeTab?: string;
+  setActiveTab?: React.Dispatch<React.SetStateAction<string>>;
+  stats?: {
     totalVoters: number;
     totalVotes: number;
     participationRate: number;
     positionsCount: number;
     candidatesCount: number;
   };
-  votes: any[];
+  votes?: any[];
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
@@ -28,13 +31,36 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 const ElectionDetailTabs: React.FC<ElectionDetailTabsProps> = ({
   election,
   candidates,
-  stats,
-  votes
+  stats = {
+    totalVoters: 0,
+    totalVotes: 0,
+    participationRate: 0,
+    positionsCount: 0,
+    candidatesCount: 0
+  },
+  votes = [],
+  positionVotes = {},
+  activeTab = "overview",
+  setActiveTab
 }) => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
+  const handleTabChange = (value: string) => {
+    if (setActiveTab) {
+      setActiveTab(value);
+    } else {
+      setInternalActiveTab(value);
+    }
+  };
+  
+  const currentTab = setActiveTab ? activeTab : internalActiveTab;
 
   return (
-    <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+    <Tabs 
+      defaultValue="overview" 
+      className="w-full" 
+      value={currentTab} 
+      onValueChange={handleTabChange}
+    >
       <TabsList className="w-full md:w-auto">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="candidates">Candidates</TabsTrigger>

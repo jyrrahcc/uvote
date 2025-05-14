@@ -32,3 +32,11 @@ export const formatDateRelative = (dateString: string): string => {
     return 'today';
   }
 };
+
+/**
+ * Format a date string to local date string
+ */
+export const formatDateToLocalString = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString();
+};
