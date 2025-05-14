@@ -1,5 +1,3 @@
-
-// This file has potential SelectItem issues that need fixing
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -233,7 +231,7 @@ const Elections = () => {
                 <SelectItem value="all">All Departments</SelectItem>
                 {departments.map((dept) => (
                   <SelectItem 
-                    key={dept} 
+                    key={dept || "unknown-department"} 
                     value={dept || "unknown-department"}
                   >
                     {dept || "Unknown Department"}

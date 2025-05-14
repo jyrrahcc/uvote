@@ -35,7 +35,7 @@ const PositionSelector = ({
             <SelectContent>
               {availablePositions.map((pos) => (
                 <SelectItem 
-                  key={pos} 
+                  key={pos || "unknown-position"} 
                   value={pos || "unknown-position"}
                 >
                   {pos || "Unknown Position"}
