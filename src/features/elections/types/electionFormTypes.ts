@@ -61,7 +61,8 @@ export const DLSU_DEPARTMENTS = [
   "College of Education",
   "College of Engineering, Architecture and Technology",
   "College of Humanities, Arts and Social Sciences",
-  "College of Science and Computer Studies",
+  "College of Science",
+  "College of Information and Computer Studies",
   "College of Criminal Justice Education",
   "College of Tourism and Hospitality Management",
   "University-wide"
