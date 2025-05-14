@@ -17,7 +17,6 @@ interface PollsListProps {
   onSelectPoll: (poll: Poll) => void;
   onCreatePoll: (question: string, options: Record<string, string>, description?: string, multipleChoice?: boolean, endsAt?: string) => Promise<Poll | null>;
   electionId: string;
-  onSelectTopic?: () => void; // Making this optional
 }
 
 const PollsList = ({

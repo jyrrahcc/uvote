@@ -1,134 +1,110 @@
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { DiscussionTopic } from "@/types/discussions";
 
 interface NewTopicDialogProps {
-  onCreateTopic: (title: string, content: string) => Promise<any>;
-  disabled?: boolean;
-  isOpen?: boolean;
-  onClose?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onCreateTopic: (title: string, content: string) => Promise<DiscussionTopic | null>;
+  electionId: string;
 }
 
-const NewTopicDialog = ({ 
-  onCreateTopic, 
-  disabled = false, 
-  isOpen, 
-  onClose 
-}: NewTopicDialogProps) => {
-  const [open, setOpen] = useState(isOpen || false);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+const NewTopicDialog = ({ isOpen, onClose, onCreateTopic, electionId }: NewTopicDialogProps) => {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Handle controlled and uncontrolled state
-  const handleOpenChange = (newOpenState: boolean) => {
-    if (onClose && !newOpenState) {
-      onClose();
-    }
-    setOpen(newOpenState);
-  };
-
-  // Update internal state when isOpen changes
-  useState(() => {
-    if (isOpen !== undefined) {
-      setOpen(isOpen);
-    }
-  });
-
-  const handleSubmit = async () => {
-    if (!title.trim()) {
-      toast.error('Please enter a topic title');
+  const { user } = useAuth();
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !content.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
       return;
     }
-
+    
     try {
       setIsSubmitting(true);
-      console.log("Submitting new topic:", { title, content });
-      const result = await onCreateTopic(title.trim(), content.trim());
-      
-      if (result) {
-        console.log("Topic creation result:", result);
-        setTitle('');
-        setContent('');
-        handleOpenChange(false);
-        toast.success('Topic created successfully');
-      } else {
-        console.error("Failed to create topic: No result returned");
-        toast.error('Failed to create topic');
-      }
-    } catch (error: any) {
-      console.error("Error in topic dialog submission:", error);
-      toast.error(`Error creating topic: ${error.message || 'Unknown error'}`);
+      await onCreateTopic(title, content);
+      setTitle("");
+      setContent("");
+      onClose();
+      toast({
+        title: "Success",
+        description: "Discussion topic created successfully",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error("Error creating topic:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create discussion topic",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
   return (
-    <Dialog open={isOpen !== undefined ? isOpen : open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="default" disabled={disabled}>
-          New Topic
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[85vh] p-0">
-        <DialogHeader className="p-6 pb-2">
-          <DialogTitle>Create a New Topic</DialogTitle>
-          <DialogDescription>
-            Start a discussion on this election.
-          </DialogDescription>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Create New Discussion Topic</DialogTitle>
         </DialogHeader>
-        
-        <ScrollArea className="p-6 pt-0 max-h-[500px]">
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title" className="text-right">
-                Title
-              </Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Topic title"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="content" className="text-right">
-                Content
-              </Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="What would you like to discuss?"
-                className="min-h-[150px]"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="title" className="text-sm font-medium">
+              Topic Title
+            </label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter a clear, specific title for your discussion"
+              className="mt-1"
+              required
+            />
           </div>
-        </ScrollArea>
-        
-        <DialogFooter className="p-6 pt-2">
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={isSubmitting || !title.trim()}>
-            {isSubmitting ? 'Creating...' : 'Create Topic'}
-          </Button>
-        </DialogFooter>
+          <div>
+            <label htmlFor="content" className="text-sm font-medium">
+              Initial Post
+            </label>
+            <Textarea
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Share your thoughts, questions, or information to start the discussion"
+              className="mt-1 min-h-[150px]"
+              required
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Topic"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

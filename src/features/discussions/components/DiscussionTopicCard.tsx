@@ -1,74 +1,69 @@
 
+import { Calendar, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, User } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { DiscussionTopic } from "@/types/discussions";
-import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
-interface DiscussionTopicCardProps {
+export interface DiscussionTopicCardProps {
   topic: DiscussionTopic;
   electionId: string;
-  onSelectTopic?: (topic: DiscussionTopic) => void;
+  onClick: () => void;  // Added onClick prop
 }
 
-const DiscussionTopicCard = ({ topic, electionId, onSelectTopic }: DiscussionTopicCardProps) => {
-  const { title, content, createdAt, author, repliesCount = 0 } = topic;
-
-  // Handle click event if onSelectTopic is provided, otherwise use Link navigation
-  const handleCardClick = () => {
-    if (onSelectTopic) {
-      onSelectTopic(topic);
-    }
+const DiscussionTopicCard = ({ topic, electionId, onClick }: DiscussionTopicCardProps) => {
+  const formatDate = (dateString: string) => {
+    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
 
-  const cardContent = (
-    <Card className="cursor-pointer hover:shadow-md transition-shadow">
+  return (
+    <Card 
+      className="cursor-pointer hover:border-green-300 transition-colors"
+      onClick={onClick}
+    >
       <CardHeader className="pb-2">
-        <div className="flex justify-between">
-          <CardTitle className="text-lg font-bold">{title}</CardTitle>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <div className="flex items-center mr-4">
-            <Avatar className="h-6 w-6 mr-2">
-              <AvatarImage src={author?.imageUrl || ""} alt={author ? `${author.firstName} ${author.lastName}` : "Unknown"} />
-              <AvatarFallback>
-                <User className="h-4 w-4" />
-              </AvatarFallback>
-            </Avatar>
-            <span>
-              {author ? `${author.firstName} ${author.lastName}` : "Unknown user"}
-            </span>
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-lg">
+            {topic.title}
+          </CardTitle>
+          <div className="flex gap-1.5">
+            {topic.isPinned && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                Pinned
+              </Badge>
+            )}
+            {topic.isLocked && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                Locked
+              </Badge>
+            )}
           </div>
-          <span className="text-xs">
-            {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
-          </span>
         </div>
       </CardHeader>
-      <CardContent className="py-2">
-        <p className="line-clamp-2 text-muted-foreground">
-          {content}
-        </p>
+      <CardContent className="pb-2">
+        {topic.content && (
+          <p className="text-muted-foreground line-clamp-2">
+            {topic.content}
+          </p>
+        )}
       </CardContent>
-      <CardFooter className="pt-2 text-sm text-muted-foreground">
-        <div className="flex items-center">
-          <MessageSquare className="h-4 w-4 mr-1" />
-          <span>
-            {repliesCount} {repliesCount === 1 ? "reply" : "replies"}
-          </span>
+      <CardFooter className="pt-0 text-xs text-muted-foreground">
+        <div className="flex flex-wrap justify-between w-full">
+          <div className="flex items-center">
+            <Calendar size={14} className="mr-1" />
+            {formatDate(topic.createdAt)}
+            <span className="mx-2">•</span>
+            <span>
+              By {topic.author?.firstName} {topic.author?.lastName}
+            </span>
+          </div>
+          <div className="flex items-center">
+            <MessageSquare size={14} className="mr-1" />
+            {topic.repliesCount || 0} {(topic.repliesCount === 1) ? 'reply' : 'replies'}
+          </div>
         </div>
       </CardFooter>
     </Card>
-  );
-
-  // If onSelectTopic is provided, make the card clickable; otherwise wrap it in a Link
-  return onSelectTopic ? (
-    <div onClick={handleCardClick}>{cardContent}</div>
-  ) : (
-    <Link to={`/elections/${electionId}/discussions/${topic.id}`}>
-      {cardContent}
-    </Link>
   );
 };
 

@@ -54,10 +54,12 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
           .from('elections')
           .select('*')
           .eq('id', finalElectionId)
-          .single();
+          .maybeSingle();
           
         if (error) throw error;
-        setElection(data);
+        if (data) {
+          setElection(data);
+        }
       } catch (error) {
         console.error("Error fetching election:", error);
         toast({
@@ -217,7 +219,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     }
     
     console.log("🔄 Creating topic with:", { title, content, electionId: finalElectionId });
-    const result = await addTopic(finalElectionId, title, content);
+    const result = await addTopic(title, content);
     
     if (result) {
       console.log("✅ Topic created successfully, reloading topics");
