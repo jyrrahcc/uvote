@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,14 +8,14 @@ import { toast } from "sonner";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 // Import custom components
-import ElectionHeader from "@/features/elections/components/position-details/ElectionHeader";
-import VotingForm from "@/features/elections/components/VotingForm";
-import PrivateElectionAccess from "@/features/elections/components/voting/PrivateElectionAccess";
-import ElectionLoading from "@/features/elections/components/voting/ElectionLoading";
-import VoterAccessRestriction from "@/features/elections/components/voting/VoterAccessRestriction";
-import VoterVerification from "@/features/elections/components/voting/VoterVerification";
-import ElectionTitleSection from "@/features/elections/components/detail-page/ElectionTitleSection";
-import ElectionBanner from "@/features/elections/components/detail-page/ElectionBanner";
+import ElectionHeader from "../components/position-details/ElectionHeader";
+import VotingForm from "../components/VotingForm";
+import PrivateElectionAccess from "../components/voting/PrivateElectionAccess";
+import ElectionLoading from "../components/voting/ElectionLoading";
+import VoterAccessRestriction from "../components/voting/VoterAccessRestriction";
+import VoterVerification from "../components/voting/VoterVerification";
+import ElectionTitleSection from "../components/detail-page/ElectionTitleSection";
+import ElectionBanner from "../components/detail-page/ElectionBanner";
 
 const VotingPage = () => {
   const { electionId } = useParams<{ electionId: string }>();

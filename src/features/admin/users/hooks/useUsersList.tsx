@@ -39,7 +39,7 @@ export const useUsersList = () => {
       // Get all user profiles with more detailed information
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, image_url')
+        .select('id, email, first_name, last_name, created_at, student_id, department, year_level, is_verified, image_url')
         .range(from, to)
         .order('created_at', { ascending: false });
       

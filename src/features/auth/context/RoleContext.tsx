@@ -118,7 +118,7 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      // Remove the role
+      // First remove the role
       const { error } = await supabase
         .from('user_roles')
         .delete()
@@ -126,6 +126,20 @@ export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('role', role);
       
       if (error) throw error;
+      
+      // If removing voter role, also update profile to set is_verified to false
+      if (role === 'voter') {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ is_verified: false })
+          .eq('id', userId);
+          
+        if (profileError) {
+          console.error("Error updating profile verification status:", profileError);
+          toast.error("Role removed but failed to update verification status");
+          return;
+        }
+      }
       
       toast.success(`User's ${role} role removed successfully`);
       
