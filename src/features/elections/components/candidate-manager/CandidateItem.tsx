@@ -11,6 +11,7 @@ import { Trash2, Image, X, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Candidate } from "@/types";
+import { UNKNOWN_DEPARTMENT, UNKNOWN_POSITION, UNKNOWN_YEAR } from "@/types/constants";
 
 interface CandidateItemProps {
   candidate: Candidate;
@@ -132,7 +133,7 @@ const CandidateItem = ({
                 </SelectTrigger>
                 <SelectContent>
                   {positions.map((pos) => (
-                    <SelectItem key={pos} value={pos}>{pos}</SelectItem>
+                    <SelectItem key={pos} value={pos || UNKNOWN_POSITION}>{pos || "Unknown Position"}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -157,7 +158,7 @@ const CandidateItem = ({
               </SelectTrigger>
               <SelectContent>
                 {departments.map((dept) => (
-                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  <SelectItem key={dept} value={dept || UNKNOWN_DEPARTMENT}>{dept || "Unknown Department"}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -174,7 +175,7 @@ const CandidateItem = ({
               </SelectTrigger>
               <SelectContent>
                 {yearLevels.map((year) => (
-                  <SelectItem key={year} value={year}>{year}</SelectItem>
+                  <SelectItem key={year} value={year || UNKNOWN_YEAR}>{year || "Unknown Year"}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

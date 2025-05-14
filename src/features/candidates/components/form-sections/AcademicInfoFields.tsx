@@ -9,7 +9,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/features/elections/components/candidate-manager/constants";
+import { DLSU_DEPARTMENTS, YEAR_LEVELS, UNKNOWN_DEPARTMENT, UNKNOWN_YEAR } from "@/types/constants";
 
 interface AcademicInfoFieldsProps {
   form: UseFormReturn<CandidateFormData>;
@@ -35,8 +35,8 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   {DLSU_DEPARTMENTS.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
+                    <SelectItem key={dept} value={dept || UNKNOWN_DEPARTMENT}>
+                      {dept || "Unknown Department"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -64,8 +64,8 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   {YEAR_LEVELS.map((year) => (
-                    <SelectItem key={year} value={year}>
-                      {year}
+                    <SelectItem key={year} value={year || UNKNOWN_YEAR}>
+                      {year || "Unknown Year"}
                     </SelectItem>
                   ))}
                 </SelectContent>

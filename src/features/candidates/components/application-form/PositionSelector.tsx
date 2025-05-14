@@ -3,6 +3,7 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UNKNOWN_POSITION } from "@/types/constants";
 
 interface PositionSelectorProps {
   position: string;
@@ -34,8 +35,8 @@ const PositionSelector = ({
             </SelectTrigger>
             <SelectContent>
               {availablePositions.map((pos) => (
-                <SelectItem key={pos} value={pos}>
-                  {pos}
+                <SelectItem key={pos} value={pos || UNKNOWN_POSITION}>
+                  {pos || "Unknown Position"}
                 </SelectItem>
               ))}
             </SelectContent>

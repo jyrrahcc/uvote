@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Candidate } from "@/types";
 import CandidateItem from "./CandidateItem";
 import EmptyCandidatesList from "./EmptyCandidatesList";
-import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "./constants";
+import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/types/constants";
 
 interface CandidatesListProps {
   candidates: Candidate[];
