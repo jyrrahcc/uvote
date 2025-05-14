@@ -116,23 +116,30 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
     // Get all votes for this poll
     const { data: votesData, error: votesError } = await supabase
       .from('poll_votes')
-      .select(`
-        id,
-        options,
-        user_id,
-        user:user_id(
-          id,
-          first_name:first_name,
-          last_name:last_name,
-          image_url
-        )
-      `)
-      .eq('poll_id', pollId);
+      .select('id, options, user_id');
 
     if (votesError) {
       console.error("Error fetching poll votes:", votesError);
       return [];
     }
+
+    // Fetch user profiles separately
+    const userIds = votesData.map(vote => vote.user_id);
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .in('id', userIds);
+
+    if (profilesError) {
+      console.error("Error fetching user profiles:", profilesError);
+      return [];
+    }
+
+    // Create a map of user IDs to profile data
+    const profileMap: Record<string, any> = {};
+    profilesData.forEach(profile => {
+      profileMap[profile.id] = profile;
+    });
 
     // Process results
     const pollOptions = pollData.options as Record<string, string>;
@@ -160,12 +167,13 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
           totalVotes += 1;
           
           // Add voter information if available
-          if (vote.user) {
+          const profile = profileMap[vote.user_id];
+          if (profile) {
             const voter: PollVoter = {
-              userId: vote.user.id,
-              firstName: vote.user.first_name,
-              lastName: vote.user.last_name,
-              imageUrl: vote.user.image_url
+              userId: profile.id,
+              firstName: profile.first_name,
+              lastName: profile.last_name,
+              imageUrl: profile.image_url
             };
             optionsMap[optionId].voters.push(voter);
           }
