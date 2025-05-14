@@ -31,7 +31,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
     defaultValues: {
       title: "",
       description: "",
-      departments: [],
+      colleges: [],
       eligibleYearLevels: [],
       candidacyStartDate: "",
       candidacyEndDate: "",
@@ -66,7 +66,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
           form.reset({
             title: data.title || "",
             description: data.description || "",
-            departments: Array.isArray(data.departments) && data.departments.length > 0 
+            colleges: Array.isArray(data.departments) && data.departments.length > 0 
               ? data.departments 
               : data.department ? [data.department] : [],
             eligibleYearLevels: Array.isArray(data.eligible_year_levels) ? data.eligible_year_levels : [],
@@ -132,8 +132,8 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       const electionData = {
         title: values.title,
         description: values.description || "",
-        department: values.departments.includes("University-wide") ? "University-wide" : values.departments[0], // For backward compatibility
-        departments: values.departments,
+        department: values.colleges.includes("University-wide") ? "University-wide" : values.colleges[0], // For backward compatibility
+        departments: values.colleges,
         eligible_year_levels: values.eligibleYearLevels,
         candidacy_start_date: values.candidacyStartDate,
         candidacy_end_date: values.candidacyEndDate,
@@ -142,7 +142,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         created_by: user.id,
         is_private: values.isPrivate,
         access_code: values.isPrivate ? values.accessCode : null,
-        restrict_voting: false, // We're integrating voter eligibility directly with departments and year levels
+        restrict_voting: false, // We're integrating voter eligibility directly with colleges and year levels
         status: status,
         positions: values.positions,
         banner_urls: values.banner_urls

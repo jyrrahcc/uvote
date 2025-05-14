@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -90,17 +91,17 @@ const Elections = () => {
             return true;
           }
           
-          // If election restricts by department, check department match
-          const departmentMatch = election.departments?.includes(userProfile.department) || 
+          // If election restricts by college, check college match
+          const departmentMatch = election.colleges?.includes(userProfile.department) || 
                                  election.department === userProfile.department;
           
           // If election restricts by year level, check year level match
           const yearLevelMatch = election.eligibleYearLevels?.includes(userProfile.year_level);
           
           if (election.restrictVoting) {
-            if (election.departments?.length && election.eligibleYearLevels?.length) {
+            if (election.colleges?.length && election.eligibleYearLevels?.length) {
               return departmentMatch && yearLevelMatch;
-            } else if (election.departments?.length) {
+            } else if (election.colleges?.length) {
               return departmentMatch;
             } else if (election.eligibleYearLevels?.length) {
               return yearLevelMatch;
@@ -117,9 +118,13 @@ const Elections = () => {
         setElections(transformedElections);
       }
       
-      // Extract unique departments for filtering
+      // Extract unique colleges for filtering
       const uniqueDepartments = Array.from(
-        new Set(transformedElections.map(e => e.department).filter(Boolean))
+        new Set(
+          transformedElections
+            .flatMap(e => e.colleges?.length > 0 ? e.colleges : (e.department ? [e.department] : []))
+            .filter(Boolean)
+        )
       ) as string[];
       
       setDepartments(uniqueDepartments);
@@ -157,7 +162,9 @@ const Elections = () => {
     const matchesStatus = statusFilter ? election.status === statusFilter : true;
     
     // Apply department filter if selected
-    const matchesDepartment = departmentFilter ? election.department === departmentFilter : true;
+    const matchesDepartment = departmentFilter 
+      ? election.colleges?.includes(departmentFilter) || election.department === departmentFilter 
+      : true;
     
     return matchesSearch && matchesStatus && matchesDepartment;
   });
@@ -198,7 +205,7 @@ const Elections = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 id="search"
-                placeholder="Search by title, description or department..."
+                placeholder="Search by title, description or college..."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -222,15 +229,15 @@ const Elections = () => {
           </div>
           
           <div className="w-full md:w-48 space-y-2">
-            <Label htmlFor="department-filter">College/Department</Label>
+            <Label htmlFor="department-filter">College</Label>
             <Select value={departmentFilter || "all"} onValueChange={(value) => setDepartmentFilter(value === "all" ? null : value)}>
               <SelectTrigger id="department-filter">
-                <SelectValue placeholder="All Departments" />
+                <SelectValue placeholder="All Colleges" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
+                <SelectItem value="all">All Colleges</SelectItem>
                 {departments.map((dept) => (
-                  <SelectItem key={dept} value={dept || "unknown"}>{dept || "Unknown Department"}</SelectItem>
+                  <SelectItem key={dept} value={dept || "unknown"}>{dept || "Unknown College"}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

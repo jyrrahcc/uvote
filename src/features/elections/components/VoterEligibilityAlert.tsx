@@ -10,8 +10,8 @@ interface VoterEligibilityAlertProps {
 }
 
 const VoterEligibilityAlert = ({ election, reason }: VoterEligibilityAlertProps) => {
-  // Use either colleges or departments for backward compatibility
-  const collegesList = election.colleges || election.departments;
+  // Use either colleges or department for backward compatibility
+  const collegesList = election.colleges || (election.department ? [election.department] : []);
   
   return (
     <Alert className="mb-6 bg-red-50 border-red-200">

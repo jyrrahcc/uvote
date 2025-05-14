@@ -90,10 +90,10 @@ const ElectionCard = ({ election, isAccessVerified = false }: ElectionCardProps)
         <CardDescription className="flex items-center gap-1 text-muted-foreground">
           <University className="h-3.5 w-3.5 mr-0.5" />
           <span>
-            {election.departments && election.departments.length > 0
-              ? election.departments.length > 1
-                ? `${election.departments[0]} +${election.departments.length - 1}`
-                : election.departments[0]
+            {election.colleges && election.colleges.length > 0
+              ? election.colleges.length > 1
+                ? `${election.colleges[0]} +${election.colleges.length - 1}`
+                : election.colleges[0]
               : election.department || "University-wide"}
           </span>
         </CardDescription>

@@ -65,15 +65,14 @@ export async function checkUserEligibility(
     console.log("Eligibility check:", {
       userCollege,
       userYearLevel,
-      electionColleges: election.colleges || election.departments,
+      electionColleges: election.colleges,
       electionYearLevels: election.eligibleYearLevels
     });
     
-    // College eligibility check - use either colleges or departments (for compatibility)
-    const electionColleges = election.colleges || election.departments;
-    const isCollegeEligible = !electionColleges?.length || 
-      electionColleges.includes(userCollege) || 
-      electionColleges.includes("University-wide");
+    // College eligibility check - use colleges (formerly departments) 
+    const isCollegeEligible = !election.colleges?.length || 
+      election.colleges.includes(userCollege) || 
+      election.colleges.includes("University-wide");
     
     // Year level eligibility check
     const isYearLevelEligible = !election.eligibleYearLevels?.length || 
@@ -83,9 +82,9 @@ export async function checkUserEligibility(
     // Build appropriate reason message if not eligible
     let reason = null;
     if (!isCollegeEligible && !isYearLevelEligible) {
-      reason = `This election is for ${electionColleges?.join(', ')} colleges and ${election.eligibleYearLevels?.join(', ')} year levels. Your profile shows you're in ${userCollege} and are ${userYearLevel}.`;
+      reason = `This election is for ${election.colleges?.join(', ')} colleges and ${election.eligibleYearLevels?.join(', ')} year levels. Your profile shows you're in ${userCollege} and are ${userYearLevel}.`;
     } else if (!isCollegeEligible) {
-      reason = `This election is for ${electionColleges?.join(', ')} colleges, but your profile shows you're in ${userCollege}.`;
+      reason = `This election is for ${election.colleges?.join(', ')} colleges, but your profile shows you're in ${userCollege}.`;
     } else if (!isYearLevelEligible) {
       reason = `This election is for ${election.eligibleYearLevels?.join(', ')} year levels, but your profile shows you're in ${userYearLevel}.`;
     }

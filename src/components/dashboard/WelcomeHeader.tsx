@@ -1,108 +1,56 @@
 
-import { useAuth } from "@/features/auth/context/AuthContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Clock, User, Calendar } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import React from 'react';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
-interface WelcomeHeaderProps {
-  userRole: string | null;
+type UserProfile = {
+  first_name: string;
+  last_name: string;
+  email: string;
 }
 
-const WelcomeHeader = ({ userRole }: WelcomeHeaderProps) => {
+const WelcomeHeader: React.FC = () => {
   const { user } = useAuth();
+  
+  const { data: profile } = useQuery({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, email')
+        .eq('id', user.id)
+        .single();
+        
+      if (error) throw error;
+      return data as UserProfile;
+    },
+    enabled: !!user,
+  });
 
-  const isAdmin = userRole === 'admin';
-  const lastLoginDate = user?.last_sign_in_at 
-    ? new Date(user.last_sign_in_at) 
-    : new Date();
-
-  const getInitials = () => {
-    if (user?.user_metadata?.first_name && user?.user_metadata?.last_name) {
-      return `${user.user_metadata.first_name.charAt(0)}${user.user_metadata.last_name.charAt(0)}`;
-    }
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    return "U";
-  };
-
-  const getFullName = () => {
-    if (user?.user_metadata?.first_name && user?.user_metadata?.last_name) {
-      return `${user.user_metadata.first_name} ${user.user_metadata.last_name}`;
-    }
-    return user?.email || "User";
-  };
-
-  // Get the display name for the welcome message - prioritize first name if available
-  const getDisplayName = () => {
-    if (user?.user_metadata?.first_name) {
-      return user.user_metadata.first_name;
-    }
-    if (user?.email) {
-      return user.email.split('@')[0]; // Show just the username part before @
-    }
-    return "User";
-  };
-
+  if (!user) return null;
+  
+  // Use first name if available, otherwise extract username from email
+  const displayName = profile?.first_name || user.email?.split('@')[0] || 'User';
+  
+  // Get current time of day
+  const hour = new Date().getHours();
+  let greeting = 'Good morning';
+  if (hour >= 12 && hour < 18) {
+    greeting = 'Good afternoon';
+  } else if (hour >= 18) {
+    greeting = 'Good evening';
+  }
+  
   return (
-    <Card className="border border-muted/40 bg-card/50 shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <Avatar className="h-16 w-16 border-2 border-primary/20">
-            {user?.user_metadata?.avatar_url ? (
-              <AvatarImage src={user.user_metadata.avatar_url} alt={getFullName()} />
-            ) : (
-              <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                {getInitials()}
-              </AvatarFallback>
-            )}
-          </Avatar>
-          
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">
-                Welcome back, {getDisplayName()}
-              </h1>
-              {userRole && (
-                <Badge className={`${isAdmin ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
-                  {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-                </Badge>
-              )}
-            </div>
-            
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <User className="h-3.5 w-3.5" />
-                <span className="text-sm">{getFullName()}</span>
-              </div>
-              
-              <div className="hidden sm:block h-1 w-1 rounded-full bg-muted-foreground/30" />
-              
-              <div className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                <span className="text-sm">
-                  Last login: {formatDistanceToNow(lastLoginDate, { addSuffix: true })}
-                </span>
-              </div>
-              
-              {user?.created_at && (
-                <>
-                  <div className="hidden sm:block h-1 w-1 rounded-full bg-muted-foreground/30" />
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span className="text-sm">
-                      Member since: {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="mb-8">
+      <h1 className="text-3xl font-bold mb-1">{greeting}, {displayName}!</h1>
+      <p className="text-muted-foreground">
+        Here's what's happening with your elections today.
+      </p>
+    </div>
   );
 };
 

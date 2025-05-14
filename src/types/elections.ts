@@ -18,7 +18,7 @@ export interface Election {
   accessCode?: string | null;
   restrictVoting?: boolean;
   department?: string; // Legacy field - for backward compatibility
-  colleges?: string[]; // Array of college names (renamed from departments)
+  colleges: string[]; // Array of college names (renamed from departments)
   positions?: string[]; // Added positions array
   totalEligibleVoters?: number; // Add totalEligibleVoters field
   banner_urls?: string[]; // Added banner_urls array to store election banner images
@@ -87,7 +87,7 @@ export interface DbElection {
   access_code?: string | null;
   restrict_voting?: boolean | null;
   department?: string | null; // Legacy field
-  departments?: string[] | null; // Will be renamed to colleges in the UI
+  departments?: string[] | null; // Will be mapped to colleges in the UI
   positions?: string[] | null; // Added positions array
   total_eligible_voters?: number | null; // Added total_eligible_voters field
   banner_urls?: string[] | null; // Added banner_urls field
@@ -119,7 +119,7 @@ export const mapDbElectionToElection = (dbElection: DbElection): Election => {
     accessCode: dbElection.access_code || null,
     restrictVoting: dbElection.restrict_voting || false,
     department: dbElection.department || '', // Keep for backward compatibility
-    colleges: dbElection.departments || [], // Rename departments to colleges in the UI
+    colleges: dbElection.departments || [], // Map departments to colleges in the UI
     positions: dbElection.positions || [],
     totalEligibleVoters: dbElection.total_eligible_voters || 0,
     banner_urls: dbElection.banner_urls || [],

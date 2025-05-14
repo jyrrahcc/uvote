@@ -215,10 +215,10 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
         <div className="flex items-center">
           <Users className="h-5 w-5 mr-2 text-[#008f50]" />
           <div>
-            <p className="text-sm font-medium">Department</p>
+            <p className="text-sm font-medium">College</p>
             <p className="text-sm text-muted-foreground">
-              {election.departments && election.departments.length > 0 
-                ? election.departments.join(', ') 
+              {election.colleges && election.colleges.length > 0 
+                ? election.colleges.join(', ') 
                 : election.department || "University-wide"}
             </p>
           </div>
@@ -240,7 +240,7 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
             )}
             {!isEligible && isVoter && (
               <p className="text-sm text-amber-700 mt-1 font-medium">
-                Note: You are not eligible to apply for this election based on department or year level requirements.
+                Note: You are not eligible to apply for this election based on college or year level requirements.
               </p>
             )}
           </div>
