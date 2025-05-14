@@ -230,7 +230,7 @@ const Elections = () => {
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
                 {departments.map((dept) => (
-                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  <SelectItem key={dept} value={dept || "unknown"}>{dept || "Unknown Department"}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
