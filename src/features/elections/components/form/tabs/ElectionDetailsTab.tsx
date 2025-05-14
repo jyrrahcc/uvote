@@ -1,5 +1,3 @@
-
-// Only modifying the SelectItem components to make sure they don't have empty values
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,7 +85,7 @@ const ElectionDetailsTab = () => {
                   <FormLabel>Eligible Departments*</FormLabel>
                   <div className="space-y-2">
                     {DLSU_DEPARTMENTS.map((dept) => (
-                      <div key={dept} className="flex items-center space-x-2">
+                      <div key={dept || "unknown-department"} className="flex items-center space-x-2">
                         <Checkbox 
                           id={dept || "unknown-department"}
                           checked={field.value.includes(dept)}
@@ -135,7 +133,7 @@ const ElectionDetailsTab = () => {
                   <FormLabel>Eligible Year Levels</FormLabel>
                   <div className="space-y-2">
                     {YEAR_LEVELS.map((year) => (
-                      <div key={year} className="flex items-center space-x-2">
+                      <div key={year || "unknown-year"} className="flex items-center space-x-2">
                         <Checkbox 
                           id={year || "unknown-year"}
                           checked={field.value.includes(year)}
@@ -227,10 +225,10 @@ const ElectionDetailsTab = () => {
             <div className="flex flex-wrap gap-2">
               {positions.map(position => (
                 <div 
-                  key={position} 
+                  key={position || "unknown-position"} 
                   className="flex items-center gap-1 bg-secondary text-secondary-foreground px-3 py-1 rounded-md"
                 >
-                  <span>{position}</span>
+                  <span>{position || "Unknown Position"}</span>
                   <button
                     type="button"
                     onClick={() => removePosition(position)}

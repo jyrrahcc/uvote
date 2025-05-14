@@ -1,25 +1,19 @@
 
-// DLSU-D Departments for filtering
-export const DLSU_DEPARTMENTS = [
-  "College of Business Administration and Accountancy",
-  "College of Education",
-  "College of Engineering, Architecture and Technology",
-  "College of Humanities, Arts and Social Sciences",
-  "College of Science and Computer Studies",
-  "College of Criminal Justice Education",
-  "College of Tourism and Hospitality Management"
+// Re-export the constants from the electionFormTypes.ts for consistency
+export { 
+  DEFAULT_POSITIONS, 
+  DLSU_DEPARTMENTS as DEPARTMENTS, 
+  YEAR_LEVELS 
+} from "../../types/electionFormTypes";
+
+// Application statuses
+export const APPLICATION_STATUSES = [
+  "pending",
+  "approved",
+  "rejected"
 ];
 
-export const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
-
-// Default positions available in elections
-export const DEFAULT_POSITIONS = [
-  "President",
-  "Vice President",
-  "Secretary",
-  "Treasurer",
-  "Public Relations Officer",
-  "Senator",
-  "Governor",
-  "Department Representative"
-];
+// Define fallback values for empty strings
+export const UNKNOWN_DEPARTMENT = "unknown-department";
+export const UNKNOWN_YEAR = "unknown-year";
+export const UNKNOWN_POSITION = "unknown-position";
