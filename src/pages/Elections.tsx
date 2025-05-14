@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -81,11 +80,6 @@ const Elections = () => {
         
         // Filter elections based on eligibility
         const eligibleElections = transformedElections.filter(election => {
-          // Public elections with no restrictions are accessible to all
-          if (!election.restrictVoting && !election.isPrivate) {
-            return true;
-          }
-          
           // If user is explicitly added to eligible_voters
           if (eligibleElectionIds.has(election.id)) {
             return true;
@@ -108,7 +102,7 @@ const Elections = () => {
             }
           }
           
-          // Default to showing the election if none of the above apply
+          // Default to showing the election
           return true;
         });
         
