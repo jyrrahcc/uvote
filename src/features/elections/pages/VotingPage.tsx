@@ -107,13 +107,14 @@ const VotingPage = () => {
         
         setCandidates(candidatesData || []);
         
-        // Check eligibility if user is logged in and election restricts voting
-        if (user && election.restrictVoting) {
+        // Check eligibility if user is logged in
+        if (user) {
           const eligibilityCheck = await checkUserEligibility(user.id, election);
           setIsEligible(eligibilityCheck.isEligible);
           setEligibilityReason(eligibilityCheck.reason);
         } else {
-          setIsEligible(true); // Default to eligible if no restrictions
+          // When no user, they're not eligible
+          setIsEligible(false);
         }
       } catch (err: any) {
         console.error("Error fetching election data:", err);
