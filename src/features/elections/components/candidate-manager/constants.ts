@@ -11,3 +11,15 @@ export const DLSU_DEPARTMENTS = [
 ];
 
 export const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
+
+// Default positions available in elections
+export const DEFAULT_POSITIONS = [
+  "President",
+  "Vice President",
+  "Secretary",
+  "Treasurer",
+  "Public Relations Officer",
+  "Senator",
+  "Governor",
+  "Department Representative"
+];
