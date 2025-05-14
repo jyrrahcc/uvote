@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { Poll, PollResults } from '@/types/discussions';
@@ -190,8 +189,8 @@ export const usePolls = (electionId: string) => {
         electionId,
         question,
         options,
-        description || null,
         topicId || null,
+        description || null,
         multipleChoice,
         endsAt || null
       );
