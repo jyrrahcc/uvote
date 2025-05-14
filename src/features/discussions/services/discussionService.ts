@@ -14,11 +14,11 @@ const transformTopic = (topicData: any): DiscussionTopic => {
     updatedAt: topicData.updated_at,
     isPinned: topicData.is_pinned || false,
     isLocked: topicData.is_locked || false,
-    author: topicData.author ? {
-      id: topicData.author.id,
-      firstName: topicData.author.first_name,
-      lastName: topicData.author.last_name,
-      imageUrl: topicData.author.image_url
+    author: topicData.profiles ? {
+      id: topicData.profiles.id,
+      firstName: topicData.profiles.first_name,
+      lastName: topicData.profiles.last_name,
+      imageUrl: topicData.profiles.image_url
     } : null,
     repliesCount: topicData.repliesCount || topicData.replies_count || 0,
     lastReplyAt: topicData.lastReplyAt || topicData.last_reply_at
@@ -34,11 +34,11 @@ const transformComment = (commentData: any): DiscussionComment => {
     createdAt: commentData.created_at,
     updatedAt: commentData.updated_at,
     parentId: commentData.parent_id || null,
-    author: commentData.author ? {
-      id: commentData.author.id,
-      firstName: commentData.author.first_name,
-      lastName: commentData.author.last_name,
-      imageUrl: commentData.author.image_url
+    author: commentData.profiles ? {
+      id: commentData.profiles.id,
+      firstName: commentData.profiles.first_name,
+      lastName: commentData.profiles.last_name,
+      imageUrl: commentData.profiles.image_url
     } : null,
     replies: []  // Will be populated if needed
   };
@@ -51,7 +51,7 @@ export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> 
       .from('discussion_topics')
       .select(`
         *,
-        author:profiles!created_by (
+        profiles!created_by (
           id,
           first_name,
           last_name,
@@ -90,7 +90,7 @@ export const getTopic = async (topicId: string): Promise<DiscussionTopic | null>
       .from('discussion_topics')
       .select(`
         *,
-        author:profiles!created_by (
+        profiles!created_by (
           id,
           first_name,
           last_name,
@@ -164,7 +164,7 @@ export const createTopic = async (
       .from('discussion_topics')
       .select(`
         *,
-        author:profiles!created_by (
+        profiles!created_by (
           id,
           first_name,
           last_name,
@@ -221,7 +221,7 @@ export const updateTopic = async (
       .from('discussion_topics')
       .select(`
         *,
-        author:profiles!created_by (
+        profiles!created_by (
           id,
           first_name,
           last_name,
@@ -283,7 +283,7 @@ export const getComments = async (topicId: string): Promise<DiscussionComment[]>
       .from('discussion_comments')
       .select(`
         *,
-        author:profiles!user_id (
+        profiles!user_id (
           id,
           first_name,
           last_name,
@@ -344,7 +344,7 @@ export const createComment = async (
       .from('discussion_comments')
       .select(`
         *,
-        author:profiles!user_id (
+        profiles!user_id (
           id,
           first_name,
           last_name,
@@ -394,7 +394,7 @@ export const updateComment = async (
       .from('discussion_comments')
       .select(`
         *,
-        author:profiles!user_id (
+        profiles!user_id (
           id,
           first_name,
           last_name,
