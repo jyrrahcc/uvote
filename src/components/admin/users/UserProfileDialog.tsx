@@ -37,9 +37,9 @@ const UserProfileDialog = ({
     return "U";
   };
 
-  // Check if user is verified based on either is_verified flag or voter role
+  // Check if user is verified based on voter role
   const hasVoterRole = selectedUser.roles.includes('voter');
-  const isEffectivelyVerified = selectedUser.is_verified || hasVoterRole;
+  const isEffectivelyVerified = hasVoterRole;
 
   const handleVerifyProfile = async () => {
     console.log("Verifying profile", selectedUser.id, "Current status:", isEffectivelyVerified);

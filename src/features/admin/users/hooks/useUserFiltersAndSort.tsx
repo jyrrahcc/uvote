@@ -32,11 +32,12 @@ export const useUserFiltersAndSort = (users: UserProfile[]) => {
           currentTab === 'voters' ? user.roles.includes('voter') :
           true;
         
-        // Filter by verification status
+        // Filter by verification status using voter role
+        const isVerified = user.roles.includes('voter');
         const matchesVerification = 
           verificationFilter === 'all' ? true :
-          verificationFilter === 'verified' ? !!user.is_verified :
-          !user.is_verified;
+          verificationFilter === 'verified' ? isVerified :
+          !isVerified;
         
         return matchesSearch && matchesRoleTab && matchesVerification;
       })

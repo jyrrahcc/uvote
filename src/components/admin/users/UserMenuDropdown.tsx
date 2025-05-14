@@ -34,8 +34,8 @@ const UserMenuDropdown = ({
 }: UserMenuDropdownProps) => {
   const hasVoterRole = user.roles.includes('voter');
   
-  // To maintain backward compatibility, we'll consider a user verified if either flag is true
-  const effectivelyVerified = user.is_verified || hasVoterRole;
+  // Consider a user verified if they have the voter role
+  const effectivelyVerified = hasVoterRole;
   
   const handleVerify = () => {
     console.log("UserMenuDropdown - handleVerify:", user.id, effectivelyVerified);

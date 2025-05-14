@@ -42,7 +42,7 @@ const ExportDataButton: React.FC<ExportDataButtonProps> = ({ users }) => {
       user.department || '',
       user.year_level || '',
       user.roles.join(';'),
-      user.is_verified ? 'Yes' : 'No',
+      user.roles.includes('voter') ? 'Yes' : 'No', // Use voter role to determine verification status
       new Date(user.created_at).toLocaleString()
     ].map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
     

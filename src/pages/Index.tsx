@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
@@ -18,7 +19,8 @@ const featuredElections: Election[] = [
     createdAt: "2025-04-01T00:00:00Z",
     updatedAt: "2025-04-01T00:00:00Z",
     isPrivate: false,
-    accessCode: ""
+    accessCode: "",
+    colleges: []  // Added missing property
   },
   {
     id: "1",
@@ -31,7 +33,8 @@ const featuredElections: Election[] = [
     createdAt: "2025-08-01T00:00:00Z",
     updatedAt: "2025-08-01T00:00:00Z",
     isPrivate: false,
-    accessCode: ""
+    accessCode: "",
+    colleges: []  // Added missing property
   },
 ];
 
