@@ -51,7 +51,7 @@ export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> 
       .from('discussion_topics')
       .select(`
         *,
-        author:profiles (
+        author:profiles!created_by (
           id,
           first_name,
           last_name,
@@ -90,7 +90,7 @@ export const getTopic = async (topicId: string): Promise<DiscussionTopic | null>
       .from('discussion_topics')
       .select(`
         *,
-        author:profiles (
+        author:profiles!created_by (
           id,
           first_name,
           last_name,
@@ -134,6 +134,7 @@ export const createTopic = async (
       throw new Error("User not authenticated");
     }
 
+    // First insert the topic
     const topicData = {
       title,
       content,
@@ -141,18 +142,12 @@ export const createTopic = async (
       created_by: userData.user.id
     };
 
+    console.log("Creating new topic:", topicData);
+
     const { data, error } = await supabase
       .from('discussion_topics')
       .insert([topicData])
-      .select(`
-        *,
-        author:profiles (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select()
       .maybeSingle();
 
     if (error) {
@@ -164,7 +159,28 @@ export const createTopic = async (
       return null;
     }
 
-    return transformTopic(data);
+    // Then fetch the complete topic with author information
+    const { data: topicWithAuthor, error: authorError } = await supabase
+      .from('discussion_topics')
+      .select(`
+        *,
+        author:profiles!created_by (
+          id,
+          first_name,
+          last_name,
+          image_url
+        )
+      `)
+      .eq('id', data.id)
+      .maybeSingle();
+
+    if (authorError) {
+      console.error("Error fetching topic with author:", authorError);
+      // Return the basic topic data even if we couldn't fetch the author
+      return transformTopic(data);
+    }
+    
+    return transformTopic(topicWithAuthor || data);
   } catch (error) {
     console.error("Error creating topic:", error);
     return null;
@@ -188,15 +204,7 @@ export const updateTopic = async (
       .from('discussion_topics')
       .update(dbUpdates)
       .eq('id', topicId)
-      .select(`
-        *,
-        author:profiles (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select()
       .maybeSingle();
 
     if (error) {
@@ -208,7 +216,28 @@ export const updateTopic = async (
       return null;
     }
 
-    return transformTopic(data);
+    // Then fetch the complete topic with author information
+    const { data: topicWithAuthor, error: authorError } = await supabase
+      .from('discussion_topics')
+      .select(`
+        *,
+        author:profiles!created_by (
+          id,
+          first_name,
+          last_name,
+          image_url
+        )
+      `)
+      .eq('id', data.id)
+      .maybeSingle();
+
+    if (authorError) {
+      console.error("Error fetching topic with author:", authorError);
+      // Return the basic topic data even if we couldn't fetch the author
+      return transformTopic(data);
+    }
+    
+    return transformTopic(topicWithAuthor || data);
   } catch (error) {
     console.error("Error updating topic:", error);
     return null;
@@ -254,7 +283,7 @@ export const getComments = async (topicId: string): Promise<DiscussionComment[]>
       .from('discussion_comments')
       .select(`
         *,
-        author:profiles (
+        author:profiles!user_id (
           id,
           first_name,
           last_name,
@@ -298,15 +327,7 @@ export const createComment = async (
     const { data, error } = await supabase
       .from('discussion_comments')
       .insert(commentData)
-      .select(`
-        *,
-        author:profiles (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select()
       .maybeSingle();
 
     if (error) {
@@ -318,7 +339,28 @@ export const createComment = async (
       return null;
     }
 
-    return transformComment(data);
+    // Then fetch the complete comment with author information
+    const { data: commentWithAuthor, error: authorError } = await supabase
+      .from('discussion_comments')
+      .select(`
+        *,
+        author:profiles!user_id (
+          id,
+          first_name,
+          last_name,
+          image_url
+        )
+      `)
+      .eq('id', data.id)
+      .maybeSingle();
+
+    if (authorError) {
+      console.error("Error fetching comment with author:", authorError);
+      // Return the basic comment data even if we couldn't fetch the author
+      return transformComment(data);
+    }
+    
+    return transformComment(commentWithAuthor || data);
   } catch (error) {
     console.error("Error creating comment:", error);
     return null;
@@ -335,15 +377,7 @@ export const updateComment = async (
       .from('discussion_comments')
       .update({ content })
       .eq('id', commentId)
-      .select(`
-        *,
-        author:profiles (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select()
       .maybeSingle();
 
     if (error) {
@@ -355,7 +389,28 @@ export const updateComment = async (
       return null;
     }
 
-    return transformComment(data);
+    // Then fetch the complete comment with author information
+    const { data: commentWithAuthor, error: authorError } = await supabase
+      .from('discussion_comments')
+      .select(`
+        *,
+        author:profiles!user_id (
+          id,
+          first_name,
+          last_name,
+          image_url
+        )
+      `)
+      .eq('id', data.id)
+      .maybeSingle();
+
+    if (authorError) {
+      console.error("Error fetching comment with author:", authorError);
+      // Return the basic comment data even if we couldn't fetch the author
+      return transformComment(data);
+    }
+    
+    return transformComment(commentWithAuthor || data);
   } catch (error) {
     console.error("Error updating comment:", error);
     return null;
