@@ -1,3 +1,5 @@
+
+// Only modifying the SelectItem components to make sure they don't have empty values
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,7 +89,7 @@ const ElectionDetailsTab = () => {
                     {DLSU_DEPARTMENTS.map((dept) => (
                       <div key={dept} className="flex items-center space-x-2">
                         <Checkbox 
-                          id={dept}
+                          id={dept || "unknown-department"}
                           checked={field.value.includes(dept)}
                           onCheckedChange={(checked) => {
                             const currentDepartments = [...field.value];
@@ -109,10 +111,10 @@ const ElectionDetailsTab = () => {
                           }}
                         />
                         <Label 
-                          htmlFor={dept}
+                          htmlFor={dept || "unknown-department"}
                           className="text-sm font-normal"
                         >
-                          {dept}
+                          {dept || "Unknown Department"}
                         </Label>
                       </div>
                     ))}
@@ -135,7 +137,7 @@ const ElectionDetailsTab = () => {
                     {YEAR_LEVELS.map((year) => (
                       <div key={year} className="flex items-center space-x-2">
                         <Checkbox 
-                          id={year}
+                          id={year || "unknown-year"}
                           checked={field.value.includes(year)}
                           onCheckedChange={(checked) => {
                             const currentYears = [...field.value];
@@ -157,10 +159,10 @@ const ElectionDetailsTab = () => {
                           }}
                         />
                         <Label 
-                          htmlFor={year}
+                          htmlFor={year || "unknown-year"}
                           className="text-sm font-normal"
                         >
-                          {year}
+                          {year || "Unknown Year"}
                         </Label>
                       </div>
                     ))}

@@ -60,7 +60,10 @@ const VoterSearch = ({
           <SelectContent>
             <SelectItem value="all">All Departments</SelectItem>
             {DLSU_DEPARTMENTS.map(dept => (
-              <SelectItem key={dept} value={dept || "unknown-department"}>
+              <SelectItem 
+                key={dept} 
+                value={dept || "unknown-department"}
+              >
                 {dept || "Unknown Department"}
               </SelectItem>
             ))}
@@ -82,7 +85,10 @@ const VoterSearch = ({
           <SelectContent>
             <SelectItem value="all">All Years</SelectItem>
             {YEAR_LEVELS.map(year => (
-              <SelectItem key={year} value={year || "unknown-year"}>
+              <SelectItem 
+                key={year} 
+                value={year || "unknown-year"}
+              >
                 {year || "Unknown Year"}
               </SelectItem>
             ))}
