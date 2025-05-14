@@ -148,10 +148,10 @@ export const usePolls = (electionId: string) => {
   const addPoll = async (
     question: string, 
     options: Record<string, string>,
-    description?: string,
+    description?: string | null,
     topicId?: string | null,
     multipleChoice: boolean = false,
-    endsAt?: string
+    endsAt?: string | null
   ) => {
     try {
       if (!user) {
@@ -189,10 +189,10 @@ export const usePolls = (electionId: string) => {
         electionId,
         question,
         options,
-        topicId || null,
-        description || null,
+        topicId,
+        description,
         multipleChoice,
-        endsAt || null
+        endsAt
       );
       
       if (newPoll) {

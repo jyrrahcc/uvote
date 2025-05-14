@@ -104,9 +104,9 @@ export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
 
 export const createPoll = async (
   electionId: string,
-  topicId: string | null,
   question: string,
   options: Record<string, string>,
+  topicId?: string | null,
   description?: string | null,
   multipleChoice: boolean = false,
   endsAt?: string | null

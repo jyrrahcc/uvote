@@ -172,16 +172,18 @@ const PollView = ({
                 )}
               </div>
               
-              {canManagePoll() && !poll.is_closed && (
+              {canManagePoll() && (
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleClosePoll}
-                  >
-                    <Clock size={16} className="mr-1" />
-                    Close Poll
-                  </Button>
+                  {!poll.is_closed && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleClosePoll}
+                    >
+                      <Clock size={16} className="mr-1" />
+                      Close Poll
+                    </Button>
+                  )}
                   <Button 
                     variant="outline" 
                     size="sm"
