@@ -24,19 +24,7 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
       
       console.log(`Updating verification status for user ${userId}: setting to ${!isVerified}`);
       
-      // Update profile verification status
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          is_verified: !isVerified,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', userId);
-      
-      if (error) {
-        console.error("Database update error:", error);
-        throw error;
-      }
+      // We no longer update the is_verified flag, but instead manage verification through roles
       
       // If verifying, assign voter role if not already assigned
       if (!isVerified) {
@@ -57,8 +45,7 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
       setUsers(prevUsers => prevUsers.map(user => {
         if (user.id === userId) {
           const updatedUser = { 
-            ...user, 
-            is_verified: !isVerified 
+            ...user
           };
           
           // If verifying, add voter role if not present
@@ -99,28 +86,8 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
       
       if (action === 'remove') {
         await removeRole(userId, role as "admin" | "voter");
-        
-        // If removing voter role, also update verification status
-        if (role === 'voter') {
-          const { error } = await supabase
-            .from('profiles')
-            .update({ is_verified: false })
-            .eq('id', userId);
-            
-          if (error) throw error;
-        }
       } else {
         await assignRole(userId, role as "admin" | "voter");
-        
-        // If adding voter role, also mark as verified
-        if (role === 'voter') {
-          const { error } = await supabase
-            .from('profiles')
-            .update({ is_verified: true })
-            .eq('id', userId);
-            
-          if (error) throw error;
-        }
       }
       
       // Update local state
@@ -133,14 +100,9 @@ export const useUserManagement = (users: UserProfile[], setUsers: React.Dispatch
             updatedRoles.push(role);
           }
           
-          // If adding voter role, also mark as verified
-          // If removing voter role, mark as not verified
           const updatedUser = { 
             ...user, 
-            roles: updatedRoles,
-            is_verified: role === 'voter' && action === 'add' ? true : 
-                         role === 'voter' && action === 'remove' ? false : 
-                         user.is_verified
+            roles: updatedRoles
           };
           
           return updatedUser;

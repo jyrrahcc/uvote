@@ -7,7 +7,6 @@ export interface UserProfile {
   student_id?: string;
   department?: string;
   year_level?: string;
-  is_verified?: boolean;
   roles: string[];
   created_at: string;
   image_url?: string | null;  // Updated to be optional and accept null
