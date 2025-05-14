@@ -27,7 +27,7 @@ const CandidateApplicationForm = ({
   electionId, 
   userId = '', 
   onClose, 
-  onSuccess,
+  onSuccess = () => {},
   onApplicationSubmitted,
   onCancel,
   isUserEligible: initialEligibility,

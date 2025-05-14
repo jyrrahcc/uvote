@@ -1,9 +1,12 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UNKNOWN_DEPARTMENT, UNKNOWN_YEAR, UNKNOWN_POSITION } from "@/features/elections/components/candidate-manager/constants";
 import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/features/elections/components/candidate-manager/constants";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const applicationFormSchema = z.object({
   name: z.string().min(3, { message: "Name must be at least 3 characters." }),
@@ -16,7 +19,7 @@ const applicationFormSchema = z.object({
     message: "Please select a valid year level.",
   }),
   bio: z.string().min(10, { message: "Bio must be at least 10 characters." }),
-  image_url: z.string().url({ message: "Please enter a valid URL." }),
+  image_url: z.string().url({ message: "Please enter a valid URL." }).optional(),
 });
 
 export type ApplicationFormValues = z.infer<typeof applicationFormSchema>;
@@ -25,10 +28,42 @@ interface UseApplicationFormProps {
   electionId: string;
   userId: string;
   onSuccess: () => void;
+  onApplicationSubmitted?: () => void;
+  onClose?: () => void;
+  initialEligibility?: boolean;
+  initialEligibilityReason?: string | null;
 }
 
-export const useApplicationForm = ({ electionId, userId, onSuccess }: UseApplicationFormProps) => {
+interface UserProfile {
+  student_id?: string;
+  department?: string;
+  year_level?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+export const useApplicationForm = ({ 
+  electionId, 
+  userId, 
+  onSuccess,
+  onApplicationSubmitted,
+  onClose,
+  initialEligibility,
+  initialEligibilityReason
+}: UseApplicationFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState("");
+  const [position, setPosition] = useState("");
+  const [bio, setBio] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [availablePositions, setAvailablePositions] = useState<string[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isEligible, setIsEligible] = useState<boolean>(initialEligibility ?? true);
+  const [eligibilityReason, setEligibilityReason] = useState<string | null>(initialEligibilityReason ?? null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   const form = useForm<ApplicationFormValues>({
     resolver: zodResolver(applicationFormSchema),
@@ -42,9 +77,69 @@ export const useApplicationForm = ({ electionId, userId, onSuccess }: UseApplica
       image_url: "",
     },
   });
+  
+  // Fetch user profile data
+  useEffect(() => {
+    async function fetchUserProfile() {
+      if (!userId) return;
+      
+      setProfileLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('student_id, department, year_level, first_name, last_name')
+          .eq('id', userId)
+          .single();
+          
+        if (error) throw error;
+        
+        setUserProfile(data);
+        
+        // Pre-fill form with user data if available
+        if (data) {
+          if (data.student_id) form.setValue('student_id', data.student_id);
+          if (data.department) form.setValue('department', data.department);
+          if (data.year_level) form.setValue('year_level', data.year_level);
+          
+          // Set name from first and last name
+          const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
+          if (fullName) {
+            setName(fullName);
+            form.setValue('name', fullName);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      } finally {
+        setProfileLoading(false);
+      }
+    }
+    
+    // Fetch available positions for the election
+    async function fetchPositions() {
+      try {
+        const { data, error } = await supabase
+          .from('positions')
+          .select('title')
+          .eq('election_id', electionId);
+          
+        if (error) throw error;
+        
+        const positions = data?.map(p => p.title) || [];
+        setAvailablePositions(positions);
+      } catch (error) {
+        console.error("Error fetching positions:", error);
+      }
+    }
+    
+    fetchUserProfile();
+    fetchPositions();
+  }, [userId, electionId, form]);
 
   const onSubmit: SubmitHandler<ApplicationFormValues> = async (data) => {
     setIsSubmitting(true);
+    setValidationError(null);
+    
     try {
       const response = await fetch('/api/applications/register', {
         method: 'POST',
@@ -55,21 +150,61 @@ export const useApplicationForm = ({ electionId, userId, onSuccess }: UseApplica
           ...data,
           election_id: electionId,
           user_id: userId,
+          image_url: imageUrl,
         }),
       });
 
       if (response.ok) {
-        onSuccess();
+        toast.success("Application submitted successfully");
+        
+        if (onApplicationSubmitted) {
+          onApplicationSubmitted();
+        } else {
+          onSuccess();
+        }
+        
+        if (onClose) onClose();
       } else {
         const errorData = await response.json();
-        form.setError("root", { message: errorData.message || "Failed to register. Please try again." });
+        setValidationError(errorData.message || "Failed to register. Please try again.");
       }
     } catch (error: any) {
-      form.setError("root", { message: error.message || "An unexpected error occurred." });
+      setValidationError(error.message || "An unexpected error occurred.");
     } finally {
       setIsSubmitting(false);
     }
   };
+  
+  // Wrapper for form submission
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    form.handleSubmit(onSubmit)(e);
+  };
 
-  return { form, onSubmit, isSubmitting };
+  return {
+    form,
+    onSubmit,
+    isSubmitting,
+    // Add all the properties that CandidateApplicationForm.tsx is using
+    name,
+    setName,
+    position,
+    setPosition,
+    bio,
+    setBio,
+    image,
+    setImage,
+    imageUrl,
+    setImageUrl,
+    submitting: isSubmitting,
+    imageUploading,
+    setImageUploading,
+    availablePositions,
+    userProfile,
+    validationError,
+    isEligible,
+    eligibilityReason,
+    handleSubmit,
+    profileLoading
+  };
 };
