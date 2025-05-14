@@ -1,16 +1,18 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollResults, PollVoter } from "@/types";
-import { transformPoll, transformVoter } from "./pollTransformUtils";
+import { transformPoll } from "./pollTransformUtils";
 
-// Get all polls for an election
+/**
+ * Get all polls for an election
+ */
 export const getPolls = async (electionId: string): Promise<Poll[]> => {
   try {
     const { data, error } = await supabase
       .from('polls')
       .select(`
         *,
-        author:profiles (
+        author:profiles(
           id,
           first_name,
           last_name,
@@ -32,14 +34,16 @@ export const getPolls = async (electionId: string): Promise<Poll[]> => {
   }
 };
 
-// Get a single poll by ID
+/**
+ * Get a single poll by ID
+ */
 export const getPoll = async (pollId: string): Promise<Poll | null> => {
   try {
     const { data, error } = await supabase
       .from('polls')
       .select(`
         *,
-        author:profiles (
+        author:profiles(
           id,
           first_name,
           last_name,
@@ -65,31 +69,31 @@ export const getPoll = async (pollId: string): Promise<Poll | null> => {
   }
 };
 
-// Get poll results
+/**
+ * Get poll results
+ */
 export const getPollResults = async (pollId: string): Promise<PollResults[]> => {
   try {
-    // Get the poll to get its options
+    // First, get the poll details to access the options
     const { data: pollData, error: pollError } = await supabase
       .from('polls')
       .select('options')
       .eq('id', pollId)
-      .maybeSingle();
+      .single();
 
     if (pollError || !pollData) {
       console.error("Error fetching poll options:", pollError);
       return [];
     }
 
-    // Get all votes for this poll and directly join with profiles
+    // Then, get all votes for this poll
     const { data: votesData, error: votesError } = await supabase
       .from('poll_votes')
       .select(`
-        id,
         options,
-        user_id,
-        user:profiles (
+        voter:profiles(
           id,
-          first_name, 
+          first_name,
           last_name,
           image_url
         )
@@ -101,55 +105,77 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
       return [];
     }
 
-    // Log the voter data structure for debugging
-    console.log("Vote data structure:", votesData[0]);
+    // Initialize results for each option
+    const optionsMap: Record<string, string> = pollData.options || {};
+    const results: Record<string, {
+      optionId: string;
+      optionText: string;
+      votes: number;
+      voters: PollVoter[];
+    }> = {};
 
-    // Count votes for each option
-    const options = pollData.options as Record<string, string>;
-    const optionIds = Object.keys(options);
-    const totalVotes = votesData.length;
-    
-    const results: PollResults[] = optionIds.map(optionId => {
-      // Count votes for this option
-      const votes = votesData.filter(vote => {
-        const voteOptions = vote.options as string[];
-        return voteOptions.includes(optionId);
-      }).length;
-      
-      // Get voters who selected this option
-      const voters: PollVoter[] = votesData
-        .filter(vote => {
-          const voteOptions = vote.options as string[];
-          return voteOptions.includes(optionId);
-        })
-        .map(transformVoter)
-        .filter((voter): voter is PollVoter => voter !== null);
-
-      return {
+    // Initialize results object with all options
+    Object.entries(optionsMap).forEach(([optionId, optionText]) => {
+      results[optionId] = {
         optionId,
-        optionText: options[optionId],
-        votes,
-        percentage: totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0,
-        voters
+        optionText: optionText as string,
+        votes: 0,
+        voters: []
       };
     });
 
-    // Sort by number of votes (descending)
-    return results.sort((a, b) => b.votes - a.votes);
+    // Count votes and collect voters
+    votesData.forEach(vote => {
+      const options = vote.options || {};
+      const voter = vote.voter ? {
+        userId: vote.voter.id,
+        firstName: vote.voter.first_name,
+        lastName: vote.voter.last_name,
+        imageUrl: vote.voter.image_url
+      } : null;
+
+      Object.keys(options).forEach(optionId => {
+        if (options[optionId] && results[optionId]) {
+          results[optionId].votes++;
+          if (voter) {
+            results[optionId].voters.push(voter);
+          }
+        }
+      });
+    });
+
+    // Calculate percentages and format results
+    const totalVotes = Object.values(results).reduce((sum, option) => sum + option.votes, 0);
+    
+    const formattedResults = Object.values(results).map(option => ({
+      optionId: option.optionId,
+      optionText: option.optionText,
+      votes: option.votes,
+      percentage: totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0,
+      voters: option.voters
+    }));
+
+    // Sort by number of votes descending
+    return formattedResults.sort((a, b) => b.votes - a.votes);
   } catch (error) {
-    console.error("Error getting poll results:", error);
+    console.error("Error fetching poll results:", error);
     return [];
   }
 };
 
-// Get user's vote for a poll
+/**
+ * Get the user's vote on a poll
+ */
 export const getUserVote = async (pollId: string): Promise<string[] | null> => {
   try {
+    // Get current user
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) {
-      return null; // User not authenticated
+      console.error("User not authenticated:", userError);
+      return null;
     }
 
+    // Get user's vote
     const { data, error } = await supabase
       .from('poll_votes')
       .select('options')
@@ -163,12 +189,17 @@ export const getUserVote = async (pollId: string): Promise<string[] | null> => {
     }
 
     if (!data) {
-      return null; // User hasn't voted
+      return null;
     }
 
-    return data.options as string[];
+    // Extract selected option IDs
+    const selectedOptions = Object.entries(data.options || {})
+      .filter(([_, selected]) => selected)
+      .map(([optionId]) => optionId);
+
+    return selectedOptions;
   } catch (error) {
-    console.error("Error getting user vote:", error);
+    console.error("Error fetching user vote:", error);
     return null;
   }
 };

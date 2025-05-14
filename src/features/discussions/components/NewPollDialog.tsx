@@ -1,80 +1,119 @@
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { toast } from '@/hooks/use-toast';
-import { X } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { PlusCircle, Trash2 } from "lucide-react";
+import { Poll } from "@/types";
 
 interface NewPollDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
   onCreatePoll: (
-    question: string, 
-    options: Record<string, string>, 
+    question: string,
+    options: Record<string, string>,
     description?: string,
     multipleChoice?: boolean,
     endsAt?: string
-  ) => Promise<any>;
-  isOpen?: boolean;
-  onClose?: () => void;
+  ) => Promise<Poll | null>;
   electionId: string;
-  topicId?: string; // Add the missing topicId prop as optional
 }
 
-const NewPollDialog = ({ 
-  onCreatePoll, 
-  isOpen: controlledIsOpen, 
-  onClose,
-  electionId,
-  topicId 
-}: NewPollDialogProps) => {
-  const [isOpen, setIsOpen] = useState(controlledIsOpen || false);
-  const [question, setQuestion] = useState('');
-  const [description, setDescription] = useState('');
-  const [options, setOptions] = useState<Record<string, string>>(() => {
-    const initialOptions: Record<string, string> = {};
-    const id1 = uuidv4();
-    const id2 = uuidv4();
-    initialOptions[id1] = '';
-    initialOptions[id2] = '';
-    return initialOptions;
+const NewPollDialog = ({ isOpen, onClose, onCreatePoll, electionId }: NewPollDialogProps) => {
+  const [question, setQuestion] = useState("");
+  const [description, setDescription] = useState("");
+  const [options, setOptions] = useState<Record<string, string>>({
+    "option1": "",
+    "option2": ""
   });
   const [multipleChoice, setMultipleChoice] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (controlledIsOpen !== undefined) {
-      setIsOpen(controlledIsOpen);
+  const { user } = useAuth();
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!question.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a poll question",
+        variant: "destructive"
+      });
+      return;
     }
-  }, [controlledIsOpen]);
-
-  const handleOpenChange = (open: boolean) => {
-    if (onClose && !open) {
-      onClose();
-    }
-    setIsOpen(open);
-  };
-
-  const addOption = () => {
-    setOptions(prev => {
-      const newOptions = { ...prev };
-      newOptions[uuidv4()] = '';
-      return newOptions;
+    
+    // Filter out empty options
+    const filteredOptions: Record<string, string> = {};
+    let validOptionsCount = 0;
+    
+    Object.entries(options).forEach(([key, value]) => {
+      if (value.trim()) {
+        filteredOptions[key] = value.trim();
+        validOptionsCount++;
+      }
     });
+    
+    if (validOptionsCount < 2) {
+      toast({
+        title: "Error",
+        description: "Please add at least two options",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      const result = await onCreatePoll(
+        question.trim(),
+        filteredOptions,
+        description.trim() || undefined,
+        multipleChoice
+      );
+      
+      if (result) {
+        resetForm();
+        onClose();
+        toast({
+          title: "Success",
+          description: "Poll created successfully",
+          variant: "default"
+        });
+      }
+    } catch (error) {
+      console.error("Error creating poll:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create poll",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-
-  const removeOption = (id: string) => {
+  
+  const handleOptionChange = (optionKey: string, value: string) => {
+    setOptions(prev => ({
+      ...prev,
+      [optionKey]: value
+    }));
+  };
+  
+  const addOption = () => {
+    const newOptionKey = `option${Object.keys(options).length + 1}`;
+    setOptions(prev => ({
+      ...prev,
+      [newOptionKey]: ""
+    }));
+  };
+  
+  const removeOption = (optionKey: string) => {
     if (Object.keys(options).length <= 2) {
       toast({
         title: "Error",
@@ -84,181 +123,118 @@ const NewPollDialog = ({
       return;
     }
     
-    setOptions(prev => {
-      const newOptions = { ...prev };
-      delete newOptions[id];
-      return newOptions;
+    const newOptions = { ...options };
+    delete newOptions[optionKey];
+    setOptions(newOptions);
+  };
+  
+  const resetForm = () => {
+    setQuestion("");
+    setDescription("");
+    setOptions({
+      "option1": "",
+      "option2": ""
     });
+    setMultipleChoice(false);
   };
-
-  const updateOption = (id: string, value: string) => {
-    setOptions(prev => {
-      const newOptions = { ...prev };
-      newOptions[id] = value;
-      return newOptions;
-    });
-  };
-
-  const handleSubmit = async () => {
-    if (!question.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a poll question",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Check if any option is empty
-    const hasEmptyOption = Object.values(options).some(option => !option.trim());
-    if (hasEmptyOption) {
-      toast({
-        title: "Error",
-        description: "All poll options must have text",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Check for duplicate options
-    const optionValues = Object.values(options).map(o => o.trim().toLowerCase());
-    const uniqueOptions = new Set(optionValues);
-    if (uniqueOptions.size !== optionValues.length) {
-      toast({
-        title: "Error",
-        description: "Poll options must be unique",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const result = await onCreatePoll(
-        question.trim(), 
-        options, 
-        description.trim() || undefined,
-        multipleChoice
-      );
-      
-      if (result) {
-        setQuestion('');
-        setDescription('');
-        setOptions(() => {
-          const newOptions: Record<string, string> = {};
-          const id1 = uuidv4();
-          const id2 = uuidv4();
-          newOptions[id1] = '';
-          newOptions[id2] = '';
-          return newOptions;
-        });
-        setMultipleChoice(false);
-        handleOpenChange(false);
-        toast({
-          title: "Success",
-          description: "Poll created successfully"
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: `Failed to create poll: ${error.message}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0">
-        <DialogHeader className="p-6 pb-2">
-          <DialogTitle>Create a New Poll</DialogTitle>
-          <DialogDescription>
-            Create a poll to gather opinions on this election.
-          </DialogDescription>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Create New Poll</DialogTitle>
         </DialogHeader>
-        
-        <ScrollArea className="p-6 pt-0 max-h-[calc(90vh-170px)]">
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="question">Question</Label>
-              <Input
-                id="question"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="What would you like to ask?"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Provide additional context for your poll"
-                className="min-h-[80px]"
-              />
-            </div>
-            
-            <div className="space-y-3">
-              <Label>Options</Label>
-              {Object.entries(options).map(([id, value]) => (
-                <div key={id} className="flex items-center gap-2">
-                  <Input
-                    value={value}
-                    onChange={(e) => updateOption(id, e.target.value)}
-                    placeholder="Option text"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeOption(id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addOption}
-                className="w-full mt-2"
-              >
-                Add Option
-              </Button>
-            </div>
-            
-            <div className="flex items-center space-x-2 pt-2">
-              <Checkbox 
-                id="multipleChoice" 
-                checked={multipleChoice} 
-                onCheckedChange={(checked) => setMultipleChoice(!!checked)}
-              />
-              <Label htmlFor="multipleChoice">Allow multiple choices</Label>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="question" className="text-sm font-medium">
+              Poll Question
+            </label>
+            <Input
+              id="question"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="What would you like to ask?"
+              className="mt-1"
+              required
+            />
           </div>
-        </ScrollArea>
-        
-        <DialogFooter className="p-6 pt-2">
-          <Button
-            variant="outline" 
-            onClick={() => handleOpenChange(false)}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={isSubmitting || !question.trim()}
-          >
-            {isSubmitting ? 'Creating...' : 'Create Poll'}
-          </Button>
-        </DialogFooter>
+          
+          <div>
+            <label htmlFor="description" className="text-sm font-medium">
+              Description (Optional)
+            </label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add additional context to your poll"
+              className="mt-1"
+            />
+          </div>
+          
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Poll Options</label>
+            {Object.entries(options).map(([key, value]) => (
+              <div key={key} className="flex gap-2">
+                <Input
+                  value={value}
+                  onChange={(e) => handleOptionChange(key, e.target.value)}
+                  placeholder={`Option ${key.replace('option', '')}`}
+                  className="flex-1"
+                  required
+                />
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => removeOption(key)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addOption}
+              className="mt-2"
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Option
+            </Button>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="multiple-choice"
+              checked={multipleChoice}
+              onCheckedChange={setMultipleChoice}
+            />
+            <Label htmlFor="multiple-choice">Allow multiple selections</Label>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                resetForm();
+                onClose();
+              }}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Poll"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

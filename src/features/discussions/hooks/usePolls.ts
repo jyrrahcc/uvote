@@ -1,17 +1,18 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { Poll, PollResults } from '@/types/discussions';
-import {
+import { Poll, PollResults } from '@/types';
+import { 
   getPolls,
   getPoll,
+  getPollResults,
+  getUserVote,
   createPoll,
   updatePoll,
   deletePoll,
-  getPollResults,
-  getUserVote,
-  vote as castVote
+  voteOnPoll
 } from '../services/pollService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export const usePolls = (electionId: string) => {
@@ -52,6 +53,31 @@ export const usePolls = (electionId: string) => {
     }
   }, [electionId]);
 
+  // Set up initial load and realtime subscription
+  useEffect(() => {
+    if (!electionId) return;
+    
+    loadPolls();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('poll-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'polls',
+        filter: `election_id=eq.${electionId}`
+      }, () => {
+        console.log("Detected change in polls, reloading...");
+        loadPolls();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [electionId, loadPolls]);
+  
   const loadPoll = async (pollId: string) => {
     try {
       setLoading(true);
@@ -100,12 +126,12 @@ export const usePolls = (electionId: string) => {
   };
   
   const addPoll = async (
-    question: string,
+    question: string, 
     options: Record<string, string>,
-    description: string | null = null,
-    topicId: string | null = null,
-    multipleChoice: boolean = false,
-    endsAt: string | null = null
+    description?: string | null,
+    topicId?: string | null,
+    multipleChoice?: boolean,
+    endsAt?: string | null
   ) => {
     if (!user) {
       toast({
@@ -116,25 +142,15 @@ export const usePolls = (electionId: string) => {
       return null;
     }
     
-    if (!electionId) {
-      toast({
-        title: "Error",
-        description: "No election ID provided",
-        variant: "destructive"
-      });
-      return null;
-    }
-    
     try {
-      console.log("Creating new poll:", { question, options, electionId });
+      console.log("Creating new poll:", { question, options, description, topicId, multipleChoice, endsAt });
       const poll = await createPoll(
-        electionId,
-        question,
-        options,
-        description,
-        topicId,
-        multipleChoice,
-        endsAt
+        question, 
+        options, 
+        description || null, 
+        topicId || null, 
+        multipleChoice || false, 
+        endsAt || null
       );
       
       if (poll) {
@@ -202,6 +218,12 @@ export const usePolls = (electionId: string) => {
         // Update selected poll if it's the one being updated
         if (selectedPoll?.id === pollId) {
           setSelectedPoll(updatedPoll);
+          
+          // If poll is closed, refresh the results
+          if (updates.isClosed !== undefined) {
+            const results = await getPollResults(pollId);
+            setPollResults(results);
+          }
         }
         
         return updatedPoll;
@@ -224,7 +246,7 @@ export const usePolls = (electionId: string) => {
     }
   };
   
-  const vote = async (pollId: string, options: string[]) => {
+  const vote = async (pollId: string, selectedOptions: string[]) => {
     if (!user) {
       toast({
         title: "Authentication Error",
@@ -236,28 +258,34 @@ export const usePolls = (electionId: string) => {
     
     try {
       setVoteLoading(true);
-      console.log("Voting in poll:", pollId, options);
-      const success = await castVote(pollId, options);
+      console.log("Voting on poll:", pollId, selectedOptions);
+      const success = await voteOnPoll(pollId, selectedOptions);
       
       if (success) {
-        // Update user's vote
-        setUserVote(options);
+        // Update user vote state
+        setUserVote(selectedOptions);
         
         // Refresh poll results
         const results = await getPollResults(pollId);
         setPollResults(results);
+        
+        toast({
+          title: "Success",
+          description: "Your vote has been recorded",
+          variant: "default"
+        });
         
         return true;
       }
       
       toast({
         title: "Error",
-        description: "Failed to submit vote",
+        description: "Failed to record your vote",
         variant: "destructive"
       });
       return false;
     } catch (error: any) {
-      console.error("Error voting:", error);
+      console.error("Error voting on poll:", error);
       toast({
         title: "Error",
         description: `Failed to vote: ${error.message}`,
@@ -277,8 +305,8 @@ export const usePolls = (electionId: string) => {
     loading,
     voteLoading,
     error,
-    loadPolls,
     loadPoll,
+    loadPolls,
     addPoll,
     updatePoll: updateExistingPoll,
     removePoll,
