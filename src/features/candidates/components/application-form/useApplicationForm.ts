@@ -1,218 +1,75 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from "uuid";
-import { toast } from "sonner";
-import { Election, mapDbElectionToElection } from "@/types";
-import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { useState } from "react";
+import { z } from "zod";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { UNKNOWN_DEPARTMENT, UNKNOWN_YEAR, UNKNOWN_POSITION } from "@/features/elections/components/candidate-manager/constants";
 import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/features/elections/components/candidate-manager/constants";
+
+const applicationFormSchema = z.object({
+  name: z.string().min(3, { message: "Name must be at least 3 characters." }),
+  student_id: z.string().regex(/^[0-9]{8}$/, { message: "Student ID must be 8 digits." }),
+  position: z.string().min(1, { message: "Please select a position." }),
+  department: z.string().refine(value => DLSU_DEPARTMENTS.includes(value), {
+    message: "Please select a valid department.",
+  }),
+  year_level: z.string().refine(value => YEAR_LEVELS.includes(value), {
+    message: "Please select a valid year level.",
+  }),
+  bio: z.string().min(10, { message: "Bio must be at least 10 characters." }),
+  image_url: z.string().url({ message: "Please enter a valid URL." }),
+});
+
+export type ApplicationFormValues = z.infer<typeof applicationFormSchema>;
 
 interface UseApplicationFormProps {
   electionId: string;
   userId: string;
-  onSuccess?: (candidate?: any) => void;  // Updated type to accept optional parameter
-  onApplicationSubmitted?: () => void;
-  onClose?: () => void;
-  initialEligibility?: boolean;
-  initialEligibilityReason?: string | null;
+  onSuccess: () => void;
 }
 
-export const useApplicationForm = ({
-  electionId,
-  userId,
-  onSuccess,
-  onApplicationSubmitted,
-  onClose,
-  initialEligibility,
-  initialEligibilityReason
-}: UseApplicationFormProps) => {
-  const [name, setName] = useState("");
-  const [position, setPosition] = useState("");
-  const [bio, setBio] = useState("");
-  const [image, setImage] = useState<File | null>(null);
-  const [imageUrl, setImageUrl] = useState<string>("");
-  const [department, setDepartment] = useState<string>("");
-  const [yearLevel, setYearLevel] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
-  const [imageUploading, setImageUploading] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [availablePositions, setAvailablePositions] = useState<string[]>([]);
-  const [isEligible, setIsEligible] = useState(initialEligibility !== undefined ? initialEligibility : true);
-  const [eligibilityReason, setEligibilityReason] = useState<string | null>(initialEligibilityReason || null);
-  const [election, setElection] = useState<Election | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-  
-  // Make these available in the component
-  const departments = DLSU_DEPARTMENTS;
-  const yearLevels = YEAR_LEVELS;
+export const useApplicationForm = ({ electionId, userId, onSuccess }: UseApplicationFormProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setProfileLoading(true);
-        
-        // Fetch user profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
+  const form = useForm<ApplicationFormValues>({
+    resolver: zodResolver(applicationFormSchema),
+    defaultValues: {
+      name: "",
+      student_id: "",
+      position: "",
+      department: UNKNOWN_DEPARTMENT,
+      year_level: UNKNOWN_YEAR,
+      bio: "",
+      image_url: "",
+    },
+  });
 
-        if (profileError) {
-          console.error("Profile fetch error:", profileError);
-          toast.error('Failed to load profile data');
-        }
-
-        if (profileData) {
-          setUserProfile(profileData);
-          setName(`${profileData.first_name || ''} ${profileData.last_name || ''}`.trim());
-        } else {
-          console.warn("No profile data found for user:", userId);
-        }
-
-        // Fetch election details including available positions
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('*')
-          .eq('id', electionId)
-          .maybeSingle();
-
-        if (electionError) {
-          console.error("Election fetch error:", electionError);
-          toast.error('Failed to load election data');
-          throw electionError;
-        }
-
-        if (electionData) {
-          // Use the mapper function to convert the DB election to the application Election type
-          const mappedElection = mapDbElectionToElection(electionData);
-          setElection(mappedElection);
-          setAvailablePositions(mappedElection.positions || []);
-          
-          // Check eligibility if not provided externally
-          if (initialEligibility === undefined) {
-            const eligibilityResult = await checkUserEligibility(userId, mappedElection);
-            setIsEligible(eligibilityResult.isEligible);
-            setEligibilityReason(eligibilityResult.reason);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast.error('Failed to load necessary data for application');
-      } finally {
-        setProfileLoading(false);
-      }
-    };
-
-    if (userId && electionId) {
-      loadData();
-    } else {
-      setProfileLoading(false);
-    }
-  }, [userId, electionId, initialEligibility]);
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!isEligible) {
-      toast.error("You are not eligible to apply for candidacy in this election");
-      return;
-    }
-
+  const onSubmit: SubmitHandler<ApplicationFormValues> = async (data) => {
+    setIsSubmitting(true);
     try {
-      setSubmitting(true);
-      setValidationError(null);
+      const response = await fetch('/api/applications/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          election_id: electionId,
+          user_id: userId,
+        }),
+      });
 
-      // Validate required fields
-      if (!name || !position) {
-        setValidationError("Name and position are required");
-        return;
-      }
-
-      if (!bio || bio.trim().length < 10) {
-        setValidationError("Bio must be at least 10 characters");
-        return;
-      }
-
-      if (!department) {
-        setValidationError("Department/College is required");
-        return;
-      }
-
-      if (!yearLevel) {
-        setValidationError("Year level is required");
-        return;
-      }
-
-      // Create the application data
-      const applicationData = {
-        id: uuidv4(),
-        user_id: userId,
-        election_id: electionId,
-        name,
-        position,
-        bio: bio.trim(),
-        image_url: imageUrl || null,
-        status: 'pending',
-        department,
-        year_level: yearLevel
-      };
-
-      // Insert into the database
-      const { error } = await supabase
-        .from('candidate_applications')
-        .insert(applicationData);
-
-      if (error) throw error;
-
-      toast.success("Your application has been submitted for review");
-      
-      // Call success callbacks
-      if (onApplicationSubmitted) {
-        onApplicationSubmitted();
-      }
-      if (onSuccess) {
-        onSuccess({});
-      }
-      if (onClose) {
-        onClose();
+      if (response.ok) {
+        onSuccess();
+      } else {
+        const errorData = await response.json();
+        form.setError("root", { message: errorData.message || "Failed to register. Please try again." });
       }
     } catch (error: any) {
-      console.error("Error submitting application:", error);
-      toast.error("Failed to submit application");
-      setValidationError(error.message || "An error occurred while submitting your application");
+      form.setError("root", { message: error.message || "An unexpected error occurred." });
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  return {
-    name,
-    setName,
-    position,
-    setPosition,
-    bio,
-    setBio,
-    image,
-    setImage,
-    imageUrl,
-    setImageUrl,
-    department,
-    setDepartment,
-    yearLevel,
-    setYearLevel,
-    departments,
-    yearLevels,
-    submitting,
-    imageUploading,
-    setImageUploading,
-    availablePositions,
-    userProfile,
-    validationError,
-    isEligible,
-    eligibilityReason,
-    handleSubmit,
-    profileLoading,
-  };
+  return { form, onSubmit, isSubmitting };
 };

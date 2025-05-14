@@ -2,7 +2,7 @@
 // Re-export the constants from the electionFormTypes.ts for consistency
 export { 
   DEFAULT_POSITIONS, 
-  DLSU_DEPARTMENTS as DEPARTMENTS, 
+  DLSU_DEPARTMENTS, 
   YEAR_LEVELS 
 } from "../../types/electionFormTypes";
 
