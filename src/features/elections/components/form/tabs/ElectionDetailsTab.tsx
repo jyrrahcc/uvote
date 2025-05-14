@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ import {
   ElectionFormValues,
   YEAR_LEVELS 
 } from "../../../types/electionFormTypes";
+import { UNKNOWN_DEPARTMENT, UNKNOWN_YEAR } from "../../candidate-manager/constants";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -85,9 +87,9 @@ const ElectionDetailsTab = () => {
                   <FormLabel>Eligible Departments*</FormLabel>
                   <div className="space-y-2">
                     {DLSU_DEPARTMENTS.map((dept) => (
-                      <div key={dept || "unknown-department"} className="flex items-center space-x-2">
+                      <div key={dept || UNKNOWN_DEPARTMENT} className="flex items-center space-x-2">
                         <Checkbox 
-                          id={dept || "unknown-department"}
+                          id={dept || UNKNOWN_DEPARTMENT}
                           checked={field.value.includes(dept)}
                           onCheckedChange={(checked) => {
                             const currentDepartments = [...field.value];
@@ -109,7 +111,7 @@ const ElectionDetailsTab = () => {
                           }}
                         />
                         <Label 
-                          htmlFor={dept || "unknown-department"}
+                          htmlFor={dept || UNKNOWN_DEPARTMENT}
                           className="text-sm font-normal"
                         >
                           {dept || "Unknown Department"}
@@ -133,9 +135,9 @@ const ElectionDetailsTab = () => {
                   <FormLabel>Eligible Year Levels</FormLabel>
                   <div className="space-y-2">
                     {YEAR_LEVELS.map((year) => (
-                      <div key={year || "unknown-year"} className="flex items-center space-x-2">
+                      <div key={year || UNKNOWN_YEAR} className="flex items-center space-x-2">
                         <Checkbox 
-                          id={year || "unknown-year"}
+                          id={year || UNKNOWN_YEAR}
                           checked={field.value.includes(year)}
                           onCheckedChange={(checked) => {
                             const currentYears = [...field.value];
@@ -157,7 +159,7 @@ const ElectionDetailsTab = () => {
                           }}
                         />
                         <Label 
-                          htmlFor={year || "unknown-year"}
+                          htmlFor={year || UNKNOWN_YEAR}
                           className="text-sm font-normal"
                         >
                           {year || "Unknown Year"}

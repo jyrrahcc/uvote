@@ -27,7 +27,7 @@ export type ApplicationFormValues = z.infer<typeof applicationFormSchema>;
 interface UseApplicationFormProps {
   electionId: string;
   userId: string;
-  onSuccess: () => void;
+  onSuccess: (candidate?: any) => void;
   onApplicationSubmitted?: () => void;
   onClose?: () => void;
   initialEligibility?: boolean;
@@ -98,8 +98,8 @@ export const useApplicationForm = ({
         // Pre-fill form with user data if available
         if (data) {
           if (data.student_id) form.setValue('student_id', data.student_id);
-          if (data.department) form.setValue('department', data.department);
-          if (data.year_level) form.setValue('year_level', data.year_level);
+          if (data.department) form.setValue('department', data.department || UNKNOWN_DEPARTMENT);
+          if (data.year_level) form.setValue('year_level', data.year_level || UNKNOWN_YEAR);
           
           // Set name from first and last name
           const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
@@ -119,14 +119,22 @@ export const useApplicationForm = ({
     async function fetchPositions() {
       try {
         const { data, error } = await supabase
-          .from('positions')
-          .select('title')
-          .eq('election_id', electionId);
+          .from('elections')
+          .select('positions')
+          .eq('id', electionId)
+          .single();
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching positions:", error);
+          return;
+        }
         
-        const positions = data?.map(p => p.title) || [];
-        setAvailablePositions(positions);
+        if (data && data.positions && Array.isArray(data.positions)) {
+          const positionsWithFallback = data.positions.map(p => p || UNKNOWN_POSITION);
+          setAvailablePositions(positionsWithFallback);
+        } else {
+          setAvailablePositions([]);
+        }
       } catch (error) {
         console.error("Error fetching positions:", error);
       }
@@ -185,7 +193,6 @@ export const useApplicationForm = ({
     form,
     onSubmit,
     isSubmitting,
-    // Add all the properties that CandidateApplicationForm.tsx is using
     name,
     setName,
     position,

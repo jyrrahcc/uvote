@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Candidate } from "@/types";
+import { UNKNOWN_DEPARTMENT, UNKNOWN_POSITION, UNKNOWN_YEAR } from "./constants";
 
 interface CandidateItemProps {
   candidate: Candidate;
@@ -47,7 +48,7 @@ const CandidateItem = ({
             Position*
           </label>
           <Select
-            value={candidate.position || ""}
+            value={candidate.position || UNKNOWN_POSITION}
             onValueChange={(value) => onUpdate(index, "position", value)}
           >
             <SelectTrigger id={`candidate-position-${index}`}>
@@ -56,8 +57,8 @@ const CandidateItem = ({
             <SelectContent>
               {positions.map((position) => (
                 <SelectItem 
-                  key={position || "unknown-position"} 
-                  value={position || "unknown-position"}
+                  key={position || UNKNOWN_POSITION} 
+                  value={position || UNKNOWN_POSITION}
                 >
                   {position || "Unknown Position"}
                 </SelectItem>
@@ -71,7 +72,7 @@ const CandidateItem = ({
             Department
           </label>
           <Select
-            value={candidate.department || ""}
+            value={candidate.department || UNKNOWN_DEPARTMENT}
             onValueChange={(value) => onUpdate(index, "department", value)}
           >
             <SelectTrigger id={`candidate-department-${index}`}>
@@ -80,8 +81,8 @@ const CandidateItem = ({
             <SelectContent>
               {departments.map((dept) => (
                 <SelectItem 
-                  key={dept || "unknown-department"} 
-                  value={dept || "unknown-department"}
+                  key={dept || UNKNOWN_DEPARTMENT} 
+                  value={dept || UNKNOWN_DEPARTMENT}
                 >
                   {dept || "Unknown Department"}
                 </SelectItem>
@@ -95,7 +96,7 @@ const CandidateItem = ({
             Year Level
           </label>
           <Select
-            value={candidate.year_level || ""}
+            value={candidate.year_level || UNKNOWN_YEAR}
             onValueChange={(value) => onUpdate(index, "year_level", value)}
           >
             <SelectTrigger id={`candidate-year-${index}`}>
@@ -104,8 +105,8 @@ const CandidateItem = ({
             <SelectContent>
               {yearLevels.map((year) => (
                 <SelectItem 
-                  key={year || "unknown-year"} 
-                  value={year || "unknown-year"}
+                  key={year || UNKNOWN_YEAR} 
+                  value={year || UNKNOWN_YEAR}
                 >
                   {year || "Unknown Year"}
                 </SelectItem>

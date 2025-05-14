@@ -9,7 +9,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/features/elections/components/candidate-manager/constants";
+import { DLSU_DEPARTMENTS, YEAR_LEVELS, UNKNOWN_DEPARTMENT, UNKNOWN_YEAR } from "@/features/elections/components/candidate-manager/constants";
 
 interface VoterSearchProps {
   searchTerm: string;
@@ -61,8 +61,8 @@ const VoterSearch = ({
             <SelectItem value="all">All Departments</SelectItem>
             {DLSU_DEPARTMENTS.map(dept => (
               <SelectItem 
-                key={dept || "unknown-department"} 
-                value={dept || "unknown-department"}
+                key={dept || UNKNOWN_DEPARTMENT} 
+                value={dept || UNKNOWN_DEPARTMENT}
               >
                 {dept || "Unknown Department"}
               </SelectItem>
@@ -86,8 +86,8 @@ const VoterSearch = ({
             <SelectItem value="all">All Years</SelectItem>
             {YEAR_LEVELS.map(year => (
               <SelectItem 
-                key={year || "unknown-year"} 
-                value={year || "unknown-year"}
+                key={year || UNKNOWN_YEAR} 
+                value={year || UNKNOWN_YEAR}
               >
                 {year || "Unknown Year"}
               </SelectItem>
