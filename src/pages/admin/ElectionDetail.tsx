@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -624,11 +623,11 @@ const ElectionDetail = () => {
                   <div>
                     <h3 className="text-lg font-medium mb-2">Eligible Voters</h3>
                     <div className="space-y-2">
-                      {election.departments && election.departments.length > 0 && (
+                      {election.colleges && election.colleges.length > 0 && (
                         <div>
                           <div className="font-medium">Eligible Departments:</div>
                           <div className="flex flex-wrap gap-2 mt-1">
-                            {election.departments.map(dept => (
+                            {election.colleges.map(dept => (
                               <Badge key={dept} variant="outline">{dept}</Badge>
                             ))}
                           </div>
