@@ -1,6 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { Poll, PollResults, PollVoter } from "@/types/discussions";
+import { Poll, PollResults, PollVoter } from "@/types";
 
 // Transform data from snake_case DB format to camelCase TypeScript models
 const transformPoll = (pollData: any): Poll => {

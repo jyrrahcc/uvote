@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Calendar, BarChart } from "lucide-react";
-import { Poll } from "@/types/discussions";
+import { Poll, DiscussionTopic } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
 import NewPollDialog from "./NewPollDialog";
@@ -15,6 +14,7 @@ interface PollsListProps {
   polls: Poll[];
   loading: boolean;
   onSelectPoll: (poll: Poll) => void;
+  onSelectTopic?: (topic: DiscussionTopic) => void; // Add this line
   onCreatePoll: (question: string, options: Record<string, string>, description?: string, multipleChoice?: boolean, endsAt?: string) => Promise<Poll | null>;
   electionId: string;
 }
@@ -23,9 +23,11 @@ const PollsList = ({
   polls,
   loading,
   onSelectPoll,
+  onSelectTopic,
   onCreatePoll,
   electionId,
 }: PollsListProps) => {
+  
   const [isNewPollOpen, setIsNewPollOpen] = useState(false);
   const { user } = useAuth();
   const { isVoter } = useRole();

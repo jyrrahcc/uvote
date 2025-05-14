@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDiscussions } from "./hooks/useDiscussions";
@@ -14,7 +13,7 @@ import DiscussionList from "./components/DiscussionList";
 import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
-import { DiscussionTopic, Poll } from "@/types/discussions";
+import { DiscussionTopic, Poll } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -318,7 +317,6 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
             <PollsList
               polls={polls}
               loading={pollLoading}
-              onSelectTopic={handleSelectTopic}
               onSelectPoll={handleSelectPoll}
               onCreatePoll={handleCreatePoll}
               electionId={finalElectionId}
