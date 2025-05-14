@@ -1,4 +1,3 @@
-
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,8 +14,11 @@ import {
   YEAR_LEVELS 
 } from "@/features/elections/types/electionFormTypes";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useFormContext } from "react-hook-form";
 
 export function ElectionDetailsTab() {
+  const form = useFormContext();
+  
   return (
     <div className="space-y-4 py-4">
       <FormField
@@ -32,7 +34,6 @@ export function ElectionDetailsTab() {
           </FormItem>
         )}
       />
-      
       
       <FormField
         control={form.control}
@@ -51,7 +52,6 @@ export function ElectionDetailsTab() {
           </FormItem>
         )}
       />
-      
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
@@ -75,7 +75,6 @@ export function ElectionDetailsTab() {
           )}
         />
         
-        
         <FormField
           control={form.control}
           name="candidacyEndDate"
@@ -97,7 +96,6 @@ export function ElectionDetailsTab() {
           )}
         />
       </div>
-      
       
       <FormField
         control={form.control}
@@ -147,7 +145,6 @@ export function ElectionDetailsTab() {
         )}
       />
       
-      
       <FormField
         control={form.control}
         name="eligibleYearLevels"
@@ -196,7 +193,6 @@ export function ElectionDetailsTab() {
         )}
       />
       
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
@@ -218,7 +214,6 @@ export function ElectionDetailsTab() {
             </FormItem>
           )}
         />
-        
         
         <FormField
           control={form.control}
@@ -242,7 +237,6 @@ export function ElectionDetailsTab() {
         />
       </div>
       
-      
       <FormField
         control={form.control}
         name="isPrivate"
@@ -264,7 +258,6 @@ export function ElectionDetailsTab() {
         )}
       />
       
-      
       {form.watch("isPrivate") && (
         <FormField
           control={form.control}
@@ -280,7 +273,6 @@ export function ElectionDetailsTab() {
           )}
         />
       )}
-      
       
       <FormField
         control={form.control}
