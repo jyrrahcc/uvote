@@ -1,4 +1,5 @@
 
+import React from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { UseFormReturn } from "react-hook-form";
 import type { CandidateFormData } from "../../schemas/candidateFormSchema";
@@ -35,7 +36,7 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   {DLSU_DEPARTMENTS.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
+                    <SelectItem key={dept} value={dept || "unknown-department"}>
                       {dept}
                     </SelectItem>
                   ))}
@@ -64,7 +65,7 @@ const AcademicInfoFields = ({ form }: AcademicInfoFieldsProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   {YEAR_LEVELS.map((year) => (
-                    <SelectItem key={year} value={year}>
+                    <SelectItem key={year} value={year || "unknown-year"}>
                       {year}
                     </SelectItem>
                   ))}

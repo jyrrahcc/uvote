@@ -25,7 +25,7 @@ const PositionSelector = ({
       {availablePositions.length > 0 ? (
         <div className="col-span-3">
           <Select
-            value={position || ""} 
+            value={position || ""}
             onValueChange={setPosition}
             required={required}
           >
@@ -34,8 +34,8 @@ const PositionSelector = ({
             </SelectTrigger>
             <SelectContent>
               {availablePositions.map((pos) => (
-                <SelectItem key={pos} value={pos}>
-                  {pos}
+                <SelectItem key={pos} value={pos || "unknown-position"}>
+                  {pos || "Unknown Position"}
                 </SelectItem>
               ))}
             </SelectContent>
