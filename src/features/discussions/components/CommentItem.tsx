@@ -82,28 +82,28 @@ const CommentItem = ({ comment, onReply, onEdit, onDelete }: CommentItemProps) =
   
   const canModifyComment = () => {
     if (!user) return false;
-    return isAdmin || comment.user_id === user.id;
+    return isAdmin || comment.createdBy === user.id;
   };
   
   return (
-    <Card className={`${comment.parent_id ? 'ml-8 mt-2' : ''}`}>
+    <Card className={`${comment.parentId ? 'ml-8 mt-2' : ''}`}>
       <CardContent className="pt-6">
         <div className="flex justify-between items-start mb-2">
           <div className="flex items-center">
             <Avatar className="h-8 w-8 mr-2">
-              {comment.author?.image_url ? (
-                <AvatarImage src={comment.author.image_url} alt={`${comment.author?.first_name} ${comment.author?.last_name}`} />
+              {comment.author?.imageUrl ? (
+                <AvatarImage src={comment.author.imageUrl} alt={`${comment.author?.firstName} ${comment.author?.lastName}`} />
               ) : (
                 <AvatarFallback>
-                  {comment.author ? getInitials(comment.author.first_name, comment.author.last_name) : <User />}
+                  {comment.author ? getInitials(comment.author.firstName, comment.author.lastName) : <User />}
                 </AvatarFallback>
               )}
             </Avatar>
             <div>
               <div className="font-medium">
-                {comment.author ? `${comment.author.first_name} ${comment.author.last_name}` : "Unknown User"}
+                {comment.author ? `${comment.author.firstName} ${comment.author.lastName}` : "Unknown User"}
               </div>
-              <div className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</div>
+              <div className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</div>
             </div>
           </div>
           
@@ -159,7 +159,7 @@ const CommentItem = ({ comment, onReply, onEdit, onDelete }: CommentItemProps) =
         )}
       </CardContent>
       
-      {!isEditing && !comment.parent_id && user && (
+      {!isEditing && !comment.parentId && user && (
         <CardFooter className="flex justify-start">
           {isReplying ? (
             <div className="space-y-2 w-full">

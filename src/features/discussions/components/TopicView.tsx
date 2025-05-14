@@ -63,12 +63,12 @@ const TopicView = ({
   
   const handleTogglePin = async () => {
     if (!topic) return;
-    await onEditTopic(topic.id, { is_pinned: !topic.is_pinned });
+    await onEditTopic(topic.id, { isPinned: !topic.isPinned });
   };
   
   const handleToggleLock = async () => {
     if (!topic) return;
-    await onEditTopic(topic.id, { is_locked: !topic.is_locked });
+    await onEditTopic(topic.id, { isLocked: !topic.isLocked });
   };
   
   const handleDeleteTopic = async () => {
@@ -112,7 +112,7 @@ const TopicView = ({
   
   const canManageTopic = () => {
     if (!user || !topic) return false;
-    return isAdmin || topic.created_by === user.id;
+    return isAdmin || topic.createdBy === user.id;
   };
 
   if (loading || !topic) {
@@ -153,16 +153,16 @@ const TopicView = ({
                 ) : (
                   <>
                     <CardTitle className="text-xl flex items-center">
-                      {topic.is_pinned && <Pin size={18} className="mr-2 text-green-600" />}
-                      {topic.is_locked && <Lock size={18} className="mr-2 text-yellow-600" />}
+                      {topic.isPinned && <Pin size={18} className="mr-2 text-green-600" />}
+                      {topic.isLocked && <Lock size={18} className="mr-2 text-yellow-600" />}
                       {topic.title}
                     </CardTitle>
                     <CardDescription className="flex items-center mt-2">
                       <Calendar className="h-4 w-4 mr-1" />
-                      <span className="mr-2">Posted {format(new Date(topic.created_at), 'PPp')}</span>
+                      <span className="mr-2">Posted {format(new Date(topic.createdAt), 'PPp')}</span>
                       <span className="mx-1">•</span>
                       <User className="h-4 w-4 mr-1" />
-                      <span>{topic.author?.first_name} {topic.author?.last_name}</span>
+                      <span>{topic.author?.firstName} {topic.author?.lastName}</span>
                     </CardDescription>
                   </>
                 )}
@@ -177,8 +177,8 @@ const TopicView = ({
                         size="sm"
                         onClick={handleTogglePin}
                       >
-                        <Pin size={16} className={`mr-1 ${topic.is_pinned ? 'text-green-600' : ''}`} />
-                        {topic.is_pinned ? 'Unpin' : 'Pin'}
+                        <Pin size={16} className={`mr-1 ${topic.isPinned ? 'text-green-600' : ''}`} />
+                        {topic.isPinned ? 'Unpin' : 'Pin'}
                       </Button>
                       
                       <Button 
@@ -186,8 +186,8 @@ const TopicView = ({
                         size="sm"
                         onClick={handleToggleLock}
                       >
-                        <Lock size={16} className={`mr-1 ${topic.is_locked ? 'text-yellow-600' : ''}`} />
-                        {topic.is_locked ? 'Unlock' : 'Lock'}
+                        <Lock size={16} className={`mr-1 ${topic.isLocked ? 'text-yellow-600' : ''}`} />
+                        {topic.isLocked ? 'Unlock' : 'Lock'}
                       </Button>
                     </>
                   )}
@@ -268,7 +268,7 @@ const TopicView = ({
           Comments ({comments.length})
         </h3>
         
-        {user && isVoter && !topic.is_locked && (
+        {user && isVoter && !topic.isLocked && (
           <form onSubmit={handleSubmitComment} className="mb-6">
             <div className="space-y-4">
               <Textarea

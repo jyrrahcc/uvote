@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,18 +7,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Plus, MessageSquare, Search } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { DiscussionTopic } from "@/types/discussions";
 import DiscussionTopicCard from "./DiscussionTopicCard";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { createDiscussionTopic } from "../services/discussionService";
-import { formatDistanceToNow } from "date-fns";
 
 // Update the NewTopicDialogProps interface to include electionId
 interface NewTopicDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateTopic: (title: string, content: string) => Promise<DiscussionTopic>;
+  onCreateTopic: (title: string, content: string) => Promise<DiscussionTopic | null>;
   electionId: string;
 }
 
@@ -31,7 +29,11 @@ const NewTopicDialog = ({ isOpen, onClose, onCreateTopic, electionId }: NewTopic
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) {
-      toast.error("Please fill in all fields");
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -41,10 +43,17 @@ const NewTopicDialog = ({ isOpen, onClose, onCreateTopic, electionId }: NewTopic
       setTitle("");
       setContent("");
       onClose();
-      toast.success("Discussion topic created successfully");
+      toast({
+        title: "Success",
+        description: "Discussion topic created successfully"
+      });
     } catch (error) {
       console.error("Error creating topic:", error);
-      toast.error("Failed to create discussion topic");
+      toast({
+        title: "Error",
+        description: "Failed to create discussion topic",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -102,15 +111,23 @@ const NewTopicDialog = ({ isOpen, onClose, onCreateTopic, electionId }: NewTopic
   );
 };
 
-interface DiscussionListProps {
+export interface DiscussionListProps {
   electionId: string;
   topics: DiscussionTopic[];
   isLoading: boolean;
   onRefresh: () => void;
   onSelectTopic: (topic: DiscussionTopic) => void;
+  onCreateTopic: (title: string, content: string) => Promise<DiscussionTopic | null>;
 }
 
-const DiscussionList = ({ electionId, topics, isLoading, onRefresh, onSelectTopic }: DiscussionListProps) => {
+const DiscussionList = ({ 
+  electionId,
+  topics,
+  isLoading,
+  onRefresh,
+  onSelectTopic,
+  onCreateTopic
+}: DiscussionListProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -118,12 +135,7 @@ const DiscussionList = ({ electionId, topics, isLoading, onRefresh, onSelectTopi
 
   const handleCreateTopic = async (title: string, content: string) => {
     if (!user) throw new Error("User not authenticated");
-    const newTopic = await createDiscussionTopic({
-      title,
-      content,
-      electionId,
-      userId: user.id,
-    });
+    const newTopic = await onCreateTopic(title, content);
     onRefresh();
     return newTopic;
   };
@@ -180,7 +192,7 @@ const DiscussionList = ({ electionId, topics, isLoading, onRefresh, onSelectTopi
                   key={topic.id}
                   topic={topic}
                   electionId={electionId}
-                  onSelectTopic={onSelectTopic}
+                  onClick={() => onSelectTopic(topic)}
                 />
               ))}
             </div>

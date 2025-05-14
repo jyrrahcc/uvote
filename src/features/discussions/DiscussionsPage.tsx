@@ -217,7 +217,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     }
     
     console.log("🔄 Creating topic with:", { title, content, electionId: finalElectionId });
-    const result = await addTopic(finalElectionId, title, content || null);
+    const result = await addTopic(finalElectionId, title, content);
     
     if (result) {
       console.log("✅ Topic created successfully, reloading topics");

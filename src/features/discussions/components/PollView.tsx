@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "../utils/profileUtils";
 
@@ -57,15 +57,15 @@ const PollView = ({
   
   const isPollActive = () => {
     if (!poll) return false;
-    if (poll.is_closed) return false;
-    if (poll.ends_at) {
-      return isAfter(new Date(poll.ends_at), new Date());
+    if (poll.isClosed) return false;
+    if (poll.endsAt) {
+      return isAfter(new Date(poll.endsAt), new Date());
     }
     return true;
   };
   
   const handleOptionSelect = (optionId: string) => {
-    if (poll?.multiple_choice) {
+    if (poll?.multipleChoice) {
       // For multiple choice polls
       if (selectedOptions.includes(optionId)) {
         setSelectedOptions(selectedOptions.filter(id => id !== optionId));
@@ -82,7 +82,11 @@ const PollView = ({
     if (!poll || !user) return;
     
     if (selectedOptions.length === 0) {
-      toast.error("Please select at least one option");
+      toast({
+        title: "Error",
+        description: "Please select at least one option",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -110,7 +114,7 @@ const PollView = ({
   
   const canManagePoll = () => {
     if (!user || !poll) return false;
-    return isAdmin || poll.created_by === user.id;
+    return isAdmin || poll.createdBy === user.id;
   };
 
   if (loading || !poll) {
@@ -137,7 +141,7 @@ const PollView = ({
                 <div className="flex justify-between mb-1">
                   <CardTitle className="text-xl">{poll.question}</CardTitle>
                   <div>
-                    {poll.is_closed ? (
+                    {poll.isClosed ? (
                       <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full flex items-center">
                         <Clock size={14} className="mr-1" />
                         Closed
@@ -157,17 +161,17 @@ const PollView = ({
                 </div>
                 <CardDescription className="flex items-center mt-2">
                   <Calendar className="h-4 w-4 mr-1" />
-                  <span className="mr-2">Created {formatDate(poll.created_at)}</span>
+                  <span className="mr-2">Created {formatDate(poll.createdAt)}</span>
                   <span className="mx-1">•</span>
                   <User className="h-4 w-4 mr-1" />
-                  <span>{poll.author?.first_name} {poll.author?.last_name}</span>
+                  <span>{poll.author?.firstName} {poll.author?.lastName}</span>
                 </CardDescription>
-                {poll.ends_at && (
+                {poll.endsAt && (
                   <div className="mt-2 text-sm">
-                    <span className="font-medium">End date:</span> {format(new Date(poll.ends_at), 'PPp')}
+                    <span className="font-medium">End date:</span> {format(new Date(poll.endsAt), 'PPp')}
                   </div>
                 )}
-                {poll.multiple_choice && (
+                {poll.multipleChoice && (
                   <div className="mt-1 text-sm text-blue-600">
                     <span>Multiple choice poll • Select one or more options</span>
                   </div>
@@ -176,7 +180,7 @@ const PollView = ({
               
               {(canManagePoll()) && (
                 <div className="flex gap-2">
-                  {!poll.is_closed && (
+                  {!poll.isClosed && (
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -262,7 +266,7 @@ const PollView = ({
               // Show voting form if user hasn't voted
               <div className="space-y-4">
                 {isPollActive() ? (
-                  poll.multiple_choice ? (
+                  poll.multipleChoice ? (
                     // Multiple choice poll
                     <div className="space-y-4">
                       {Object.entries(poll.options).map(([optionId, optionText]) => (
@@ -333,7 +337,7 @@ const PollView = ({
                     
                     <div className="text-center text-amber-600 mt-6">
                       <AlertTriangle className="h-5 w-5 mx-auto mb-2" />
-                      <p>{poll.is_closed ? "This poll is closed" : "This poll has expired"}</p>
+                      <p>{poll.isClosed ? "This poll is closed" : "This poll has expired"}</p>
                     </div>
                   </div>
                 )}

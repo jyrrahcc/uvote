@@ -17,6 +17,7 @@ interface PollsListProps {
   onSelectPoll: (poll: Poll) => void;
   onCreatePoll: (question: string, options: Record<string, string>, description?: string, multipleChoice?: boolean, endsAt?: string) => Promise<Poll | null>;
   electionId: string;
+  onSelectTopic?: () => void; // Making this optional
 }
 
 const PollsList = ({
@@ -108,19 +109,19 @@ const PollsList = ({
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                     {Object.keys(poll.options).length} options
                   </span>
-                  {poll.multiple_choice && (
+                  {poll.multipleChoice && (
                     <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
                       Multiple Choice
                     </span>
                   )}
-                  {poll.is_closed && (
+                  {poll.isClosed && (
                     <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
                       Closed
                     </span>
                   )}
-                  {poll.ends_at && (
+                  {poll.endsAt && (
                     <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
-                      Ends {formatDate(poll.ends_at)}
+                      Ends {formatDate(poll.endsAt)}
                     </span>
                   )}
                 </div>
@@ -129,10 +130,10 @@ const PollsList = ({
                 <div className="flex justify-between w-full">
                   <div className="flex items-center">
                     <Calendar size={14} className="mr-1" />
-                    {formatDate(poll.created_at)}
+                    {formatDate(poll.createdAt)}
                     <span className="mx-2">•</span>
                     <span>
-                      By {poll.author?.first_name} {poll.author?.last_name}
+                      By {poll.author?.firstName} {poll.author?.lastName}
                     </span>
                   </div>
                   <div className="flex items-center">

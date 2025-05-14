@@ -8,6 +8,8 @@ export interface DiscussionTopic {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  isPinned?: boolean;
+  isLocked?: boolean;
   author: {
     id: string;
     firstName: string;
@@ -18,23 +20,7 @@ export interface DiscussionTopic {
   lastReplyAt?: string;
 }
 
-// Reply type
-export interface Reply {
-  id: string;
-  content: string;
-  topicId: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  author: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    imageUrl?: string | null;
-  } | null;
-}
-
-// Comment type (adding this as it's referenced in several files)
+// Comment type
 export interface DiscussionComment {
   id: string;
   content: string;
@@ -42,12 +28,14 @@ export interface DiscussionComment {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  parentId?: string | null;
   author: {
     id: string;
     firstName: string;
     lastName: string;
     imageUrl?: string | null;
   } | null;
+  replies?: DiscussionComment[];
 }
 
 // Poll voter type
