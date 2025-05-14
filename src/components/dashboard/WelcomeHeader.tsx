@@ -35,6 +35,17 @@ const WelcomeHeader = ({ userRole }: WelcomeHeaderProps) => {
     return user?.email || "User";
   };
 
+  // Get the display name for the welcome message - prioritize first name if available
+  const getDisplayName = () => {
+    if (user?.user_metadata?.first_name) {
+      return user.user_metadata.first_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0]; // Show just the username part before @
+    }
+    return "User";
+  };
+
   return (
     <Card className="border border-muted/40 bg-card/50 shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -52,7 +63,7 @@ const WelcomeHeader = ({ userRole }: WelcomeHeaderProps) => {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold">
-                Welcome back, {user?.user_metadata?.first_name || getFullName().split(' ')[0] || 'User'}
+                Welcome back, {getDisplayName()}
               </h1>
               {userRole && (
                 <Badge className={`${isAdmin ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>

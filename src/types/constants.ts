@@ -1,5 +1,5 @@
 
-// Department options
+// College options
 export const DLSU_DEPARTMENTS = [
   "College of Business Administration and Accountancy",
   "College of Education",
@@ -28,5 +28,5 @@ export const DEFAULT_POSITIONS = [
 
 // Fallback values for empty fields
 export const UNKNOWN_POSITION = "unspecified-position";
-export const UNKNOWN_DEPARTMENT = "unspecified-department";
+export const UNKNOWN_DEPARTMENT = "unspecified-college";
 export const UNKNOWN_YEAR = "unspecified-year";

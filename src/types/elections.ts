@@ -17,8 +17,8 @@ export interface Election {
   isPrivate: boolean;
   accessCode?: string | null;
   restrictVoting?: boolean;
-  department?: string; // For backward compatibility
-  departments?: string[]; // Array of departments
+  department?: string; // Legacy field - for backward compatibility
+  colleges?: string[]; // Array of college names (renamed from departments)
   positions?: string[]; // Added positions array
   totalEligibleVoters?: number; // Add totalEligibleVoters field
   banner_urls?: string[]; // Added banner_urls array to store election banner images
@@ -86,8 +86,8 @@ export interface DbElection {
   is_private: boolean | null;
   access_code?: string | null;
   restrict_voting?: boolean | null;
-  department?: string | null;
-  departments?: string[] | null; // Added departments array
+  department?: string | null; // Legacy field
+  departments?: string[] | null; // Will be renamed to colleges in the UI
   positions?: string[] | null; // Added positions array
   total_eligible_voters?: number | null; // Added total_eligible_voters field
   banner_urls?: string[] | null; // Added banner_urls field
@@ -118,8 +118,8 @@ export const mapDbElectionToElection = (dbElection: DbElection): Election => {
     isPrivate: dbElection.is_private || false,
     accessCode: dbElection.access_code || null,
     restrictVoting: dbElection.restrict_voting || false,
-    department: dbElection.department || '',
-    departments: dbElection.departments || [],
+    department: dbElection.department || '', // Keep for backward compatibility
+    colleges: dbElection.departments || [], // Rename departments to colleges in the UI
     positions: dbElection.positions || [],
     totalEligibleVoters: dbElection.total_eligible_voters || 0,
     banner_urls: dbElection.banner_urls || [],
@@ -142,8 +142,8 @@ export const mapElectionToDbElection = (election: Election): DbElection => ({
   is_private: election.isPrivate,
   access_code: election.accessCode || null,
   restrict_voting: election.restrictVoting || false,
-  department: election.department || null,
-  departments: election.departments || [],
+  department: election.department || null, // Keep for backward compatibility
+  departments: election.colleges || [], // Map colleges back to departments for DB
   positions: election.positions || [],
   total_eligible_voters: election.totalEligibleVoters || 0,
   banner_urls: election.banner_urls || [],

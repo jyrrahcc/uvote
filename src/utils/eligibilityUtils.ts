@@ -3,7 +3,7 @@ import { Election } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Checks if a user is eligible for an election based on department and year level
+ * Checks if a user is eligible for an election based on college and year level
  */
 export async function checkUserEligibility(
   userId: string | null | undefined,
@@ -38,7 +38,7 @@ export async function checkUserEligibility(
       return { isEligible: false, reason: "You must have voter privileges to participate in this election" };
     }
     
-    // Get user profile for department and year level checks
+    // Get user profile for college and year level checks
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('department, year_level')
@@ -54,7 +54,7 @@ export async function checkUserEligibility(
       return { isEligible: false, reason: "User profile not found. Please complete your profile information." };
     }
     
-    const userDepartment = profile.department || '';
+    const userCollege = profile.department || '';
     const userYearLevel = profile.year_level || '';
     
     // If the election doesn't restrict voting, user with voter role is eligible
@@ -63,16 +63,17 @@ export async function checkUserEligibility(
     }
     
     console.log("Eligibility check:", {
-      userDepartment,
+      userCollege,
       userYearLevel,
-      electionDepartments: election.departments,
+      electionColleges: election.colleges || election.departments,
       electionYearLevels: election.eligibleYearLevels
     });
     
-    // Department eligibility check
-    const isDepartmentEligible = !election.departments?.length || 
-      election.departments.includes(userDepartment) || 
-      election.departments.includes("University-wide");
+    // College eligibility check - use either colleges or departments (for compatibility)
+    const electionColleges = election.colleges || election.departments;
+    const isCollegeEligible = !electionColleges?.length || 
+      electionColleges.includes(userCollege) || 
+      electionColleges.includes("University-wide");
     
     // Year level eligibility check
     const isYearLevelEligible = !election.eligibleYearLevels?.length || 
@@ -81,16 +82,16 @@ export async function checkUserEligibility(
     
     // Build appropriate reason message if not eligible
     let reason = null;
-    if (!isDepartmentEligible && !isYearLevelEligible) {
-      reason = `This election is for ${election.departments?.join(', ')} departments and ${election.eligibleYearLevels?.join(', ')} year levels. Your profile shows you're in ${userDepartment} and are ${userYearLevel}.`;
-    } else if (!isDepartmentEligible) {
-      reason = `This election is for ${election.departments?.join(', ')} departments, but your profile shows you're in ${userDepartment}.`;
+    if (!isCollegeEligible && !isYearLevelEligible) {
+      reason = `This election is for ${electionColleges?.join(', ')} colleges and ${election.eligibleYearLevels?.join(', ')} year levels. Your profile shows you're in ${userCollege} and are ${userYearLevel}.`;
+    } else if (!isCollegeEligible) {
+      reason = `This election is for ${electionColleges?.join(', ')} colleges, but your profile shows you're in ${userCollege}.`;
     } else if (!isYearLevelEligible) {
       reason = `This election is for ${election.eligibleYearLevels?.join(', ')} year levels, but your profile shows you're in ${userYearLevel}.`;
     }
     
     return {
-      isEligible: isDepartmentEligible && isYearLevelEligible,
+      isEligible: isCollegeEligible && isYearLevelEligible,
       reason
     };
   } catch (error) {
