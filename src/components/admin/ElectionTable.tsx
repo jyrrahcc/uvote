@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -64,7 +63,7 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all"); // Changed from empty string to "all"
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "", direction: "asc" });
   
   /**
@@ -234,7 +233,7 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
         (election.department && election.department.toLowerCase().includes(searchTerm.toLowerCase()));
       
       // Apply status filter if selected
-      const matchesStatus = statusFilter === "" || election.status === statusFilter;
+      const matchesStatus = statusFilter === "all" || election.status === statusFilter; // Changed condition to check for "all"
       
       return matchesSearch && matchesStatus;
     });
@@ -289,7 +288,7 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem> {/* Changed from empty string to "all" */}
               <SelectItem value="upcoming">Upcoming</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
