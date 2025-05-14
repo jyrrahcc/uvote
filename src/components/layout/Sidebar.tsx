@@ -1,23 +1,22 @@
 
-import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { 
-  BarChart3, 
-  CalendarDays, 
-  FileText, 
-  Home, 
-  Settings,
-  Users,
-  Vote,
-  LogOut,
-  UserCircle,
+import { cn } from "@/lib/utils";
+import {
+  BarChart3,
+  FileSpreadsheet,
+  FileText,
   History,
-  FileSpreadsheet
+  Home,
+  LogOut,
+  Settings,
+  UserCircle,
+  Users,
+  Vote
 } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { Link, useLocation } from "react-router-dom";
 import Logo from "./Logo";
 
 interface SidebarItem {

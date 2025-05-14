@@ -1,42 +1,42 @@
 
-import { useState, useEffect } from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { 
-  Sidebar, 
-  SidebarContent, 
-  SidebarFooter, 
-  SidebarGroup, 
-  SidebarGroupContent, 
-  SidebarGroupLabel, 
-  SidebarHeader, 
-  SidebarMenu, 
-  SidebarMenuButton, 
-  SidebarMenuItem, 
-  SidebarProvider, 
-  SidebarTrigger 
-} from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  User, 
-  LogOut, 
-  Home, 
-  Vote, 
-  Users, 
-  Settings, 
-  FileText, 
-  List, 
-  University, 
-  BarChart, 
-  LucideIcon 
-} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger
+} from "@/components/ui/sidebar";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import MobileNav from "./MobileNav";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
+import {
+  BarChart,
+  FileText,
+  Home,
+  List,
+  LogOut,
+  LucideIcon,
+  Settings,
+  University,
+  User,
+  Users,
+  Vote
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import MobileNav from "./MobileNav";
 
 interface MenuItem {
   name: string;
@@ -146,7 +146,7 @@ const DashboardLayout = () => {
           <SidebarHeader className="p-4">
             <div className="flex items-center gap-2">
               <University className="h-6 w-6 text-[#008f50]" />
-              <span className={cn("font-bold text-xl", collapsed ? "hidden" : "block")}>DLSU-D Voting</span>
+              <span className={cn("font-bold text-xl", collapsed ? "hidden" : "block")}>uVote</span>
               <span className={cn("text-xs text-muted-foreground ml-auto", collapsed ? "hidden" : "block")}>
                 {isAdmin && <Badge variant="outline" className="bg-[#008f50]/10 text-[#008f50]">Admin</Badge>}
               </span>
@@ -261,13 +261,13 @@ const DashboardLayout = () => {
                     </AvatarFallback>
                   </Avatar>
                   
-                  <div className={cn("flex flex-col", collapsed ? "hidden" : "block")}>
-                    <span className="text-sm font-medium truncate max-w-[120px]">
+                  <div className={cn("flex flex-wrap flex-col overflow-hidden w-100", collapsed ? "hidden" : "block")}>
+                    <span className="text-sm font-medium truncate w-100">
                       {getUserFullName()}
                     </span>
-                    <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                       {userRole ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}` : 'No Role'}
-                    </span>
+                    </p>
                   </div>
                 </div>
                 

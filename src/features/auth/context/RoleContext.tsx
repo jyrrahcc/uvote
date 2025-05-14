@@ -1,8 +1,8 @@
 
-import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./AuthContext";
+import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "./AuthContext";
 
 type UserRole = "admin" | "voter";
 

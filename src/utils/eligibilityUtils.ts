@@ -1,6 +1,6 @@
 
-import { Election } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import { Election } from "@/types";
 
 /**
  * Checks if a user is eligible for an election based on college and year level
@@ -56,11 +56,6 @@ export async function checkUserEligibility(
     
     const userCollege = profile.department || '';
     const userYearLevel = profile.year_level || '';
-    
-    // If the election doesn't restrict voting, user with voter role is eligible
-    if (!election.restrictVoting) {
-      return { isEligible: true, reason: null };
-    }
     
     console.log("Eligibility check:", {
       userCollege,

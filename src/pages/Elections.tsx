@@ -1,23 +1,23 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, University, Calendar } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useRole } from "@/features/auth/context/RoleContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { Election, mapDbElectionToElection } from "@/types";
+import { useRole } from "@/features/auth/context/RoleContext";
 import ElectionCard from "@/features/elections/components/ElectionCard";
+import { supabase } from "@/integrations/supabase/client";
+import { Election, mapDbElectionToElection } from "@/types";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { Calendar, Search, University } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 /**
  * Elections listing page component
@@ -44,19 +44,6 @@ const Elections = () => {
       setLoading(true);
       setError(null);
       
-      // First, get user profile data to check eligibility
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
-      
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
-      }
-      
-      const userProfile = profileData || { department: '', year_level: '', is_verified: false };
-      
       // Then fetch all elections
       const { data, error } = await supabase
         .from('elections')
@@ -73,24 +60,10 @@ const Elections = () => {
       if (!isAdmin) {
         const eligibleElections = [];
         
-        // Get eligible_voters records for this user
-        const { data: eligibleVotersData } = await supabase
-          .from('eligible_voters')
-          .select('election_id')
-          .eq('user_id', user?.id);
-        
-        const eligibleElectionIds = new Set(eligibleVotersData?.map(ev => ev.election_id) || []);
-        
         // Check eligibility for each election
         for (const election of transformedElections) {
           // Public elections with no restrictions are accessible to all
-          if (!election.restrictVoting && !election.isPrivate) {
-            eligibleElections.push(election);
-            continue;
-          }
-          
-          // If user is explicitly added to eligible_voters
-          if (eligibleElectionIds.has(election.id)) {
+          if (!election.isPrivate) {
             eligibleElections.push(election);
             continue;
           }
@@ -113,7 +86,7 @@ const Elections = () => {
       const uniqueDepartments = Array.from(
         new Set(
           transformedElections
-            .flatMap(e => e.colleges?.length > 0 ? e.colleges : (e.department ? [e.department] : []))
+            .flatMap(e => e.colleges || [])
             .filter(Boolean)
         )
       ) as string[];
@@ -146,15 +119,14 @@ const Elections = () => {
   const filteredElections = elections.filter((election) => {
     // Apply search term filter
     const matchesSearch = election.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         election.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         election.department?.toLowerCase().includes(searchTerm.toLowerCase());
+                         election.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Apply status filter if selected
     const matchesStatus = statusFilter ? election.status === statusFilter : true;
     
     // Apply department filter if selected
     const matchesDepartment = departmentFilter 
-      ? election.colleges?.includes(departmentFilter) || election.department === departmentFilter 
+      ? election.colleges?.includes(departmentFilter)
       : true;
     
     return matchesSearch && matchesStatus && matchesDepartment;
@@ -181,7 +153,6 @@ const Elections = () => {
         {isAdmin && (
           <Button asChild className="mt-4 md:mt-0 bg-[#008f50] hover:bg-[#007a45]">
             <Link to="/admin/elections">
-              <Plus className="mr-2 h-4 w-4" />
               Manage Elections
             </Link>
           </Button>

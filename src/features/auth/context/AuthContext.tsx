@@ -1,8 +1,8 @@
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { Session, User, AuthError, AuthResponse } from "@supabase/supabase-js";
-import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthError, Session, User } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 type AuthContextType = {
@@ -39,6 +39,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Check URL for authentication errors
+    const oauthInProgress = sessionStorage.getItem('oauthInProgress');
+    if (oauthInProgress) {
+      sessionStorage.removeItem('oauthInProgress');
+      setLoading(false);
+    }
+
     if (location.hash || location.search) {
       const urlParams = new URLSearchParams(location.search || location.hash.substring(1));
       const error = urlParams.get('error');
@@ -127,26 +133,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
-    setLoading(true);
-    try {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/dashboard',
-        }
-      });
-    } catch (error) {
-      console.error("Google sign in error:", error);
-      toast.error("Failed to sign in with Google", {
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-      });
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    // Store that we're in an OAuth flow
+    sessionStorage.setItem('oauthInProgress', 'true');
+    
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/dashboard',
+      }
+    });
+  } catch (error) {
+    console.error("Google sign in error:", error);
+    toast.error("Failed to sign in with Google", {
+      description: error instanceof Error ? error.message : "Unknown error occurred",
+    });
+    setLoading(false);
+  }
+};
 
   const signInWithMicrosoft = async () => {
     setLoading(true);
     try {
+      // Store that we're in an OAuth flow
+      sessionStorage.setItem('oauthInProgress', 'true');
+
       await supabase.auth.signInWithOAuth({
         provider: 'azure',
         options: {

@@ -1,17 +1,17 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import ElectionFormTabs from "@/features/elections/components/form/ElectionFormTabs";
+import {
+  DEFAULT_POSITIONS,
+  electionFormSchema,
+  ElectionFormValues
+} from "@/features/elections/types/electionFormTypes";
+import { supabase } from "@/integrations/supabase/client";
+import { Candidate } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/features/auth/context/AuthContext";
-import { Election } from "@/types";
-import { 
-  electionFormSchema,
-  ElectionFormValues,
-  DEFAULT_POSITIONS
-} from "@/features/elections/types/electionFormTypes";
-import ElectionFormTabs from "@/features/elections/components/form/ElectionFormTabs";
 
 interface ElectionFormProps {
   editingElectionId: string | null;
@@ -23,7 +23,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("details");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const candidateManagerRef = useRef<any>(null);
+  const candidateManagerRef = useRef(null);
   
   // Initialize form
   const form = useForm<ElectionFormValues>({
@@ -39,7 +39,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       endDate: "",
       isPrivate: false,
       accessCode: "",
-      restrictVoting: false,
       positions: DEFAULT_POSITIONS,
       banner_urls: [],
     },
@@ -76,7 +75,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             endDate: data.end_date || "",
             isPrivate: data.is_private || false,
             accessCode: data.access_code || "",
-            restrictVoting: data.restrict_voting || false,
             positions: Array.isArray(data.positions) ? data.positions : DEFAULT_POSITIONS,
             banner_urls: Array.isArray(data.banner_urls) ? data.banner_urls : [],
           });
@@ -209,7 +207,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             }
             
             // Then insert the candidates
-            const candidatesToInsert = candidatesData.map((candidate: any) => ({
+            const candidatesToInsert = candidatesData.map((candidate: Candidate) => ({
               ...candidate,
               election_id: electionId,
             }));
