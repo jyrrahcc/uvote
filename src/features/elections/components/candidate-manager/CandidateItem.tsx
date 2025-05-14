@@ -125,7 +125,7 @@ const CandidateItem = ({
             <Label htmlFor={`candidate-position-${index}`}>Position</Label>
             {positions.length > 0 ? (
               <Select 
-                value={candidate.position} 
+                value={candidate.position || UNKNOWN_POSITION} 
                 onValueChange={(value) => onUpdate(index, 'position', value)}
               >
                 <SelectTrigger id={`candidate-position-${index}`}>
@@ -140,7 +140,7 @@ const CandidateItem = ({
             ) : (
               <Input 
                 id={`candidate-position-${index}`} 
-                value={candidate.position} 
+                value={candidate.position || ''} 
                 onChange={(e) => onUpdate(index, 'position', e.target.value)}
                 placeholder="Position running for"
               />
@@ -150,7 +150,7 @@ const CandidateItem = ({
           <div className="space-y-2">
             <Label htmlFor={`candidate-department-${index}`}>College/Department</Label>
             <Select 
-              value={candidate.department || ''}
+              value={candidate.department || UNKNOWN_DEPARTMENT}
               onValueChange={(value) => onUpdate(index, 'department', value)}
             >
               <SelectTrigger id={`candidate-department-${index}`}>
@@ -167,7 +167,7 @@ const CandidateItem = ({
           <div className="space-y-2">
             <Label htmlFor={`candidate-yearLevel-${index}`}>Year Level</Label>
             <Select 
-              value={candidate.year_level || ''}
+              value={candidate.year_level || UNKNOWN_YEAR}
               onValueChange={(value) => onUpdate(index, 'year_level', value)}
             >
               <SelectTrigger id={`candidate-yearLevel-${index}`}>
