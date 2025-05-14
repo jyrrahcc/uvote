@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ interface NewTopicDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateTopic: (title: string, content: string) => Promise<DiscussionTopic>;
-  electionId: string;  // Add this line
+  electionId: string;
 }
 
 const NewTopicDialog = ({ isOpen, onClose, onCreateTopic, electionId }: NewTopicDialogProps) => {
@@ -106,9 +107,10 @@ interface DiscussionListProps {
   topics: DiscussionTopic[];
   isLoading: boolean;
   onRefresh: () => void;
+  onSelectTopic: (topic: DiscussionTopic) => void;
 }
 
-const DiscussionList = ({ electionId, topics, isLoading, onRefresh }: DiscussionListProps) => {
+const DiscussionList = ({ electionId, topics, isLoading, onRefresh, onSelectTopic }: DiscussionListProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -178,6 +180,7 @@ const DiscussionList = ({ electionId, topics, isLoading, onRefresh }: Discussion
                   key={topic.id}
                   topic={topic}
                   electionId={electionId}
+                  onSelectTopic={onSelectTopic}
                 />
               ))}
             </div>

@@ -290,10 +290,11 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
           ) : (
             <DiscussionList
               topics={topics}
-              loading={discussionLoading}
+              isLoading={discussionLoading}
               onSelectTopic={handleSelectTopic}
               onCreateTopic={handleCreateTopic}
               electionId={finalElectionId}
+              onRefresh={loadTopics}
             />
           )}
         </TabsContent>
@@ -308,7 +309,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
               voteLoading={voteLoading}
               onBack={handleBackToPolls}
               onVote={vote}
-              onClosePoll={(pollId) => updatePoll(pollId, { is_closed: true })}
+              onClosePoll={(pollId) => updatePoll(pollId, { isClosed: true })}
               onDeletePoll={removePoll}
             />
           ) : (
