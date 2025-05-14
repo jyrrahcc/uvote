@@ -36,7 +36,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
   const { isAdmin, isVoter } = useRole();
   const { user } = useAuth();
   
-  // Add initial logging
+  // Add better error logging for debugging
   useEffect(() => {
     console.log("🔍 DiscussionsPage mounted with props electionId:", electionId);
     console.log("🔍 DiscussionsPage params electionId:", params?.electionId);
@@ -141,7 +141,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     console.log("🔍 Current polls in DiscussionsPage:", polls);
   }, [polls]);
   
-  // Ensure we have an electionId and load data properly
+  // Make the initial data loading more robust
   useEffect(() => {
     if (!finalElectionId) {
       console.error("📛 No election ID provided to DiscussionsPage");
@@ -160,7 +160,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
       console.log("🔄 Executing delayed loadTopics and loadPolls");
       loadTopics();
       loadPolls();
-    }, 100);
+    }, 300); // Increased delay for better hook initialization
     
     return () => {
       clearTimeout(loadTimer);

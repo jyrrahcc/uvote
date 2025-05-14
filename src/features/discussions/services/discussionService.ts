@@ -14,11 +14,11 @@ const transformTopic = (topicData: any): DiscussionTopic => {
     updatedAt: topicData.updated_at,
     isPinned: topicData.is_pinned || false,
     isLocked: topicData.is_locked || false,
-    author: topicData.profiles ? {
-      id: topicData.profiles.id,
-      firstName: topicData.profiles.first_name,
-      lastName: topicData.profiles.last_name,
-      imageUrl: topicData.profiles.image_url
+    author: topicData.author_profile ? {
+      id: topicData.author_profile.id,
+      firstName: topicData.author_profile.first_name,
+      lastName: topicData.author_profile.last_name,
+      imageUrl: topicData.author_profile.image_url
     } : null,
     repliesCount: topicData.repliesCount || topicData.replies_count || 0,
     lastReplyAt: topicData.lastReplyAt || topicData.last_reply_at
@@ -34,11 +34,11 @@ const transformComment = (commentData: any): DiscussionComment => {
     createdAt: commentData.created_at,
     updatedAt: commentData.updated_at,
     parentId: commentData.parent_id || null,
-    author: commentData.profiles ? {
-      id: commentData.profiles.id,
-      firstName: commentData.profiles.first_name,
-      lastName: commentData.profiles.last_name,
-      imageUrl: commentData.profiles.image_url
+    author: commentData.author_profile ? {
+      id: commentData.author_profile.id,
+      firstName: commentData.author_profile.first_name,
+      lastName: commentData.author_profile.last_name,
+      imageUrl: commentData.author_profile.image_url
     } : null,
     replies: []  // Will be populated if needed
   };
@@ -47,36 +47,57 @@ const transformComment = (commentData: any): DiscussionComment => {
 // Get all topics for an election
 export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
   try {
-    const { data, error } = await supabase
+    // First, fetch the topics with basic information
+    const { data: topicsData, error: topicsError } = await supabase
       .from('discussion_topics')
       .select(`
         *,
-        profiles!created_by (
-          id,
-          first_name,
-          last_name,
-          image_url
-        ),
         replies_count:discussion_comments(count)
       `)
       .eq('election_id', electionId)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching topics:", error);
+    if (topicsError) {
+      console.error("Error fetching topics:", topicsError);
       return [];
     }
 
-    // Add replies_count to each topic
-    const topicsWithRepliesCount = data.map((topic: any) => {
-      return {
+    // Extract creator IDs to fetch their profiles
+    const creatorIds = topicsData.map(topic => topic.created_by);
+    
+    // Fetch author profiles separately
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', creatorIds);
+    
+    if (profilesError) {
+      console.error("Error fetching author profiles:", profilesError);
+      // Continue with the data we have, even without profiles
+    }
+    
+    // Create a map of user IDs to profiles
+    const profilesMap: Record<string, any> = {};
+    if (profilesData) {
+      profilesData.forEach(profile => {
+        profilesMap[profile.id] = profile;
+      });
+    }
+    
+    // Process topics and add author information
+    const processedTopics = topicsData.map((topic: any) => {
+      // Add replies_count to each topic
+      const topicWithRepliesCount = {
         ...topic,
-        replies_count: topic.replies_count[0]?.count || 0 
+        replies_count: topic.replies_count[0]?.count || 0,
+        author_profile: profilesMap[topic.created_by] || null
       };
+      
+      return transformTopic(topicWithRepliesCount);
     });
 
-    return topicsWithRepliesCount.map(transformTopic);
+    return processedTopics;
   } catch (error) {
     console.error("Error fetching topics:", error);
     return [];
@@ -86,33 +107,37 @@ export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> 
 // Get a single topic by ID
 export const getTopic = async (topicId: string): Promise<DiscussionTopic | null> => {
   try {
-    const { data, error } = await supabase
+    // First, fetch the topic
+    const { data: topicData, error: topicError } = await supabase
       .from('discussion_topics')
       .select(`
         *,
-        profiles!created_by (
-          id,
-          first_name,
-          last_name,
-          image_url
-        ),
         replies_count:discussion_comments(count)
       `)
       .eq('id', topicId)
       .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching topic:", error);
+    if (topicError || !topicData) {
+      console.error("Error fetching topic:", topicError);
       return null;
     }
 
-    if (!data) {
-      return null;
+    // Then fetch the author profile separately
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', topicData.created_by)
+      .maybeSingle();
+    
+    if (profileError) {
+      console.error("Error fetching topic author:", profileError);
+      // Continue with the data we have, even without profile
     }
-
+    
     const topicWithRepliesCount = {
-      ...data,
-      replies_count: data.replies_count[0]?.count || 0
+      ...topicData,
+      replies_count: topicData.replies_count[0]?.count || 0,
+      author_profile: profileData || null
     };
 
     return transformTopic(topicWithRepliesCount);
@@ -159,28 +184,23 @@ export const createTopic = async (
       return null;
     }
 
-    // Then fetch the complete topic with author information
-    const { data: topicWithAuthor, error: authorError } = await supabase
-      .from('discussion_topics')
-      .select(`
-        *,
-        profiles!created_by (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
-      .eq('id', data.id)
+    // Then fetch author profile separately
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userData.user.id)
       .maybeSingle();
-
-    if (authorError) {
-      console.error("Error fetching topic with author:", authorError);
-      // Return the basic topic data even if we couldn't fetch the author
-      return transformTopic(data);
+    
+    if (profileError) {
+      console.error("Error fetching topic author:", profileError);
     }
     
-    return transformTopic(topicWithAuthor || data);
+    const topicWithAuthor = {
+      ...data,
+      author_profile: profileData || null
+    };
+    
+    return transformTopic(topicWithAuthor);
   } catch (error) {
     console.error("Error creating topic:", error);
     return null;
@@ -216,28 +236,23 @@ export const updateTopic = async (
       return null;
     }
 
-    // Then fetch the complete topic with author information
-    const { data: topicWithAuthor, error: authorError } = await supabase
-      .from('discussion_topics')
-      .select(`
-        *,
-        profiles!created_by (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
-      .eq('id', data.id)
+    // Then fetch author profile separately
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.created_by)
       .maybeSingle();
-
-    if (authorError) {
-      console.error("Error fetching topic with author:", authorError);
-      // Return the basic topic data even if we couldn't fetch the author
-      return transformTopic(data);
+    
+    if (profileError) {
+      console.error("Error fetching topic author:", profileError);
     }
     
-    return transformTopic(topicWithAuthor || data);
+    const topicWithAuthor = {
+      ...data,
+      author_profile: profileData || null
+    };
+    
+    return transformTopic(topicWithAuthor);
   } catch (error) {
     console.error("Error updating topic:", error);
     return null;
@@ -279,26 +294,49 @@ export const deleteTopic = async (topicId: string): Promise<boolean> => {
 // Get comments for a topic
 export const getComments = async (topicId: string): Promise<DiscussionComment[]> => {
   try {
-    const { data, error } = await supabase
+    // First, fetch the comments
+    const { data: commentsData, error: commentsError } = await supabase
       .from('discussion_comments')
-      .select(`
-        *,
-        profiles!user_id (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select('*')
       .eq('topic_id', topicId)
       .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error("Error fetching comments:", error);
+    if (commentsError) {
+      console.error("Error fetching comments:", commentsError);
       return [];
     }
 
-    return data.map(transformComment);
+    // Extract user IDs to fetch their profiles
+    const userIds = commentsData.map(comment => comment.user_id);
+    
+    // Fetch author profiles separately
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', userIds);
+    
+    if (profilesError) {
+      console.error("Error fetching comment authors:", profilesError);
+      // Continue with the data we have, even without profiles
+    }
+    
+    // Create a map of user IDs to profiles
+    const profilesMap: Record<string, any> = {};
+    if (profilesData) {
+      profilesData.forEach(profile => {
+        profilesMap[profile.id] = profile;
+      });
+    }
+    
+    // Process comments and add author information
+    const processedComments = commentsData.map((comment: any) => {
+      return {
+        ...comment,
+        author_profile: profilesMap[comment.user_id] || null
+      };
+    });
+
+    return processedComments.map(transformComment);
   } catch (error) {
     console.error("Error fetching comments:", error);
     return [];
@@ -339,28 +377,23 @@ export const createComment = async (
       return null;
     }
 
-    // Then fetch the complete comment with author information
-    const { data: commentWithAuthor, error: authorError } = await supabase
-      .from('discussion_comments')
-      .select(`
-        *,
-        profiles!user_id (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
-      .eq('id', data.id)
+    // Then fetch author profile separately
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userData.user.id)
       .maybeSingle();
-
-    if (authorError) {
-      console.error("Error fetching comment with author:", authorError);
-      // Return the basic comment data even if we couldn't fetch the author
-      return transformComment(data);
+    
+    if (profileError) {
+      console.error("Error fetching comment author:", profileError);
     }
     
-    return transformComment(commentWithAuthor || data);
+    const commentWithAuthor = {
+      ...data,
+      author_profile: profileData || null
+    };
+    
+    return transformComment(commentWithAuthor);
   } catch (error) {
     console.error("Error creating comment:", error);
     return null;
@@ -389,28 +422,23 @@ export const updateComment = async (
       return null;
     }
 
-    // Then fetch the complete comment with author information
-    const { data: commentWithAuthor, error: authorError } = await supabase
-      .from('discussion_comments')
-      .select(`
-        *,
-        profiles!user_id (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
-      .eq('id', data.id)
+    // Then fetch author profile separately
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user_id)
       .maybeSingle();
-
-    if (authorError) {
-      console.error("Error fetching comment with author:", authorError);
-      // Return the basic comment data even if we couldn't fetch the author
-      return transformComment(data);
+    
+    if (profileError) {
+      console.error("Error fetching comment author:", profileError);
     }
     
-    return transformComment(commentWithAuthor || data);
+    const commentWithAuthor = {
+      ...data,
+      author_profile: profileData || null
+    };
+    
+    return transformComment(commentWithAuthor);
   } catch (error) {
     console.error("Error updating comment:", error);
     return null;

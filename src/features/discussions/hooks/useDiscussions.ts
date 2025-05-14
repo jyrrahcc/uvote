@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { DiscussionTopic, DiscussionComment } from '@/types/discussions';
@@ -16,6 +15,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+// Only adjusting the loadTopics callback to provide better logging
 export const useDiscussions = (electionId: string) => {
   const { user } = useAuth();
   const [topics, setTopics] = useState<DiscussionTopic[]>([]);
