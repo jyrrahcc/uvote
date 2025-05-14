@@ -396,7 +396,6 @@ export type Database = {
           first_name: string
           id: string
           image_url: string | null
-          is_verified: boolean | null
           last_name: string
           student_id: string | null
           updated_at: string
@@ -409,7 +408,6 @@ export type Database = {
           first_name: string
           id: string
           image_url?: string | null
-          is_verified?: boolean | null
           last_name: string
           student_id?: string | null
           updated_at?: string
@@ -422,7 +420,6 @@ export type Database = {
           first_name?: string
           id?: string
           image_url?: string | null
-          is_verified?: boolean | null
           last_name?: string
           student_id?: string | null
           updated_at?: string

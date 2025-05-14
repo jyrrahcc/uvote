@@ -39,8 +39,8 @@ const ElectionMetadata = ({ election, formatDate }: ElectionMetadataProps) => {
           <div>
             <h3 className="font-medium">Department</h3>
             <p className="text-sm text-muted-foreground">
-              {election.departments && election.departments.length > 0
-                ? election.departments.join(", ")
+              {election.colleges && election.colleges.length > 0
+                ? election.colleges.join(", ")
                 : election.department || "University-wide"}
             </p>
           </div>

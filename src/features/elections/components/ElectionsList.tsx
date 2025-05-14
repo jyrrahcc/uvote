@@ -19,7 +19,8 @@ const sampleElections: Election[] = [
     createdBy: "admin-1",
     createdAt: "2025-08-01T00:00:00Z",
     updatedAt: "2025-08-01T00:00:00Z",
-    isPrivate: false
+    isPrivate: false,
+    colleges: []
   },
   {
     id: "2",
@@ -31,7 +32,8 @@ const sampleElections: Election[] = [
     createdBy: "admin-2",
     createdAt: "2025-04-01T00:00:00Z",
     updatedAt: "2025-04-01T00:00:00Z",
-    isPrivate: false
+    isPrivate: false,
+    colleges: []
   },
   {
     id: "3",
@@ -44,7 +46,8 @@ const sampleElections: Election[] = [
     createdAt: "2025-01-15T00:00:00Z",
     updatedAt: "2025-01-15T00:00:00Z",
     isPrivate: true,
-    accessCode: "ECO2025"
+    accessCode: "ECO2025",
+    colleges: []
   }
 ];
 

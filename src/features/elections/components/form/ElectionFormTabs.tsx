@@ -1,7 +1,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormProvider } from "react-hook-form";
-import ElectionDetailsTab from "./tabs/ElectionDetailsTab";
+import { ElectionDetailsTab } from "./tabs/ElectionDetailsTab";
 import ElectionBannersTab from "./tabs/ElectionBannersTab";
 import ElectionCandidatesTab from "./tabs/ElectionCandidatesTab";
 import { ElectionFormValues } from "../../types/electionFormTypes";

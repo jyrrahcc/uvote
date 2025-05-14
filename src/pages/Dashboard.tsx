@@ -16,7 +16,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <WelcomeHeader userRole={userRole} />
+      <WelcomeHeader />
       
       <div className="grid gap-6">
         <DashboardStats />
