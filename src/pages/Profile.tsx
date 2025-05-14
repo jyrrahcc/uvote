@@ -22,7 +22,6 @@ const Profile = () => {
   const [department, setDepartment] = useState("");
   const [yearLevel, setYearLevel] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isVerified, setIsVerified] = useState(false);
   const [isPendingVerification, setIsPendingVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
@@ -59,11 +58,10 @@ const Profile = () => {
         setDepartment(data.department || "");
         setYearLevel(data.year_level || "");
         setImageUrl(data.image_url || null);
-        setIsVerified(data.is_verified || false);
         
-        // Important fix: Only consider it pending if not verified AND not a voter already
+        // Important fix: Only consider it pending if not a voter already
         // This ensures that users with voter role don't see the "pending" status
-        setIsPendingVerification(!!data.student_id && !!data.department && !!data.year_level && !data.is_verified && !isVoter);
+        setIsPendingVerification(!!data.student_id && !!data.department && !!data.year_level && !isVoter);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -113,8 +111,7 @@ const Profile = () => {
           last_name: lastName,
           email: user.email,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_verified: false
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -160,15 +157,11 @@ const Profile = () => {
     );
   }
 
-  // Determine if the profile is verified (either by is_verified flag or voter role)
-  const effectivelyVerified = isVerified || isVoter;
-
   return (
     <PageLayout>
       <div className="container mx-auto py-12 px-4">
         <div className="max-w-md mx-auto">
           <ProfileHeader 
-            isVerified={isVerified} 
             isPendingVerification={isPendingVerification}
             isVoter={isVoter}
           />
@@ -178,11 +171,11 @@ const Profile = () => {
               <ProfileImageUpload 
                 profile={profile}
                 onImageUpdate={handleImageUpdate}
-                isVerified={effectivelyVerified}
+                isVerified={isVoter}
               />
               <CardTitle>Personal Information</CardTitle>
               <CardDescription>
-                {effectivelyVerified 
+                {isVoter 
                   ? "Your verified DLSU-D student details" 
                   : "Update your DLSU-D student details"}
               </CardDescription>
@@ -200,7 +193,7 @@ const Profile = () => {
               setDepartment={setDepartment}
               yearLevel={yearLevel}
               setYearLevel={setYearLevel}
-              isVerified={effectivelyVerified} // Consider verified if user has voter role
+              isVerified={isVoter} // Consider verified if user has voter role
               isPendingVerification={isPendingVerification}
               setIsPendingVerification={setIsPendingVerification}
               onSignOut={handleSignOut}

@@ -68,10 +68,7 @@ const UserListRow: React.FC<UserListRowProps> = ({
         <RoleBadges roles={user.roles} />
       </TableCell>
       <TableCell>
-        <VerificationBadge 
-          isVerified={user.is_verified || false} 
-          hasVoterRole={hasVoterRole}
-        />
+        <VerificationBadge hasVoterRole={hasVoterRole} />
       </TableCell>
       <TableCell className="text-right">
         <UserActions 
