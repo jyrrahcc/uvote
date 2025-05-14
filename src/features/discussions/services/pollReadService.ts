@@ -10,7 +10,7 @@ export const getPolls = async (electionId: string): Promise<Poll[]> => {
       .from('polls')
       .select(`
         *,
-        profiles!created_by (
+        profiles:created_by(
           id,
           first_name,
           last_name,
@@ -39,7 +39,7 @@ export const getPoll = async (pollId: string): Promise<Poll | null> => {
       .from('polls')
       .select(`
         *,
-        profiles!created_by (
+        profiles:created_by(
           id,
           first_name,
           last_name,
@@ -67,7 +67,7 @@ export const getPoll = async (pollId: string): Promise<Poll | null> => {
 };
 
 // Get user's vote on a specific poll
-export const getUserVote = async (pollId: string, userId: string): Promise<Record<string, string> | null> => {
+export const getUserVote = async (pollId: string, userId: string): Promise<string[] | null> => {
   try {
     const { data, error } = await supabase
       .from('poll_votes')
@@ -85,9 +85,13 @@ export const getUserVote = async (pollId: string, userId: string): Promise<Recor
       return null;
     }
     
-    // Convert options from JSON to Record<string, string>
-    const options = data.options as Record<string, string>;
-    return options;
+    // Convert options from JSON to array of selected option IDs
+    const options = data.options as Record<string, boolean>;
+    const selectedOptions = Object.entries(options)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([optionId]) => optionId);
+    
+    return selectedOptions;
   } catch (error) {
     console.error("Error fetching user vote:", error);
     return null;
@@ -116,10 +120,10 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
         id,
         options,
         user_id,
-        profiles!user_id (
+        user:user_id(
           id,
-          first_name,
-          last_name,
+          first_name:first_name,
+          last_name:last_name,
           image_url
         )
       `)
@@ -156,12 +160,12 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
           totalVotes += 1;
           
           // Add voter information if available
-          if (vote.profiles) {
+          if (vote.user) {
             const voter: PollVoter = {
-              userId: vote.profiles.id,
-              firstName: vote.profiles.first_name,
-              lastName: vote.profiles.last_name,
-              imageUrl: vote.profiles.image_url
+              userId: vote.user.id,
+              firstName: vote.user.first_name,
+              lastName: vote.user.last_name,
+              imageUrl: vote.user.image_url
             };
             optionsMap[optionId].voters.push(voter);
           }

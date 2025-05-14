@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { Poll, PollResults } from '@/types';
@@ -95,7 +94,7 @@ export const usePolls = (electionId: string) => {
         
         // Load user's vote if authenticated
         if (user) {
-          const vote = await getUserVote(pollId);
+          const vote = await getUserVote(pollId, user.id);
           setUserVote(vote);
         } else {
           setUserVote(null);
