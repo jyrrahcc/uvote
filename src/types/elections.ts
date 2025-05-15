@@ -1,4 +1,3 @@
-
 /**
  * Election type definition
  */
@@ -20,6 +19,11 @@ export interface Election {
   positions?: string[]; // Added positions array
   banner_urls?: string[]; // Added banner_urls array to store election banner images
   eligibleYearLevels?: string[]; // Added eligibleYearLevels array
+  
+  // Adding the missing properties
+  department?: string; // Legacy field for backward compatibility
+  restrictVoting?: boolean; // Field to determine if voting is restricted to eligible voters
+  totalEligibleVoters?: number; // Field to store the total number of eligible voters
 }
 
 /**
@@ -117,7 +121,12 @@ export const mapDbElectionToElection = (dbElection: DbElection): Election => {
     colleges: dbElection.departments || [], // Map departments to colleges in the UI
     positions: dbElection.positions || [],
     banner_urls: dbElection.banner_urls || [],
-    eligibleYearLevels: dbElection.eligible_year_levels || []
+    eligibleYearLevels: dbElection.eligible_year_levels || [],
+    
+    // Add the missing properties
+    department: dbElection.department || undefined,
+    restrictVoting: dbElection.restrict_voting || false,
+    totalEligibleVoters: dbElection.total_eligible_voters || 0
   };
 };
 
@@ -138,5 +147,10 @@ export const mapElectionToDbElection = (election: Election): DbElection => ({
   departments: election.colleges || [], // Map colleges back to departments for DB
   positions: election.positions || [],
   banner_urls: election.banner_urls || [],
-  eligible_year_levels: election.eligibleYearLevels || []
+  eligible_year_levels: election.eligibleYearLevels || [],
+  
+  // Add the missing properties in the DB mapping
+  department: election.department || null,
+  restrict_voting: election.restrictVoting || null,
+  total_eligible_voters: election.totalEligibleVoters || null
 });
