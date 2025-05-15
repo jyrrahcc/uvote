@@ -21,7 +21,8 @@ export const createPoll = async (
       return null;
     }
     
-    const { data, error } = await supabase
+    // First, insert the poll
+    const { data: pollData, error: pollError } = await supabase
       .from('polls')
       .insert({
         question,
@@ -33,23 +34,34 @@ export const createPoll = async (
         created_by: user.id,
         election_id: topicId ? null : window.location.pathname.split('/').pop(),
       })
-      .select(`
-        *,
-        profiles:created_by(
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select('*')
       .single();
     
-    if (error) {
-      console.error("Error creating poll:", error);
+    if (pollError) {
+      console.error("Error creating poll:", pollError);
       return null;
     }
     
-    return transformPoll(data);
+    // Then fetch the author profile separately
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
+      // Return poll without author information
+      return transformPoll({ ...pollData, profiles: null });
+    }
+    
+    // Combine poll data with author profile
+    const pollWithAuthor = {
+      ...pollData,
+      profiles: profileData
+    };
+    
+    return transformPoll(pollWithAuthor);
   } catch (error) {
     console.error("Error creating poll:", error);
     return null;

@@ -137,7 +137,7 @@ const TopicView = ({
         <Card>
           <CardHeader>
             <div className="flex justify-between items-start">
-              <div>
+              <div className="flex-1">
                 {isEditing ? (
                   <div className="space-y-4 w-full">
                     <div>
@@ -171,7 +171,7 @@ const TopicView = ({
               </div>
               
               {canManageTopic() && !isEditing && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-end">
                   {isAdmin && (
                     <>
                       <Button 
@@ -194,24 +194,28 @@ const TopicView = ({
                     </>
                   )}
                   
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleStartEdit}
-                  >
-                    <Edit size={16} className="mr-1" />
-                    Edit
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleDeleteTopic}
-                    className="text-red-500 hover:text-red-600"
-                  >
-                    <Trash size={16} className="mr-1" />
-                    Delete
-                  </Button>
+                  {(isAdmin || topic.createdBy === user?.id) && (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleStartEdit}
+                      >
+                        <Edit size={16} className="mr-1" />
+                        Edit
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleDeleteTopic}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <Trash size={16} className="mr-1" />
+                        Delete
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
