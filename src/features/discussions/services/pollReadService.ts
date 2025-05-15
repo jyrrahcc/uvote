@@ -6,26 +6,55 @@ import { transformPoll } from "./pollTransformUtils";
 // Get all polls for an election
 export const getPolls = async (electionId: string): Promise<Poll[]> => {
   try {
-    const { data, error } = await supabase
+    // First, fetch all polls for the election
+    const { data: pollsData, error: pollsError } = await supabase
       .from('polls')
-      .select(`
-        *,
-        profiles:created_by(
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select('*')
       .eq('election_id', electionId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching polls:", error);
+    if (pollsError) {
+      console.error("Error fetching polls:", pollsError);
       return [];
     }
 
-    return data.map(transformPoll);
+    // If no polls are found, return empty array
+    if (!pollsData || pollsData.length === 0) {
+      return [];
+    }
+
+    // Get all creator user IDs
+    const creatorIds = pollsData
+      .map(poll => poll.created_by)
+      .filter(Boolean);
+
+    // Fetch author profiles separately if we have any creator IDs
+    let profilesMap: Record<string, any> = {};
+    if (creatorIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, image_url')
+        .in('id', creatorIds);
+
+      if (profilesError) {
+        console.error("Error fetching author profiles:", profilesError);
+      } else if (profilesData) {
+        // Create a map of user IDs to profile data
+        profilesMap = profilesData.reduce((acc, profile) => {
+          acc[profile.id] = profile;
+          return acc;
+        }, {} as Record<string, any>);
+      }
+    }
+
+    // Combine poll data with author profiles
+    return pollsData.map(poll => {
+      const authorProfile = poll.created_by ? profilesMap[poll.created_by] : null;
+      return transformPoll({
+        ...poll,
+        profiles: authorProfile
+      });
+    });
   } catch (error) {
     console.error("Error fetching polls:", error);
     return [];
@@ -35,31 +64,39 @@ export const getPolls = async (electionId: string): Promise<Poll[]> => {
 // Get a specific poll by ID with author data
 export const getPoll = async (pollId: string): Promise<Poll | null> => {
   try {
-    const { data, error } = await supabase
+    // First, fetch the poll data
+    const { data: pollData, error: pollError } = await supabase
       .from('polls')
-      .select(`
-        *,
-        profiles:created_by(
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select('*')
       .eq('id', pollId)
-      .maybeSingle();
+      .single();
 
-    if (error) {
-      console.error("Error fetching poll:", error);
+    if (pollError) {
+      console.error("Error fetching poll:", pollError);
       return null;
     }
 
-    if (!data) {
-      console.error("Poll not found:", pollId);
-      return null;
+    // If poll has a creator, fetch their profile
+    let authorProfile = null;
+    if (pollData.created_by) {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, image_url')
+        .eq('id', pollData.created_by)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Error fetching author profile:", profileError);
+      } else {
+        authorProfile = profileData;
+      }
     }
 
-    return transformPoll(data);
+    // Combine poll with author profile
+    return transformPoll({
+      ...pollData,
+      profiles: authorProfile
+    });
   } catch (error) {
     console.error("Error fetching poll:", error);
     return null;

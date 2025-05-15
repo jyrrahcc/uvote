@@ -21,7 +21,35 @@ export const createPoll = async (
       return null;
     }
     
-    // First, insert the poll
+    // Determine election_id - either from topic or directly provided
+    let electionId: string | null = null;
+    
+    if (topicId) {
+      // Get election ID from the topic
+      const { data: topicData, error: topicError } = await supabase
+        .from('discussion_topics')
+        .select('election_id')
+        .eq('id', topicId)
+        .single();
+      
+      if (topicError) {
+        console.error("Error getting topic's election ID:", topicError);
+        return null;
+      }
+      
+      electionId = topicData.election_id;
+    } else {
+      // Use the election ID from the URL
+      const urlPathSegments = window.location.pathname.split('/');
+      electionId = urlPathSegments[urlPathSegments.length - 1];
+    }
+    
+    if (!electionId) {
+      console.error("Could not determine election ID");
+      return null;
+    }
+    
+    // Insert poll
     const { data: pollData, error: pollError } = await supabase
       .from('polls')
       .insert({
@@ -32,7 +60,7 @@ export const createPoll = async (
         multiple_choice: multipleChoice,
         ends_at: endsAt,
         created_by: user.id,
-        election_id: topicId ? null : window.location.pathname.split('/').pop(),
+        election_id: electionId
       })
       .select('*')
       .single();
@@ -42,7 +70,7 @@ export const createPoll = async (
       return null;
     }
     
-    // Then fetch the author profile separately
+    // Fetch author profile separately
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, image_url')
@@ -56,12 +84,10 @@ export const createPoll = async (
     }
     
     // Combine poll data with author profile
-    const pollWithAuthor = {
+    return transformPoll({
       ...pollData,
       profiles: profileData
-    };
-    
-    return transformPoll(pollWithAuthor);
+    });
   } catch (error) {
     console.error("Error creating poll:", error);
     return null;
@@ -82,27 +108,40 @@ export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promis
     if (updates.isClosed !== undefined) dbUpdates.is_closed = updates.isClosed;
     if (updates.multipleChoice !== undefined) dbUpdates.multiple_choice = updates.multipleChoice;
     
-    const { data, error } = await supabase
+    // Update the poll
+    const { data: pollData, error: pollError } = await supabase
       .from('polls')
       .update(dbUpdates)
       .eq('id', pollId)
-      .select(`
-        *,
-        profiles:created_by(
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select('*')
       .single();
     
-    if (error) {
-      console.error("Error updating poll:", error);
+    if (pollError) {
+      console.error("Error updating poll:", pollError);
       return null;
     }
     
-    return transformPoll(data);
+    // Fetch the author profile separately
+    let authorProfile = null;
+    if (pollData.created_by) {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, image_url')
+        .eq('id', pollData.created_by)
+        .maybeSingle();
+      
+      if (profileError) {
+        console.error("Error fetching author profile:", profileError);
+      } else {
+        authorProfile = profileData;
+      }
+    }
+    
+    // Combine poll data with author profile
+    return transformPoll({
+      ...pollData,
+      profiles: authorProfile
+    });
   } catch (error) {
     console.error("Error updating poll:", error);
     return null;
