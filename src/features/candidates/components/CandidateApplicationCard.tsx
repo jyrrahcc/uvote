@@ -44,8 +44,8 @@ const CandidateApplicationCard = ({
       await updateCandidateApplication(application.id, {
         status,
         feedback: feedback || null,
-        reviewed_by: user?.id || null,
-        reviewed_at: new Date().toISOString()
+        reviewed_by: user?.id || null
+        // removed reviewed_at as it's not in the interface
       });
       toast.success(`Application ${status}`);
       onStatusChange();

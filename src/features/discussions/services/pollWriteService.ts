@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollVote } from "@/types";
 
@@ -73,12 +72,12 @@ export const createPoll = async (pollData: Partial<Poll>): Promise<Poll> => {
       electionId: data.election_id,
       topicId: data.topic_id || undefined,
       createdBy: data.created_by,
-      creator: profile ? {
+      author: profile ? {
         id: profile.id,
         firstName: profile.first_name,
         lastName: profile.last_name,
         imageUrl: profile.image_url
-      } : undefined
+      } : null
     };
   } catch (error) {
     console.error("Error creating poll:", error);
@@ -187,6 +186,86 @@ export const deletePoll = async (pollId: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Error deleting poll:", error);
+    throw error;
+  }
+};
+
+// Update a poll
+export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promise<Poll | null> => {
+  try {
+    // Create an updates object with DB field names
+    const updateFields: Record<string, any> = {};
+    
+    if (updates.question !== undefined) updateFields.question = updates.question;
+    if (updates.description !== undefined) updateFields.description = updates.description;
+    if (updates.multipleChoice !== undefined) updateFields.multiple_choice = updates.multipleChoice;
+    if (updates.isClosed !== undefined) updateFields.is_closed = updates.isClosed;
+    if (updates.endsAt !== undefined) updateFields.ends_at = updates.endsAt;
+    
+    if (updates.options) {
+      const optionsArray = Object.keys(updates.options).map(key => ({
+        id: key,
+        text: updates.options![key]
+      }));
+      updateFields.options = JSON.stringify(optionsArray);
+    }
+    
+    const { data, error } = await supabase
+      .from('polls')
+      .update(updateFields)
+      .eq('id', pollId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    // Fetch the creator's profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .eq('id', data.created_by)
+      .single();
+    
+    if (profileError) {
+      console.error("Error fetching creator profile:", profileError);
+    }
+    
+    // Parse the options from the database format
+    const dbOptions = typeof data.options === 'string' 
+      ? JSON.parse(data.options) 
+      : data.options;
+      
+    const formattedOptions: Record<string, string> = {};
+    if (Array.isArray(dbOptions)) {
+      dbOptions.forEach(option => {
+        if (option.id && option.text) {
+          formattedOptions[option.id] = option.text;
+        }
+      });
+    }
+    
+    // Create the poll object
+    return {
+      id: data.id,
+      question: data.question,
+      description: data.description || undefined,
+      options: formattedOptions,
+      multipleChoice: data.multiple_choice || false,
+      isClosed: data.is_closed || false,
+      createdAt: data.created_at,
+      endsAt: data.ends_at || undefined,
+      electionId: data.election_id,
+      topicId: data.topic_id || undefined,
+      createdBy: data.created_by,
+      author: profile ? {
+        id: profile.id,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        imageUrl: profile.image_url
+      } : null
+    };
+  } catch (error) {
+    console.error("Error updating poll:", error);
     throw error;
   }
 };

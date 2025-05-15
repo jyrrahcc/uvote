@@ -62,16 +62,25 @@ export interface Poll {
   options: Record<string, string>;
   description?: string;
   electionId: string;
-  topicId: string | null;
+  topicId?: string | null;
   createdBy: string;
   createdAt: string;
-  endsAt: string | null;
+  endsAt?: string | null;
   isClosed: boolean;
   multipleChoice: boolean;
-  author: {
+  author?: {
     id: string;
     firstName: string;
     lastName: string;
     imageUrl?: string | null;
   } | null;
+}
+
+// Poll vote type for database operations
+export interface PollVote {
+  id: string;
+  pollId: string;
+  userId: string;
+  options: Record<string, boolean>;
+  createdAt: string;
 }

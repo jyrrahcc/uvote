@@ -6,8 +6,8 @@ import {
   getPoll,
   getPollResults,
   getUserVote,
-  createPoll,
-  updatePoll,
+  createPoll as createPollService,
+  updatePoll as updatePollService,
   deletePoll,
   voteOnPoll
 } from '../services/pollService';
@@ -143,14 +143,16 @@ export const usePolls = (electionId: string) => {
     
     try {
       console.log("Creating new poll:", { question, options, description, topicId, multipleChoice, endsAt });
-      const poll = await createPoll(
-        question, 
-        options, 
-        description || null, 
-        topicId || null, 
-        multipleChoice || false, 
-        endsAt || null
-      );
+      const poll = await createPollService({
+        question,
+        options,
+        description: description || undefined,
+        topicId: topicId || undefined,
+        multipleChoice: multipleChoice || false,
+        endsAt: endsAt || undefined,
+        electionId,
+        createdBy: user.id
+      });
       
       if (poll) {
         setPolls(prevPolls => [poll, ...prevPolls]);
@@ -204,7 +206,7 @@ export const usePolls = (electionId: string) => {
   const updateExistingPoll = async (pollId: string, updates: Partial<Poll>) => {
     try {
       console.log("Updating poll:", pollId, updates);
-      const updatedPoll = await updatePoll(pollId, updates);
+      const updatedPoll = await updatePollService(pollId, updates);
       
       if (updatedPoll) {
         // Update polls list
@@ -258,7 +260,22 @@ export const usePolls = (electionId: string) => {
     try {
       setVoteLoading(true);
       console.log("Voting on poll:", pollId, selectedOptions);
-      const success = await voteOnPoll(pollId, selectedOptions);
+      
+      // Convert array of option IDs to object with boolean values
+      const optionsObj: Record<string, boolean> = {};
+      if (selectedPoll) {
+        // Initialize all options to false
+        Object.keys(selectedPoll.options).forEach(optionId => {
+          optionsObj[optionId] = false;
+        });
+        
+        // Set selected options to true
+        selectedOptions.forEach(optionId => {
+          optionsObj[optionId] = true;
+        });
+      }
+      
+      const success = await voteOnPoll(pollId, user.id, optionsObj);
       
       if (success) {
         // Update user vote state

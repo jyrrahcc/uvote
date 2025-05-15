@@ -43,6 +43,6 @@ export const transformPollData = (dbPoll: any, creator?: any): Poll => {
     electionId: dbPoll.election_id,
     topicId: dbPoll.topic_id || undefined,
     createdBy: dbPoll.created_by,
-    creator: creator || undefined
+    author: creator || null
   };
 };

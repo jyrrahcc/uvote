@@ -31,11 +31,19 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
       profileMap.set(profile.id, profile);
     });
 
-    // Combine the topics with their author profiles
-    const processedTopics = topicsData.map(topic => {
+    // Combine the topics with their author profiles and map DB fields to TS interface fields
+    return topicsData.map(topic => {
       const authorProfile = profileMap.get(topic.created_by);
       return {
-        ...topic,
+        id: topic.id,
+        title: topic.title,
+        content: topic.content,
+        electionId: topic.election_id,
+        createdBy: topic.created_by,
+        createdAt: topic.created_at,
+        updatedAt: topic.updated_at,
+        isPinned: topic.is_pinned,
+        isLocked: topic.is_locked,
         author: authorProfile ? {
           id: authorProfile.id,
           firstName: authorProfile.first_name,
@@ -44,8 +52,6 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
         } : null
       };
     });
-
-    return processedTopics;
   } catch (error) {
     console.error("Error fetching discussion topics:", error);
     throw error;
@@ -79,9 +85,17 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
       .update({ view_count: (topic.view_count || 0) + 1 })
       .eq('id', topicId);
 
-    // Return the topic with author information
+    // Return the topic with author information, mapped to the TS interface
     return {
-      ...topic,
+      id: topic.id,
+      title: topic.title,
+      content: topic.content,
+      electionId: topic.election_id,
+      createdBy: topic.created_by,
+      createdAt: topic.created_at,
+      updatedAt: topic.updated_at,
+      isPinned: topic.is_pinned,
+      isLocked: topic.is_locked,
       author: {
         id: profile.id,
         firstName: profile.first_name,
@@ -103,8 +117,8 @@ export const createDiscussionTopic = async (topicData: Partial<DiscussionTopic>)
       .insert({
         title: topicData.title || '',
         content: topicData.content || '',
-        election_id: topicData.election_id || '',
-        created_by: topicData.created_by || ''
+        election_id: topicData.electionId || '',
+        created_by: topicData.createdBy || ''
       })
       .select()
       .single();
@@ -120,8 +134,17 @@ export const createDiscussionTopic = async (topicData: Partial<DiscussionTopic>)
 
     if (profileError) throw profileError;
 
+    // Map DB fields to TS interface fields
     return {
-      ...data,
+      id: data.id,
+      title: data.title,
+      content: data.content,
+      electionId: data.election_id,
+      createdBy: data.created_by,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      isPinned: data.is_pinned,
+      isLocked: data.is_locked,
       author: {
         id: profile.id,
         firstName: profile.first_name,
@@ -141,13 +164,13 @@ export const updateDiscussionTopic = async (
   updates: Partial<DiscussionTopic>
 ): Promise<DiscussionTopic> => {
   try {
-    // Create an updates object with only the fields we want to update
+    // Create an updates object with only the fields we want to update, mapped to DB field names
     const updateFields: Record<string, any> = {};
     
     if (updates.title !== undefined) updateFields.title = updates.title;
     if (updates.content !== undefined) updateFields.content = updates.content;
-    if (updates.is_pinned !== undefined) updateFields.is_pinned = updates.is_pinned;
-    if (updates.is_locked !== undefined) updateFields.is_locked = updates.is_locked;
+    if (updates.isPinned !== undefined) updateFields.is_pinned = updates.isPinned;
+    if (updates.isLocked !== undefined) updateFields.is_locked = updates.isLocked;
     
     // Add updated_at timestamp
     updateFields.updated_at = new Date().toISOString();
@@ -170,8 +193,17 @@ export const updateDiscussionTopic = async (
 
     if (profileError) throw profileError;
 
+    // Map DB fields to TS interface fields
     return {
-      ...data,
+      id: data.id,
+      title: data.title,
+      content: data.content,
+      electionId: data.election_id,
+      createdBy: data.created_by,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      isPinned: data.is_pinned,
+      isLocked: data.is_locked,
       author: {
         id: profile.id,
         firstName: profile.first_name,
@@ -238,14 +270,14 @@ export const fetchCommentsForTopic = async (topicId: string): Promise<Discussion
       profileMap.set(profile.id, profile);
     });
 
-    // Combine the comments with their author profiles
-    const processedComments = commentsData.map(comment => {
+    // Combine the comments with their author profiles and map DB fields to TS interface fields
+    return commentsData.map(comment => {
       const author = profileMap.get(comment.user_id);
       return {
         id: comment.id,
         content: comment.content,
         topicId: comment.topic_id,
-        userId: comment.user_id,
+        createdBy: comment.user_id,
         createdAt: comment.created_at,
         updatedAt: comment.updated_at,
         parentId: comment.parent_id || null,
@@ -257,8 +289,6 @@ export const fetchCommentsForTopic = async (topicId: string): Promise<Discussion
         } : null
       };
     });
-
-    return processedComments;
   } catch (error) {
     console.error("Error fetching comments:", error);
     throw error;
@@ -295,11 +325,12 @@ export const addCommentToTopic = async (
 
     if (profileError) throw profileError;
 
+    // Map DB fields to TS interface fields
     return {
       id: data.id,
       content: data.content,
       topicId: data.topic_id,
-      userId: data.user_id,
+      createdBy: data.user_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
       parentId: data.parent_id || null,
@@ -338,6 +369,70 @@ export const deleteComment = async (commentId: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Error deleting comment:", error);
+    throw error;
+  }
+};
+
+// Create aliases for existing functions to maintain compatibility with useDiscussions.ts
+export const getTopics = fetchDiscussionTopics;
+export const getTopic = fetchDiscussionTopicById;
+export const createTopic = (electionId: string, title: string, content: string) => {
+  return createDiscussionTopic({
+    electionId,
+    title,
+    content,
+    createdBy: supabase.auth.getUser().then(({ data }) => data.user?.id || '')
+  });
+};
+export const updateTopic = updateDiscussionTopic;
+export const deleteTopic = deleteDiscussionTopic;
+export const getComments = fetchCommentsForTopic;
+export const createComment = (topicId: string, content: string, parentId?: string | null) => {
+  return supabase.auth.getUser().then(({ data }) => {
+    if (data.user) {
+      return addCommentToTopic(topicId, data.user.id, content, parentId || undefined);
+    }
+    throw new Error("User not authenticated");
+  });
+};
+export const updateComment = async (commentId: string, content: string): Promise<DiscussionComment> => {
+  try {
+    const { data, error } = await supabase
+      .from('discussion_comments')
+      .update({ content, updated_at: new Date().toISOString() })
+      .eq('id', commentId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Fetch the author profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .eq('id', data.user_id)
+      .single();
+
+    if (profileError) throw profileError;
+
+    // Map DB fields to TS interface fields
+    return {
+      id: data.id,
+      content: data.content,
+      topicId: data.topic_id,
+      createdBy: data.user_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      parentId: data.parent_id || null,
+      author: {
+        id: profile.id,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        imageUrl: profile.image_url
+      }
+    };
+  } catch (error) {
+    console.error("Error updating comment:", error);
     throw error;
   }
 };

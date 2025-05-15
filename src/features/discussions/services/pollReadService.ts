@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollVote } from "@/types";
 import { transformPollData } from "./pollTransformUtils";
@@ -166,6 +165,119 @@ export const fetchPollsForTopic = async (topicId: string): Promise<Poll[]> => {
     return pollsData.map(poll => transformPollData(poll, creatorProfiles.get(poll.created_by)));
   } catch (error) {
     console.error("Error fetching polls for topic:", error);
+    throw error;
+  }
+};
+
+// Create aliases for existing functions to maintain compatibility with usePolls.ts
+export const getPolls = fetchPollsForElection;
+export const getPoll = fetchPollById;
+
+// Function to get poll results
+export const getPollResults = async (pollId: string) => {
+  try {
+    // Fetch the poll to get options
+    const poll = await fetchPollById(pollId);
+    if (!poll) throw new Error("Poll not found");
+    
+    // Fetch all votes for this poll
+    const { data: votes, error } = await supabase
+      .from('poll_votes')
+      .select('user_id, options')
+      .eq('poll_id', pollId);
+      
+    if (error) throw error;
+    
+    // Get unique voter IDs
+    const voterIds = [...new Set(votes.map(vote => vote.user_id))];
+    
+    // Fetch profiles for all voters
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .in('id', voterIds);
+      
+    if (profilesError) throw profilesError;
+    
+    // Create a map of voter profiles
+    const voterProfiles = new Map();
+    if (profiles) {
+      profiles.forEach(profile => {
+        voterProfiles.set(profile.id, {
+          userId: profile.id,
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          imageUrl: profile.image_url
+        });
+      });
+    }
+    
+    // Initialize results structure
+    const results = Object.entries(poll.options).map(([optionId, optionText]) => {
+      return {
+        optionId,
+        optionText,
+        votes: 0,
+        percentage: 0,
+        voters: []
+      };
+    });
+    
+    // Count votes
+    let totalVotes = 0;
+    votes.forEach(vote => {
+      const options = vote.options;
+      
+      Object.entries(options).forEach(([optionId, selected]) => {
+        if (selected) {
+          const resultOption = results.find(r => r.optionId === optionId);
+          if (resultOption) {
+            resultOption.votes += 1;
+            totalVotes += 1;
+            
+            // Add voter info if available
+            if (voterProfiles.has(vote.user_id)) {
+              resultOption.voters.push(voterProfiles.get(vote.user_id));
+            }
+          }
+        }
+      });
+    });
+    
+    // Calculate percentages
+    if (totalVotes > 0) {
+      results.forEach(result => {
+        result.percentage = Math.round((result.votes / totalVotes) * 100);
+      });
+    }
+    
+    return results;
+  } catch (error) {
+    console.error("Error calculating poll results:", error);
+    throw error;
+  }
+};
+
+// Function to get user vote
+export const getUserVote = async (pollId: string, userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('poll_votes')
+      .select('options')
+      .eq('poll_id', pollId)
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (error) throw error;
+    
+    if (!data) return null;
+    
+    // Convert options object to array of selected option IDs
+    return Object.entries(data.options)
+      .filter(([_, selected]) => selected)
+      .map(([optionId]) => optionId);
+  } catch (error) {
+    console.error("Error fetching user vote:", error);
     throw error;
   }
 };
