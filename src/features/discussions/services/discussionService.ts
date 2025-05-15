@@ -1,450 +1,343 @@
-import { supabase } from "@/integrations/supabase/client";
-import { DiscussionTopic, DiscussionComment } from "@/types/discussions";
 
-// Get all topics for an election
-export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { DiscussionTopic, DiscussionComment } from "@/types";
+
+// Fetch all discussion topics for a specific election
+export const fetchDiscussionTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
   try {
-    const { data, error } = await supabase
+    // First fetch the topics
+    const { data: topicsData, error: topicsError } = await supabase
       .from('discussion_topics')
-      .select(`
-        id, 
-        title, 
-        content, 
-        election_id, 
-        created_by,
-        created_at,
-        updated_at,
-        is_pinned,
-        is_locked,
-        profiles:created_by (
-          id, 
-          first_name, 
-          last_name,
-          image_url
-        ),
-        replies:discussion_comments (count)
-      `)
+      .select('*')
       .eq('election_id', electionId)
+      .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Error fetching topics:", error);
-      return [];
-    }
-    
-    return data.map(topic => ({
-      id: topic.id,
-      title: topic.title,
-      content: topic.content,
-      electionId: topic.election_id,
-      createdBy: topic.created_by,
-      createdAt: topic.created_at,
-      updatedAt: topic.updated_at,
-      isPinned: topic.is_pinned || false,
-      isLocked: topic.is_locked || false,
-      author: topic.profiles ? {
-        id: topic.profiles.id,
-        firstName: topic.profiles.first_name,
-        lastName: topic.profiles.last_name,
-        imageUrl: topic.profiles.image_url
-      } : null,
-      repliesCount: topic.replies ? topic.replies.length : 0
-    }));
+
+    if (topicsError) throw topicsError;
+
+    // Then fetch all the related user profiles
+    const userIds = topicsData.map(topic => topic.created_by);
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .in('id', userIds);
+
+    if (profilesError) throw profilesError;
+
+    // Create a map of profiles by user ID for easier lookup
+    const profileMap = new Map();
+    profilesData.forEach(profile => {
+      profileMap.set(profile.id, profile);
+    });
+
+    // Combine the topics with their author profiles
+    const processedTopics = topicsData.map(topic => {
+      const authorProfile = profileMap.get(topic.created_by);
+      return {
+        ...topic,
+        author: authorProfile ? {
+          id: authorProfile.id,
+          firstName: authorProfile.first_name,
+          lastName: authorProfile.last_name,
+          imageUrl: authorProfile.image_url
+        } : null
+      };
+    });
+
+    return processedTopics;
   } catch (error) {
-    console.error("Error fetching topics:", error);
-    return [];
+    console.error("Error fetching discussion topics:", error);
+    throw error;
   }
 };
 
-// Get a specific topic by ID with author data
-export const getTopic = async (topicId: string): Promise<DiscussionTopic | null> => {
+// Fetch a specific discussion topic by ID
+export const fetchDiscussionTopicById = async (topicId: string): Promise<DiscussionTopic> => {
   try {
-    const { data, error } = await supabase
+    // First fetch the topic
+    const { data: topic, error: topicError } = await supabase
       .from('discussion_topics')
-      .select(`
-        id, 
-        title, 
-        content, 
-        election_id, 
-        created_by,
-        created_at,
-        updated_at,
-        is_pinned,
-        is_locked,
-        profiles:created_by (
-          id, 
-          first_name, 
-          last_name,
-          image_url
-        )
-      `)
+      .select('*')
       .eq('id', topicId)
-      .maybeSingle();
-    
-    if (error) {
-      console.error("Error fetching topic:", error);
-      return null;
-    }
-    
-    if (!data) {
-      console.error("Topic not found:", topicId);
-      return null;
-    }
-    
+      .single();
+
+    if (topicError) throw topicError;
+
+    // Then fetch the author profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .eq('id', topic.created_by)
+      .single();
+
+    if (profileError) throw profileError;
+
+    // Increment view count
+    await supabase
+      .from('discussion_topics')
+      .update({ view_count: (topic.view_count || 0) + 1 })
+      .eq('id', topicId);
+
+    // Return the topic with author information
     return {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      electionId: data.election_id,
-      createdBy: data.created_by,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      isPinned: data.is_pinned || false,
-      isLocked: data.is_locked || false,
-      author: data.profiles ? {
-        id: data.profiles.id,
-        firstName: data.profiles.first_name,
-        lastName: data.profiles.last_name,
-        imageUrl: data.profiles.image_url
-      } : null
+      ...topic,
+      author: {
+        id: profile.id,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        imageUrl: profile.image_url
+      }
     };
   } catch (error) {
-    console.error("Error fetching topic:", error);
-    return null;
+    console.error("Error fetching discussion topic:", error);
+    throw error;
   }
 };
 
 // Create a new discussion topic
-export const createTopic = async (electionId: string, title: string, content: string): Promise<DiscussionTopic | null> => {
+export const createDiscussionTopic = async (topicData: Partial<DiscussionTopic>): Promise<DiscussionTopic> => {
   try {
-    // Get the current user's ID
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error("User not authenticated");
-      return null;
-    }
-    
     const { data, error } = await supabase
       .from('discussion_topics')
       .insert({
-        election_id: electionId,
-        title: title,
-        content: content,
-        created_by: user.id
+        title: topicData.title || '',
+        content: topicData.content || '',
+        election_id: topicData.election_id || '',
+        created_by: topicData.created_by || ''
       })
-      .select(`
-        id, 
-        title, 
-        content, 
-        election_id, 
-        created_by,
-        created_at,
-        updated_at,
-        is_pinned,
-        is_locked,
-        profiles:created_by (
-          id, 
-          first_name, 
-          last_name,
-          image_url
-        )
-      `)
+      .select()
       .single();
-    
-    if (error) {
-      console.error("Error creating topic:", error);
-      return null;
-    }
-    
+
+    if (error) throw error;
+
+    // Fetch the author profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .eq('id', data.created_by)
+      .single();
+
+    if (profileError) throw profileError;
+
     return {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      electionId: data.election_id,
-      createdBy: data.created_by,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      isPinned: data.is_pinned || false,
-      isLocked: data.is_locked || false,
-      author: data.profiles ? {
-        id: data.profiles.id,
-        firstName: data.profiles.first_name,
-        lastName: data.profiles.last_name,
-        imageUrl: data.profiles.image_url
-      } : null
+      ...data,
+      author: {
+        id: profile.id,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        imageUrl: profile.image_url
+      }
     };
   } catch (error) {
-    console.error("Error creating topic:", error);
-    return null;
+    console.error("Error creating discussion topic:", error);
+    throw error;
   }
 };
 
-// Update an existing topic
-export const updateTopic = async (topicId: string, updates: Partial<DiscussionTopic>): Promise<DiscussionTopic | null> => {
+// Update a discussion topic
+export const updateDiscussionTopic = async (
+  topicId: string,
+  updates: Partial<DiscussionTopic>
+): Promise<DiscussionTopic> => {
   try {
-    // Transform front-end model to database model
-    const dbUpdates: Record<string, any> = {};
+    // Create an updates object with only the fields we want to update
+    const updateFields: Record<string, any> = {};
     
-    if (updates.title !== undefined) dbUpdates.title = updates.title;
-    if (updates.content !== undefined) dbUpdates.content = updates.content;
-    if (updates.isPinned !== undefined) dbUpdates.is_pinned = updates.isPinned;
-    if (updates.isLocked !== undefined) dbUpdates.is_locked = updates.isLocked;
+    if (updates.title !== undefined) updateFields.title = updates.title;
+    if (updates.content !== undefined) updateFields.content = updates.content;
+    if (updates.is_pinned !== undefined) updateFields.is_pinned = updates.is_pinned;
+    if (updates.is_locked !== undefined) updateFields.is_locked = updates.is_locked;
     
-    // Important: Use PATCH instead of UPDATE and properly format the request
+    // Add updated_at timestamp
+    updateFields.updated_at = new Date().toISOString();
+    
     const { data, error } = await supabase
       .from('discussion_topics')
-      .update(dbUpdates)
+      .update(updateFields)
       .eq('id', topicId)
-      .select(`
-        id, 
-        title, 
-        content, 
-        election_id, 
-        created_by,
-        created_at,
-        updated_at, 
-        is_pinned, 
-        is_locked,
-        profiles:created_by (
-          id, 
-          first_name, 
-          last_name,
-          image_url
-        )
-      `)
+      .select()
       .single();
-    
-    if (error) {
-      console.error("Error updating topic:", error);
-      return null;
-    }
-    
-    // Transform from database model to front-end model
+
+    if (error) throw error;
+
+    // Fetch the author profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .eq('id', data.created_by)
+      .single();
+
+    if (profileError) throw profileError;
+
     return {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      electionId: data.election_id,
-      createdBy: data.created_by,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      isPinned: data.is_pinned || false,
-      isLocked: data.is_locked || false,
-      author: data.profiles ? {
-        id: data.profiles.id,
-        firstName: data.profiles.first_name,
-        lastName: data.profiles.last_name,
-        imageUrl: data.profiles.image_url
-      } : null
+      ...data,
+      author: {
+        id: profile.id,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        imageUrl: profile.image_url
+      }
     };
-  } catch (error: any) {
-    console.error("Error updating topic:", error);
-    return null;
+  } catch (error) {
+    console.error("Error updating discussion topic:", error);
+    throw error;
   }
 };
 
-// Delete a topic
-export const deleteTopic = async (topicId: string): Promise<boolean> => {
+// Delete a discussion topic
+export const deleteDiscussionTopic = async (topicId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    // First delete all comments associated with the topic
+    const { error: commentsError } = await supabase
+      .from('discussion_comments')
+      .delete()
+      .eq('topic_id', topicId);
+
+    if (commentsError) throw commentsError;
+
+    // Then delete the topic itself
+    const { error: topicError } = await supabase
       .from('discussion_topics')
       .delete()
       .eq('id', topicId);
-    
-    if (error) {
-      console.error("Error deleting topic:", error);
-      return false;
-    }
-    
+
+    if (topicError) throw topicError;
+
     return true;
   } catch (error) {
-    console.error("Error deleting topic:", error);
-    return false;
+    console.error("Error deleting discussion topic:", error);
+    throw error;
   }
 };
 
-// Get comments for a topic
-export const getComments = async (topicId: string): Promise<DiscussionComment[]> => {
+// Fetch comments for a specific topic
+export const fetchCommentsForTopic = async (topicId: string): Promise<DiscussionComment[]> => {
   try {
-    const { data, error } = await supabase
+    // First fetch all comments for this topic
+    const { data: commentsData, error: commentsError } = await supabase
       .from('discussion_comments')
-      .select(`
-        id,
-        content,
-        topic_id,
-        created_by,
-        created_at,
-        updated_at,
-        parent_id,
-        profiles:created_by (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select('*')
       .eq('topic_id', topicId)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Error fetching comments:", error);
-      return [];
-    }
-    
-    return data.map(comment => ({
-      id: comment.id,
-      content: comment.content,
-      topicId: comment.topic_id,
-      createdBy: comment.created_by,
-      createdAt: comment.created_at,
-      updatedAt: comment.updated_at,
-      parentId: comment.parent_id,
-      author: comment.profiles ? {
-        id: comment.profiles.id,
-        firstName: comment.profiles.first_name,
-        lastName: comment.profiles.last_name,
-        imageUrl: comment.profiles.image_url
-      } : null
-    }));
+      .order('created_at', { ascending: true });
+
+    if (commentsError) throw commentsError;
+
+    // Then fetch all related user profiles
+    const userIds = commentsData.map(comment => comment.user_id);
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .in('id', userIds);
+
+    if (profilesError) throw profilesError;
+
+    // Create a map of profiles by user ID for easier lookup
+    const profileMap = new Map();
+    profilesData.forEach(profile => {
+      profileMap.set(profile.id, profile);
+    });
+
+    // Combine the comments with their author profiles
+    const processedComments = commentsData.map(comment => {
+      const author = profileMap.get(comment.user_id);
+      return {
+        id: comment.id,
+        content: comment.content,
+        topicId: comment.topic_id,
+        userId: comment.user_id,
+        createdAt: comment.created_at,
+        updatedAt: comment.updated_at,
+        parentId: comment.parent_id || null,
+        author: author ? {
+          id: author.id,
+          firstName: author.first_name,
+          lastName: author.last_name,
+          imageUrl: author.image_url
+        } : null
+      };
+    });
+
+    return processedComments;
   } catch (error) {
     console.error("Error fetching comments:", error);
-    return [];
+    throw error;
   }
 };
 
-// Create a new comment
-export const createComment = async (
-  topicId: string, 
-  content: string, 
-  parentId?: string | null
-): Promise<DiscussionComment | null> => {
+// Add a new comment to a topic
+export const addCommentToTopic = async (
+  topicId: string,
+  userId: string,
+  content: string,
+  parentId?: string
+): Promise<DiscussionComment> => {
   try {
-    // Get the current user's ID
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error("User not authenticated");
-      return null;
-    }
-    
     const { data, error } = await supabase
       .from('discussion_comments')
       .insert({
         topic_id: topicId,
+        user_id: userId,
         content: content,
-        created_by: user.id,
-        parent_id: parentId
+        parent_id: parentId || null
       })
-      .select(`
-        id,
-        content,
-        topic_id,
-        created_by,
-        created_at,
-        updated_at,
-        parent_id,
-        profiles:created_by (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select()
       .single();
-    
-    if (error) {
-      console.error("Error creating comment:", error);
-      return null;
-    }
-    
-    return {
-      id: data.id,
-      content: data.content,
-      topicId: data.topic_id,
-      createdBy: data.created_by,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      parentId: data.parent_id,
-      author: data.profiles ? {
-        id: data.profiles.id,
-        firstName: data.profiles.first_name,
-        lastName: data.profiles.last_name,
-        imageUrl: data.profiles.image_url
-      } : null
-    };
-  } catch (error) {
-    console.error("Error creating comment:", error);
-    return null;
-  }
-};
 
-// Update an existing comment
-export const updateComment = async (commentId: string, content: string): Promise<DiscussionComment | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('discussion_comments')
-      .update({ content })
-      .eq('id', commentId)
-      .select(`
-        id,
-        content,
-        topic_id,
-        created_by,
-        created_at,
-        updated_at,
-        parent_id,
-        profiles:created_by (
-          id,
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+    if (error) throw error;
+
+    // Fetch the author profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .eq('id', userId)
       .single();
-    
-    if (error) {
-      console.error("Error updating comment:", error);
-      return null;
-    }
-    
+
+    if (profileError) throw profileError;
+
     return {
       id: data.id,
       content: data.content,
       topicId: data.topic_id,
-      createdBy: data.created_by,
+      userId: data.user_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
-      parentId: data.parent_id,
-      author: data.profiles ? {
-        id: data.profiles.id,
-        firstName: data.profiles.first_name,
-        lastName: data.profiles.last_name,
-        imageUrl: data.profiles.image_url
-      } : null
+      parentId: data.parent_id || null,
+      author: {
+        id: profile.id,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        imageUrl: profile.image_url
+      }
     };
   } catch (error) {
-    console.error("Error updating comment:", error);
-    return null;
+    console.error("Error adding comment:", error);
+    throw error;
   }
 };
 
 // Delete a comment
 export const deleteComment = async (commentId: string): Promise<boolean> => {
   try {
+    // Delete all child comments first
+    const { error: childError } = await supabase
+      .from('discussion_comments')
+      .delete()
+      .eq('parent_id', commentId);
+
+    if (childError) throw childError;
+
+    // Then delete the comment itself
     const { error } = await supabase
       .from('discussion_comments')
       .delete()
       .eq('id', commentId);
-    
-    if (error) {
-      console.error("Error deleting comment:", error);
-      return false;
-    }
-    
+
+    if (error) throw error;
+
     return true;
   } catch (error) {
     console.error("Error deleting comment:", error);
-    return false;
+    throw error;
   }
 };

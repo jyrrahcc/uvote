@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -115,22 +114,74 @@ export const updateCandidateApplication = async (
     status: "approved" | "rejected" | "disqualified";
     feedback?: string | null;
     reviewed_by?: string | null;
-    reviewed_at?: string | null;
   }
 ): Promise<void> => {
   try {
+    // Remove any fields that aren't in the database schema
+    const validUpdates = {
+      status: updates.status,
+      feedback: updates.feedback,
+      reviewed_by: updates.reviewed_by,
+      updated_at: new Date().toISOString()
+    };
+    
     const { error } = await supabase
       .from('candidate_applications')
-      .update({
-        status: updates.status,
-        feedback: updates.feedback,
-        reviewed_by: updates.reviewed_by,
-        reviewed_at: updates.reviewed_at,
-        updated_at: new Date().toISOString()
-      })
+      .update(validUpdates)
       .eq('id', applicationId);
     
     if (error) throw error;
+    
+    // If the status is approved, automatically add the candidate to the candidates table
+    if (updates.status === 'approved') {
+      // Get the application data
+      const { data: appData, error: appError } = await supabase
+        .from('candidate_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
+        
+      if (appError) throw appError;
+      
+      if (appData) {
+        // Add the candidate to the candidates table
+        const { error: candidateError } = await supabase
+          .from('candidates')
+          .insert({
+            name: appData.name,
+            position: appData.position,
+            bio: appData.bio || null,
+            image_url: appData.image_url || null,
+            election_id: appData.election_id,
+            created_by: appData.user_id
+          });
+          
+        if (candidateError) throw candidateError;
+      }
+    }
+    
+    // If the status is disqualified, remove any existing candidate entry for this user in this election
+    if (updates.status === 'disqualified') {
+      // Get the application data
+      const { data: appData, error: appError } = await supabase
+        .from('candidate_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
+        
+      if (appError) throw appError;
+      
+      if (appData) {
+        // Remove any candidate entries for this user in this election
+        const { error: removeError } = await supabase
+          .from('candidates')
+          .delete()
+          .eq('created_by', appData.user_id)
+          .eq('election_id', appData.election_id);
+          
+        if (removeError) throw removeError;
+      }
+    }
   } catch (error) {
     console.error("Error updating application:", error);
     throw error;
@@ -139,24 +190,38 @@ export const updateCandidateApplication = async (
 
 export const deleteCandidateApplication = async (applicationId: string): Promise<boolean> => {
   try {
-    // First, verify the application exists
-    const { data: existingData, error: existingError } = await supabase
+    // First, get the application data to check if it's approved
+    const { data: appData, error: appError } = await supabase
       .from('candidate_applications')
-      .select('id')
+      .select('*')
       .eq('id', applicationId)
       .single();
     
-    if (existingError) {
-      console.error("Application not found or error checking:", existingError);
+    if (appError) {
+      console.error("Error fetching application:", appError);
       return false;
     }
     
-    if (!existingData) {
+    if (!appData) {
       console.error("Application not found with ID:", applicationId);
       return false;
     }
     
-    // If it exists, proceed with deletion
+    // If the application is approved, also remove the candidate
+    if (appData.status === 'approved') {
+      const { error: candidateError } = await supabase
+        .from('candidates')
+        .delete()
+        .eq('created_by', appData.user_id)
+        .eq('election_id', appData.election_id);
+        
+      if (candidateError) {
+        console.error("Error deleting related candidate:", candidateError);
+        // Continue with application deletion even if candidate deletion fails
+      }
+    }
+    
+    // Delete the application
     const { error } = await supabase
       .from('candidate_applications')
       .delete()
@@ -167,24 +232,6 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
       return false;
     }
     
-    // Verify deletion was successful
-    const { data: verifyData, error: verifyError } = await supabase
-      .from('candidate_applications')
-      .select('id')
-      .eq('id', applicationId);
-      
-    if (verifyError) {
-      console.error("Error verifying deletion:", verifyError);
-      return false;
-    }
-    
-    // If the application still exists, deletion failed
-    if (verifyData && verifyData.length > 0) {
-      console.error("Deletion verification failed: application still exists");
-      return false;
-    }
-    
-    // Deletion successful
     return true;
   } catch (error) {
     console.error("Error deleting application:", error);

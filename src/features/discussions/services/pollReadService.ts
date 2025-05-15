@@ -1,233 +1,171 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Poll, PollResults, PollVoter } from "@/types/discussions";
-import { transformPoll } from "./pollTransformUtils";
+import { Poll, PollVote } from "@/types";
+import { transformPollData } from "./pollTransformUtils";
 
-// Get all polls for an election
-export const getPolls = async (electionId: string): Promise<Poll[]> => {
+// Fetch all polls for a specific election
+export const fetchPollsForElection = async (electionId: string): Promise<Poll[]> => {
   try {
-    // First, fetch all polls for the election
+    // First fetch the polls
     const { data: pollsData, error: pollsError } = await supabase
       .from('polls')
       .select('*')
       .eq('election_id', electionId)
       .order('created_at', { ascending: false });
-
-    if (pollsError) {
-      console.error("Error fetching polls:", pollsError);
-      return [];
-    }
-
-    // If no polls are found, return empty array
+      
+    if (pollsError) throw pollsError;
+    
     if (!pollsData || pollsData.length === 0) {
       return [];
     }
-
-    // Get all creator user IDs
-    const creatorIds = pollsData
-      .map(poll => poll.created_by)
-      .filter(Boolean);
-
-    // Fetch author profiles separately if we have any creator IDs
-    let profilesMap: Record<string, any> = {};
-    if (creatorIds.length > 0) {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, image_url')
-        .in('id', creatorIds);
-
-      if (profilesError) {
-        console.error("Error fetching author profiles:", profilesError);
-      } else if (profilesData) {
-        // Create a map of user IDs to profile data
-        profilesMap = profilesData.reduce((acc, profile) => {
-          acc[profile.id] = profile;
-          return acc;
-        }, {} as Record<string, any>);
-      }
-    }
-
-    // Combine poll data with author profiles
-    return pollsData.map(poll => {
-      const authorProfile = poll.created_by ? profilesMap[poll.created_by] : null;
-      return transformPoll({
-        ...poll,
-        profiles: authorProfile
+    
+    // Get unique creator IDs
+    const creatorIds = [...new Set(pollsData.map(poll => poll.created_by))];
+    
+    // Fetch profiles for all creators
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .in('id', creatorIds);
+      
+    if (profilesError) throw profilesError;
+    
+    // Create a map of creator profiles
+    const creatorProfiles = new Map();
+    if (profilesData) {
+      profilesData.forEach(profile => {
+        creatorProfiles.set(profile.id, {
+          id: profile.id,
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          imageUrl: profile.image_url
+        });
       });
-    });
+    }
+    
+    // Transform the poll data with creator information
+    return pollsData.map(poll => transformPollData(poll, creatorProfiles.get(poll.created_by)));
   } catch (error) {
-    console.error("Error fetching polls:", error);
-    return [];
+    console.error("Error fetching polls for election:", error);
+    throw error;
   }
 };
 
-// Get a specific poll by ID with author data
-export const getPoll = async (pollId: string): Promise<Poll | null> => {
+// Fetch a specific poll by ID
+export const fetchPollById = async (pollId: string): Promise<Poll | null> => {
   try {
-    // First, fetch the poll data
-    const { data: pollData, error: pollError } = await supabase
+    const { data, error } = await supabase
       .from('polls')
       .select('*')
       .eq('id', pollId)
       .single();
-
-    if (pollError) {
-      console.error("Error fetching poll:", pollError);
-      return null;
-    }
-
-    // If poll has a creator, fetch their profile
-    let authorProfile = null;
-    if (pollData.created_by) {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, image_url')
-        .eq('id', pollData.created_by)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error("Error fetching author profile:", profileError);
-      } else {
-        authorProfile = profileData;
-      }
-    }
-
-    // Combine poll with author profile
-    return transformPoll({
-      ...pollData,
-      profiles: authorProfile
-    });
+    
+    if (error) throw error;
+    
+    if (!data) return null;
+    
+    // Fetch creator profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .eq('id', data.created_by)
+      .single();
+    
+    if (profileError) throw profileError;
+    
+    const creator = profile ? {
+      id: profile.id,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      imageUrl: profile.image_url
+    } : null;
+    
+    return transformPollData(data, creator);
   } catch (error) {
     console.error("Error fetching poll:", error);
-    return null;
+    throw error;
   }
 };
 
-// Get user's vote on a specific poll
-export const getUserVote = async (pollId: string, userId: string): Promise<string[] | null> => {
+// Fetch all votes for a specific poll
+export const fetchVotesForPoll = async (pollId: string): Promise<PollVote[]> => {
   try {
     const { data, error } = await supabase
       .from('poll_votes')
-      .select('options')
-      .eq('poll_id', pollId)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching user vote:", error);
-      return null;
-    }
-
-    if (!data) {
-      return null;
-    }
+      .select('*')
+      .eq('poll_id', pollId);
     
-    // Convert options from JSON to array of selected option IDs
-    const options = data.options as Record<string, boolean>;
-    const selectedOptions = Object.entries(options)
-      .filter(([_, isSelected]) => isSelected)
-      .map(([optionId]) => optionId);
+    if (error) throw error;
     
-    return selectedOptions;
+    return data || [];
   } catch (error) {
-    console.error("Error fetching user vote:", error);
-    return null;
+    console.error("Error fetching poll votes:", error);
+    throw error;
   }
 };
 
-// Calculate poll results
-export const getPollResults = async (pollId: string): Promise<PollResults[]> => {
+// Check if a user has voted on a poll
+export const hasUserVotedOnPoll = async (pollId: string, userId: string): Promise<boolean> => {
   try {
-    // First, get the poll to get the options
-    const { data: pollData, error: pollError } = await supabase
-      .from('polls')
-      .select('options')
-      .eq('id', pollId)
-      .maybeSingle();
-
-    if (pollError || !pollData) {
-      console.error("Error fetching poll options:", pollError);
-      return [];
-    }
-
-    // Get all votes for this poll
-    const { data: votesData, error: votesError } = await supabase
+    const { data, error } = await supabase
       .from('poll_votes')
-      .select('id, options, user_id');
+      .select('id')
+      .eq('poll_id', pollId)
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+    
+    return data && data.length > 0;
+  } catch (error) {
+    console.error("Error checking if user has voted:", error);
+    throw error;
+  }
+};
 
-    if (votesError) {
-      console.error("Error fetching poll votes:", votesError);
+// Get polls for a specific discussion topic
+export const fetchPollsForTopic = async (topicId: string): Promise<Poll[]> => {
+  try {
+    // First fetch the polls
+    const { data: pollsData, error: pollsError } = await supabase
+      .from('polls')
+      .select('*')
+      .eq('topic_id', topicId)
+      .order('created_at', { ascending: false });
+      
+    if (pollsError) throw pollsError;
+    
+    if (!pollsData || pollsData.length === 0) {
       return [];
     }
-
-    // Fetch user profiles separately
-    const userIds = votesData.map(vote => vote.user_id);
+    
+    // Get unique creator IDs
+    const creatorIds = [...new Set(pollsData.map(poll => poll.created_by))];
+    
+    // Fetch profiles for all creators
     const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, image_url')
-      .in('id', userIds);
-
-    if (profilesError) {
-      console.error("Error fetching user profiles:", profilesError);
-      return [];
-    }
-
-    // Create a map of user IDs to profile data
-    const profileMap: Record<string, any> = {};
-    profilesData.forEach(profile => {
-      profileMap[profile.id] = profile;
-    });
-
-    // Process results
-    const pollOptions = pollData.options as Record<string, string>;
-    const optionsMap: Record<string, PollResults> = {};
-    let totalVotes = 0;
-
-    // Initialize results for each option
-    Object.entries(pollOptions).forEach(([optionId, optionText]) => {
-      optionsMap[optionId] = {
-        optionId,
-        optionText,
-        votes: 0,
-        percentage: 0,
-        voters: []
-      };
-    });
-
-    // Count votes for each option
-    votesData.forEach((vote) => {
-      const selectedOptions = vote.options as Record<string, boolean>;
+      .in('id', creatorIds);
       
-      for (const optionId in selectedOptions) {
-        if (selectedOptions[optionId] && optionsMap[optionId]) {
-          optionsMap[optionId].votes += 1;
-          totalVotes += 1;
-          
-          // Add voter information if available
-          const profile = profileMap[vote.user_id];
-          if (profile) {
-            const voter: PollVoter = {
-              userId: profile.id,
-              firstName: profile.first_name,
-              lastName: profile.last_name,
-              imageUrl: profile.image_url
-            };
-            optionsMap[optionId].voters.push(voter);
-          }
-        }
-      }
-    });
-
-    // Calculate percentages
-    if (totalVotes > 0) {
-      Object.values(optionsMap).forEach(option => {
-        option.percentage = Math.round((option.votes / totalVotes) * 100);
+    if (profilesError) throw profilesError;
+    
+    // Create a map of creator profiles
+    const creatorProfiles = new Map();
+    if (profilesData) {
+      profilesData.forEach(profile => {
+        creatorProfiles.set(profile.id, {
+          id: profile.id,
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          imageUrl: profile.image_url
+        });
       });
     }
-
-    return Object.values(optionsMap);
+    
+    // Transform the poll data with creator information
+    return pollsData.map(poll => transformPollData(poll, creatorProfiles.get(poll.created_by)));
   } catch (error) {
-    console.error("Error calculating poll results:", error);
-    return [];
+    console.error("Error fetching polls for topic:", error);
+    throw error;
   }
 };

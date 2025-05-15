@@ -1,46 +1,48 @@
 
-import { Poll } from "@/types/discussions";
+import { Poll } from "@/types";
 
-/**
- * Transforms a raw poll database object to the frontend model
- */
-export const transformPoll = (dbPoll: any): Poll => {
+// Helper function to transform poll data from the database
+export const transformPollData = (dbPoll: any, creator?: any): Poll => {
+  // Parse options from string or use as is if already an object
+  let parsedOptions: Record<string, string> = {};
+  
+  try {
+    if (typeof dbPoll.options === 'string') {
+      const optionsArray = JSON.parse(dbPoll.options);
+      if (Array.isArray(optionsArray)) {
+        optionsArray.forEach((option: any) => {
+          if (option.id && option.text) {
+            parsedOptions[option.id] = option.text;
+          }
+        });
+      }
+    } else if (Array.isArray(dbPoll.options)) {
+      dbPoll.options.forEach((option: any) => {
+        if (option.id && option.text) {
+          parsedOptions[option.id] = option.text;
+        }
+      });
+    } else if (typeof dbPoll.options === 'object' && dbPoll.options !== null) {
+      parsedOptions = dbPoll.options;
+    }
+  } catch (error) {
+    console.error("Error parsing poll options:", error);
+    // Default to empty options if parsing fails
+    parsedOptions = {};
+  }
+  
   return {
     id: dbPoll.id,
     question: dbPoll.question,
-    options: dbPoll.options || {},
-    description: dbPoll.description || null,
-    electionId: dbPoll.election_id,
-    topicId: dbPoll.topic_id,
-    createdBy: dbPoll.created_by,
-    createdAt: dbPoll.created_at,
-    endsAt: dbPoll.ends_at,
-    isClosed: dbPoll.is_closed || false,
+    description: dbPoll.description || undefined,
+    options: parsedOptions,
     multipleChoice: dbPoll.multiple_choice || false,
-    author: dbPoll.profiles ? {
-      id: dbPoll.profiles.id,
-      firstName: dbPoll.profiles.first_name,
-      lastName: dbPoll.profiles.last_name,
-      imageUrl: dbPoll.profiles.image_url
-    } : null
-  };
-};
-
-/**
- * Transforms a frontend poll model to database format
- */
-export const transformPollToDb = (poll: Poll): any => {
-  return {
-    id: poll.id,
-    question: poll.question,
-    options: poll.options,
-    description: poll.description,
-    election_id: poll.electionId,
-    topic_id: poll.topicId,
-    created_by: poll.createdBy,
-    created_at: poll.createdAt,
-    ends_at: poll.endsAt,
-    is_closed: poll.isClosed,
-    multiple_choice: poll.multipleChoice
+    isClosed: dbPoll.is_closed || false,
+    createdAt: dbPoll.created_at,
+    endsAt: dbPoll.ends_at || undefined,
+    electionId: dbPoll.election_id,
+    topicId: dbPoll.topic_id || undefined,
+    createdBy: dbPoll.created_by,
+    creator: creator || undefined
   };
 };
