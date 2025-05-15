@@ -376,25 +376,36 @@ export const deleteComment = async (commentId: string): Promise<boolean> => {
 // Create aliases for existing functions to maintain compatibility with useDiscussions.ts
 export const getTopics = fetchDiscussionTopics;
 export const getTopic = fetchDiscussionTopicById;
-export const createTopic = (electionId: string, title: string, content: string) => {
+
+// FIX: Updated to return a Promise<DiscussionTopic> instead of using a non-async return with Promise
+export const createTopic = async (electionId: string, title: string, content: string): Promise<DiscussionTopic> => {
+  // Get the current user ID
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) {
+    throw new Error("User not authenticated");
+  }
+  
+  // Now call createDiscussionTopic with the user ID
   return createDiscussionTopic({
     electionId,
     title,
     content,
-    createdBy: supabase.auth.getUser().then(({ data }) => data.user?.id || '')
+    createdBy: data.user.id
   });
 };
+
 export const updateTopic = updateDiscussionTopic;
 export const deleteTopic = deleteDiscussionTopic;
 export const getComments = fetchCommentsForTopic;
-export const createComment = (topicId: string, content: string, parentId?: string | null) => {
-  return supabase.auth.getUser().then(({ data }) => {
-    if (data.user) {
-      return addCommentToTopic(topicId, data.user.id, content, parentId || undefined);
-    }
+
+export const createComment = async (topicId: string, content: string, parentId?: string | null): Promise<DiscussionComment> => {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) {
     throw new Error("User not authenticated");
-  });
+  }
+  return addCommentToTopic(topicId, data.user.id, content, parentId || undefined);
 };
+
 export const updateComment = async (commentId: string, content: string): Promise<DiscussionComment> => {
   try {
     const { data, error } = await supabase

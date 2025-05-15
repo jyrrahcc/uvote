@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollVote } from "@/types";
 import { transformPollData } from "./pollTransformUtils";
@@ -96,7 +97,14 @@ export const fetchVotesForPoll = async (pollId: string): Promise<PollVote[]> => 
     
     if (error) throw error;
     
-    return data || [];
+    // Fix: Map the database field names to our TypeScript interface
+    return (data || []).map(vote => ({
+      id: vote.id,
+      pollId: vote.poll_id,
+      userId: vote.user_id,
+      options: vote.options,
+      createdAt: vote.created_at
+    }));
   } catch (error) {
     console.error("Error fetching poll votes:", error);
     throw error;
