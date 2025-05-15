@@ -19,6 +19,8 @@ export type Database = {
           image_url: string | null
           name: string
           position: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           updated_at: string | null
           user_id: string
@@ -32,6 +34,8 @@ export type Database = {
           image_url?: string | null
           name: string
           position: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           updated_at?: string | null
           user_id: string
@@ -45,6 +49,8 @@ export type Database = {
           image_url?: string | null
           name?: string
           position?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -114,6 +115,7 @@ export const updateCandidateApplication = async (
     status: "approved" | "rejected" | "disqualified";
     feedback?: string | null;
     reviewed_by?: string | null;
+    reviewed_at?: string | null;
   }
 ): Promise<void> => {
   try {
@@ -122,6 +124,7 @@ export const updateCandidateApplication = async (
       status: updates.status,
       feedback: updates.feedback,
       reviewed_by: updates.reviewed_by,
+      reviewed_at: updates.reviewed_at || new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
     

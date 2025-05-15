@@ -29,7 +29,7 @@ export interface CandidateApplication {
   user_id: string;
   created_at?: string;
   updated_at?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'disqualified';
   feedback?: string;
   reviewed_by?: string;
   reviewed_at?: string;
@@ -97,9 +97,10 @@ export const mapDbCandidateApplicationToCandidateApplication = (
   dbApplication: DbCandidateApplication
 ): CandidateApplication => {
   // Map the status value ensuring type safety
-  let status: 'pending' | 'approved' | 'rejected' = 'pending';
+  let status: 'pending' | 'approved' | 'rejected' | 'disqualified' = 'pending';
   if (dbApplication.status === 'approved') status = 'approved';
   else if (dbApplication.status === 'rejected') status = 'rejected';
+  else if (dbApplication.status === 'disqualified') status = 'disqualified';
 
   return {
     id: dbApplication.id,
