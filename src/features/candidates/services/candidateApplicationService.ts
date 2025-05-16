@@ -273,12 +273,13 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
       if (candidateError) {
         console.error(`Error deleting related candidate for application ${applicationId}:`, candidateError);
         // Continue with application deletion even if candidate deletion fails
+        console.log("Will attempt to continue with application deletion despite candidate deletion failure");
       } else {
         console.log(`Successfully removed candidate for application: ${applicationId}`);
       }
     }
     
-    // Delete the application
+    // Delete the application - THIS LINE IS CRITICAL
     const { error: deleteError } = await supabase
       .from('candidate_applications')
       .delete()
@@ -286,7 +287,7 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
     
     if (deleteError) {
       console.error(`Database error when deleting application ${applicationId}:`, deleteError);
-      throw deleteError;
+      throw deleteError; // This will ensure we return false
     }
     
     console.log(`Successfully deleted application: ${applicationId}`);
