@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -252,7 +251,7 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
     
     if (appError) {
       console.error(`Error fetching application ${applicationId}:`, appError);
-      throw appError;
+      return false;
     }
     
     if (!appData) {
@@ -279,7 +278,9 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
       }
     }
     
-    // Delete the application - THIS LINE IS CRITICAL
+    // Delete the application - THIS IS THE CRITICAL PART THAT NEEDS TO BE FIXED
+    console.log(`Now attempting to delete the application record ${applicationId} from the database`);
+    
     const { error: deleteError } = await supabase
       .from('candidate_applications')
       .delete()
@@ -287,7 +288,7 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
     
     if (deleteError) {
       console.error(`Database error when deleting application ${applicationId}:`, deleteError);
-      throw deleteError; // This will ensure we return false
+      return false; // Return false to indicate failure instead of throwing
     }
     
     console.log(`Successfully deleted application: ${applicationId}`);
