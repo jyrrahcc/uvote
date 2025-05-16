@@ -13,7 +13,7 @@ import DiscussionList from "./components/DiscussionList";
 import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
-import { DiscussionTopic, Poll } from "@/types";
+import { Discussion, Poll } from "@/types/discussions";
 import { toast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -35,7 +35,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
   
   const { isAdmin, isVoter } = useRole();
   const { user } = useAuth();
-  
+
   // Add better error logging for debugging
   useEffect(() => {
     console.log("🔍 DiscussionsPage mounted with props electionId:", electionId);
@@ -131,7 +131,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     vote,
     loadPolls
   } = usePolls(finalElectionId);
-  
+
   // Log topics and polls whenever they change
   useEffect(() => {
     console.log("🔍 Current topics in DiscussionsPage:", topics);
@@ -175,7 +175,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     setViewingPoll(false);
   };
   
-  const handleSelectTopic = async (topic: DiscussionTopic) => {
+  const handleSelectTopic = async (topic: Discussion) => {
     console.log("🔄 Selecting topic:", topic.id);
     await loadTopic(topic.id);
     setViewingTopic(true);
@@ -310,7 +310,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
               voteLoading={voteLoading}
               onBack={handleBackToPolls}
               onVote={vote}
-              onClosePoll={(pollId) => updatePoll(pollId, { isClosed: true })}
+              onClosePoll={(pollId) => updatePoll(pollId, { is_closed: true })}
               onDeletePoll={removePoll}
             />
           ) : (
