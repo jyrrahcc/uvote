@@ -27,12 +27,8 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
   }, [electionId, refetch]);
 
   const handleDeleteApplication = async (applicationId: string) => {
-    console.log(`Request to delete application: ${applicationId}`);
     // The deleteApplication function now handles everything including verification
-    const success = await deleteApplication(applicationId);
-    if (success) {
-      console.log(`Successfully deleted application: ${applicationId}`);
-    }
+    await deleteApplication(applicationId);
   };
   
   const filteredApplications = filterStatus 
@@ -77,7 +73,7 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Candidate Applications</h3>
         <Tabs 
-          defaultValue={filterStatus || undefined} 
+          defaultValue={null} 
           value={filterStatus || undefined}
           onValueChange={(value) => setFilterStatus(value || null)}
           className="w-auto"
