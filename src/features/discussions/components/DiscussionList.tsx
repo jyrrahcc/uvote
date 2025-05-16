@@ -9,6 +9,7 @@ import DiscussionTopicCard from "./DiscussionTopicCard";
 import NewTopicDialog from "./NewTopicDialog";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Discussion } from "@/types/discussions";
+import { toDiscussionTopic } from "../utils/typeUtils";
 
 export interface DiscussionListProps {
   topics: Discussion[];

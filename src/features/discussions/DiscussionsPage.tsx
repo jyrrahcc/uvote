@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDiscussions } from "./hooks/useDiscussions";
@@ -270,13 +271,13 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     // Convert camelCase to snake_case for poll updates
     const snakeCaseUpdates: Partial<Poll> = {};
     
-    if (updates.isClosed !== undefined) snakeCaseUpdates.is_closed = updates.isClosed;
-    if (updates.multipleChoice !== undefined) snakeCaseUpdates.multiple_choice = updates.multipleChoice;
-    if (updates.endsAt !== undefined) snakeCaseUpdates.ends_at = updates.endsAt;
+    if (updates.is_closed !== undefined) snakeCaseUpdates.is_closed = updates.is_closed;
+    if (updates.multiple_choice !== undefined) snakeCaseUpdates.multiple_choice = updates.multiple_choice;
+    if (updates.ends_at !== undefined) snakeCaseUpdates.ends_at = updates.ends_at;
     
     // Add any other fields that might need conversion
     Object.keys(updates).forEach(key => {
-      if (!['isClosed', 'multipleChoice', 'endsAt'].includes(key)) {
+      if (!['is_closed', 'multiple_choice', 'ends_at'].includes(key)) {
         snakeCaseUpdates[key] = updates[key];
       }
     });
