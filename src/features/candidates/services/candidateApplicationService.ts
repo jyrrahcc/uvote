@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -156,19 +157,41 @@ export const updateCandidateApplication = async (
       if (appData) {
         console.log(`Creating candidate from approved application: ${applicationId}`);
         
+        // Type assertion to ensure TypeScript recognizes the extended fields
+        type ExtendedAppData = {
+          id: string;
+          name: string;
+          position: string;
+          bio: string | null;
+          image_url: string | null;
+          election_id: string;
+          user_id: string;
+          department: string | null;
+          year_level: string | null;
+          student_id: string | null;
+          status: string;
+          feedback: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        
+        const typedAppData = appData as unknown as ExtendedAppData;
+        
         // Add the candidate to the candidates table
         const { error: candidateError } = await supabase
           .from('candidates')
           .insert({
-            name: appData.name,
-            position: appData.position,
-            bio: appData.bio || null,
-            image_url: appData.image_url || null,
-            election_id: appData.election_id,
-            created_by: appData.user_id,
-            department: appData.department || null,
-            year_level: appData.year_level || null,
-            student_id: appData.student_id || null
+            name: typedAppData.name,
+            position: typedAppData.position,
+            bio: typedAppData.bio || null,
+            image_url: typedAppData.image_url || null,
+            election_id: typedAppData.election_id,
+            created_by: typedAppData.user_id,
+            department: typedAppData.department || null,
+            year_level: typedAppData.year_level || null,
+            student_id: typedAppData.student_id || null
           });
           
         if (candidateError) {
