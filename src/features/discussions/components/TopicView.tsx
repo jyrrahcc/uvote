@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ChevronLeft, Pin, Lock, MoreVertical, Trash, Edit, Flag } from "lucide-react";
@@ -20,6 +21,7 @@ import CommentItem from "./CommentItem";
 import { Discussion, Comment } from "@/types/discussions";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { DlsudProfile } from "@/types";
 
 interface TopicViewProps {
   topic: Discussion | null;
@@ -215,8 +217,8 @@ const TopicView = ({
                 <CommentItem
                   key={comment.id}
                   comment={comment}
-                  onEditComment={onEditComment}
-                  onDeleteComment={onDeleteComment}
+                  onDelete={onDeleteComment}
+                  onEdit={onEditComment}
                 />
               ))}
             </div>

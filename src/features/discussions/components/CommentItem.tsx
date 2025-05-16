@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { MoreVertical, Trash, Edit, Check, X } from "lucide-react";
-import { Comment, DiscussionComment } from "@/types/discussions";
+import { Comment } from "@/types/discussions";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
 import {
@@ -19,7 +19,7 @@ import {
 interface CommentItemProps {
   comment: Comment;
   onDelete?: (commentId: string) => Promise<boolean>;
-  onEdit?: (commentId: string, content: string) => Promise<boolean>;
+  onEdit?: (commentId: string, content: string) => Promise<Comment | null>;
   isReply?: boolean;
   showReplyButton?: boolean;
 }
