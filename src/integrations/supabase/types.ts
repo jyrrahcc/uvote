@@ -551,6 +551,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_poll_with_votes: {
+        Args: { poll_id_param: string }
+        Returns: undefined
+      }
+      delete_topic_with_comments: {
+        Args: { topic_id_param: string }
+        Returns: undefined
+      }
+      get_topics_with_comment_counts: {
+        Args: { election_id_param: string }
+        Returns: {
+          id: string
+          title: string
+          content: string
+          election_id: string
+          created_by: string
+          created_at: string
+          updated_at: string
+          is_pinned: boolean
+          is_locked: boolean
+          replies_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string

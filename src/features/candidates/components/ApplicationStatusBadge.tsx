@@ -2,7 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 
 interface ApplicationStatusBadgeProps {
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'disqualified';
 }
 
 const ApplicationStatusBadge = ({ status }: ApplicationStatusBadgeProps) => {
@@ -23,6 +23,12 @@ const ApplicationStatusBadge = ({ status }: ApplicationStatusBadgeProps) => {
       return (
         <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100">
           Rejected
+        </Badge>
+      );
+    case 'disqualified':
+      return (
+        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100">
+          Disqualified
         </Badge>
       );
     default:

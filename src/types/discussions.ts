@@ -1,6 +1,14 @@
 
 import { Json } from "@/integrations/supabase/types";
 
+// User interface for discussions and comments
+export interface DiscussionUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  imageUrl?: string;
+}
+
 export interface Discussion {
   id: string;
   title: string;
@@ -14,6 +22,9 @@ export interface Discussion {
   view_count?: number;
 }
 
+// Alias for backward compatibility
+export type DiscussionTopic = Discussion;
+
 export interface Comment {
   id: string;
   content: string;
@@ -23,6 +34,9 @@ export interface Comment {
   topic_id: string;
   parent_id?: string;
 }
+
+// Alias for backward compatibility
+export type DiscussionComment = Comment;
 
 export interface Poll {
   id: string;
@@ -38,6 +52,11 @@ export interface Poll {
   ends_at?: string;
   votes_count?: number;
   has_voted?: boolean;
+  author?: {
+    firstName: string;
+    lastName: string;
+    imageUrl?: string;
+  };
 }
 
 export interface PollOption {
@@ -45,6 +64,19 @@ export interface PollOption {
   text: string;
   votes?: number;
   percentage?: number;
+}
+
+export interface PollResults {
+  optionId: string;
+  optionText: string;
+  votes: number;
+  percentage: number;
+  voters?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    imageUrl?: string;
+  }[];
 }
 
 export interface PollVote {

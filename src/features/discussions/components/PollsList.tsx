@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Calendar, BarChart } from "lucide-react";
-import { Poll, DiscussionTopic } from "@/types";
+import { Poll, Discussion } from "@/types/discussions";
 import { formatDistanceToNow } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
 import NewPollDialog from "./NewPollDialog";
@@ -14,7 +15,7 @@ interface PollsListProps {
   polls: Poll[];
   loading: boolean;
   onSelectPoll: (poll: Poll) => void;
-  onSelectTopic?: (topic: DiscussionTopic) => void; // Add this line
+  onSelectTopic?: (topic: Discussion) => void;
   onCreatePoll: (question: string, options: Record<string, string>, description?: string, multipleChoice?: boolean, endsAt?: string) => Promise<Poll | null>;
   electionId: string;
 }
@@ -108,21 +109,21 @@ const PollsList = ({
                 )}
                 <div className="mt-2 flex flex-wrap gap-2">
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                    {Object.keys(poll.options).length} options
+                    {poll.options.length} options
                   </span>
-                  {poll.multipleChoice && (
+                  {poll.multiple_choice && (
                     <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
                       Multiple Choice
                     </span>
                   )}
-                  {poll.isClosed && (
+                  {poll.is_closed && (
                     <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
                       Closed
                     </span>
                   )}
-                  {poll.endsAt && (
+                  {poll.ends_at && (
                     <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
-                      Ends {formatDate(poll.endsAt)}
+                      Ends {formatDate(poll.ends_at)}
                     </span>
                   )}
                 </div>
@@ -131,7 +132,7 @@ const PollsList = ({
                 <div className="flex justify-between w-full">
                   <div className="flex items-center">
                     <Calendar size={14} className="mr-1" />
-                    {formatDate(poll.createdAt)}
+                    {formatDate(poll.created_at)}
                     <span className="mx-2">•</span>
                     <span>
                       By {poll.author?.firstName} {poll.author?.lastName}
