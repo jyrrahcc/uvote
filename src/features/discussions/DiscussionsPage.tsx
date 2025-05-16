@@ -265,6 +265,25 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     );
   }
   
+  // Wrapper function to handle poll update
+  const handleUpdatePoll = async (pollId: string, updates: Partial<Poll>) => {
+    // Convert camelCase to snake_case for poll updates
+    const snakeCaseUpdates: Partial<Poll> = {};
+    
+    if (updates.isClosed !== undefined) snakeCaseUpdates.is_closed = updates.isClosed;
+    if (updates.multipleChoice !== undefined) snakeCaseUpdates.multiple_choice = updates.multipleChoice;
+    if (updates.endsAt !== undefined) snakeCaseUpdates.ends_at = updates.endsAt;
+    
+    // Add any other fields that might need conversion
+    Object.keys(updates).forEach(key => {
+      if (!['isClosed', 'multipleChoice', 'endsAt'].includes(key)) {
+        snakeCaseUpdates[key] = updates[key];
+      }
+    });
+    
+    return updatePoll(pollId, snakeCaseUpdates);
+  };
+  
   // Show main discussions content for eligible users
   return (
     <div className="container mx-auto py-8 px-4">
@@ -310,7 +329,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
               voteLoading={voteLoading}
               onBack={handleBackToPolls}
               onVote={vote}
-              onClosePoll={(pollId) => updatePoll(pollId, { is_closed: true })}
+              onClosePoll={(pollId) => handleUpdatePoll(pollId, { is_closed: true })}
               onDeletePoll={removePoll}
             />
           ) : (

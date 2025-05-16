@@ -17,12 +17,34 @@ export const transformPollData = (dbPoll: DbPoll): Poll => {
     } 
     // If options is a record structure (key-value pairs)
     else if (typeof dbPoll.options === 'object') {
-      pollOptions = Object.entries(dbPoll.options).map(([id, text]) => ({
-        id,
-        text: typeof text === 'string' ? text : String(text),
-        votes: 0,
-        percentage: 0
-      }));
+      pollOptions = Object.entries(dbPoll.options).map(([id, value]) => {
+        // Handle different formats of options storage
+        if (typeof value === 'string') {
+          // Simple format: { "id1": "Option Text 1", ... }
+          return {
+            id, 
+            text: value,
+            votes: 0,
+            percentage: 0
+          };
+        } else if (typeof value === 'object' && value !== null) {
+          // Complex format: { "id1": { text: "Option Text 1", ... }, ... }
+          return {
+            id,
+            text: (value as any).text || String(value),
+            votes: (value as any).votes || 0,
+            percentage: (value as any).percentage || 0
+          };
+        } else {
+          // Fallback for other formats
+          return {
+            id,
+            text: String(value),
+            votes: 0,
+            percentage: 0
+          };
+        }
+      });
     }
   }
 

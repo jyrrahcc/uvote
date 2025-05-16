@@ -9,6 +9,7 @@ export interface DiscussionUser {
   imageUrl?: string;
 }
 
+// Base discussion interface with snake_case properties (as in DB)
 export interface Discussion {
   id: string;
   title: string;
@@ -28,6 +29,7 @@ export interface Discussion {
 
 // Extended interface for component usage with camelCase properties
 export interface DiscussionTopic extends Discussion {
+  // Add camelCase aliases for component usage
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -36,6 +38,7 @@ export interface DiscussionTopic extends Discussion {
   isLocked?: boolean;
 }
 
+// Base comment interface with snake_case properties (as in DB)
 export interface Comment {
   id: string;
   content: string;
@@ -52,6 +55,7 @@ export interface Comment {
 
 // Extended interface for component usage with camelCase properties
 export interface DiscussionComment extends Comment {
+  // Add camelCase aliases for component usage
   createdAt: string;
   updatedAt: string;
   userId: string;

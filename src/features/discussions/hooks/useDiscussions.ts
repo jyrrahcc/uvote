@@ -15,7 +15,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-// Only adjusting the loadTopics callback to provide better logging
+// Only adjusting the function signatures to use the consistent types
 export const useDiscussions = (electionId: string) => {
   const { user } = useAuth();
   const [topics, setTopics] = useState<Discussion[]>([]);
@@ -377,7 +377,7 @@ export const useDiscussions = (electionId: string) => {
     error,
     loadTopic,
     loadTopics,
-    addTopic: async (title: string, content: string) => {
+    addTopic: async (title: string, content: string): Promise<Discussion | null> => {
       if (!user) {
         toast({
           title: "Authentication Error",

@@ -1,10 +1,10 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DiscussionTopic, DiscussionComment } from "@/types";
+import { Discussion, Comment } from "@/types/discussions";
 
 // Fetch all discussion topics for a specific election
-export const fetchDiscussionTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
+export const fetchDiscussionTopics = async (electionId: string): Promise<Discussion[]> => {
   try {
     // First fetch the topics
     const { data: topicsData, error: topicsError } = await supabase
@@ -34,23 +34,28 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
     // Combine the topics with their author profiles and map DB fields to TS interface fields
     return topicsData.map(topic => {
       const authorProfile = profileMap.get(topic.created_by);
-      return {
+      
+      // Create the Discussion object with the DB fields
+      const discussion: Discussion = {
         id: topic.id,
         title: topic.title,
         content: topic.content,
-        electionId: topic.election_id,
-        createdBy: topic.created_by,
-        createdAt: topic.created_at,
-        updatedAt: topic.updated_at,
-        isPinned: topic.is_pinned,
-        isLocked: topic.is_locked,
+        created_at: topic.created_at,
+        created_by: topic.created_by,
+        updated_at: topic.updated_at,
+        election_id: topic.election_id,
+        is_pinned: topic.is_pinned,
+        is_locked: topic.is_locked,
+        view_count: topic.view_count,
         author: authorProfile ? {
           id: authorProfile.id,
           firstName: authorProfile.first_name,
           lastName: authorProfile.last_name,
           imageUrl: authorProfile.image_url
-        } : null
+        } : undefined
       };
+      
+      return discussion;
     });
   } catch (error) {
     console.error("Error fetching discussion topics:", error);
@@ -59,7 +64,7 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
 };
 
 // Fetch a specific discussion topic by ID
-export const fetchDiscussionTopicById = async (topicId: string): Promise<DiscussionTopic> => {
+export const fetchDiscussionTopicById = async (topicId: string): Promise<Discussion> => {
   try {
     // First fetch the topic
     const { data: topic, error: topicError } = await supabase
@@ -90,12 +95,13 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
       id: topic.id,
       title: topic.title,
       content: topic.content,
-      electionId: topic.election_id,
-      createdBy: topic.created_by,
-      createdAt: topic.created_at,
-      updatedAt: topic.updated_at,
-      isPinned: topic.is_pinned,
-      isLocked: topic.is_locked,
+      created_at: topic.created_at,
+      created_by: topic.created_by,
+      updated_at: topic.updated_at,
+      election_id: topic.election_id,
+      is_pinned: topic.is_pinned,
+      is_locked: topic.is_locked,
+      view_count: topic.view_count,
       author: {
         id: profile.id,
         firstName: profile.first_name,
@@ -110,15 +116,15 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
 };
 
 // Create a new discussion topic
-export const createDiscussionTopic = async (topicData: Partial<DiscussionTopic>): Promise<DiscussionTopic> => {
+export const createDiscussionTopic = async (topicData: Partial<Discussion>): Promise<Discussion> => {
   try {
     const { data, error } = await supabase
       .from('discussion_topics')
       .insert({
         title: topicData.title || '',
         content: topicData.content || '',
-        election_id: topicData.electionId || '',
-        created_by: topicData.createdBy || ''
+        election_id: topicData.election_id || '',
+        created_by: topicData.created_by || ''
       })
       .select()
       .single();
@@ -134,17 +140,18 @@ export const createDiscussionTopic = async (topicData: Partial<DiscussionTopic>)
 
     if (profileError) throw profileError;
 
-    // Map DB fields to TS interface fields
+    // Return the topic with author information, mapped to the TS interface
     return {
       id: data.id,
       title: data.title,
       content: data.content,
-      electionId: data.election_id,
-      createdBy: data.created_by,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      isPinned: data.is_pinned,
-      isLocked: data.is_locked,
+      created_at: data.created_at,
+      created_by: data.created_by,
+      updated_at: data.updated_at,
+      election_id: data.election_id,
+      is_pinned: data.is_pinned,
+      is_locked: data.is_locked,
+      view_count: data.view_count,
       author: {
         id: profile.id,
         firstName: profile.first_name,
@@ -161,16 +168,16 @@ export const createDiscussionTopic = async (topicData: Partial<DiscussionTopic>)
 // Update a discussion topic
 export const updateDiscussionTopic = async (
   topicId: string,
-  updates: Partial<DiscussionTopic>
-): Promise<DiscussionTopic> => {
+  updates: Partial<Discussion>
+): Promise<Discussion> => {
   try {
     // Create an updates object with only the fields we want to update, mapped to DB field names
     const updateFields: Record<string, any> = {};
     
     if (updates.title !== undefined) updateFields.title = updates.title;
     if (updates.content !== undefined) updateFields.content = updates.content;
-    if (updates.isPinned !== undefined) updateFields.is_pinned = updates.isPinned;
-    if (updates.isLocked !== undefined) updateFields.is_locked = updates.isLocked;
+    if (updates.is_pinned !== undefined) updateFields.is_pinned = updates.is_pinned;
+    if (updates.is_locked !== undefined) updateFields.is_locked = updates.is_locked;
     
     // Add updated_at timestamp
     updateFields.updated_at = new Date().toISOString();
@@ -193,17 +200,18 @@ export const updateDiscussionTopic = async (
 
     if (profileError) throw profileError;
 
-    // Map DB fields to TS interface fields
+    // Return the topic with author information, mapped to the TS interface
     return {
       id: data.id,
       title: data.title,
       content: data.content,
-      electionId: data.election_id,
-      createdBy: data.created_by,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      isPinned: data.is_pinned,
-      isLocked: data.is_locked,
+      created_at: data.created_at,
+      created_by: data.created_by,
+      updated_at: data.updated_at,
+      election_id: data.election_id,
+      is_pinned: data.is_pinned,
+      is_locked: data.is_locked,
+      view_count: data.view_count,
       author: {
         id: profile.id,
         firstName: profile.first_name,
@@ -244,7 +252,7 @@ export const deleteDiscussionTopic = async (topicId: string): Promise<boolean> =
 };
 
 // Fetch comments for a specific topic
-export const fetchCommentsForTopic = async (topicId: string): Promise<DiscussionComment[]> => {
+export const fetchCommentsForTopic = async (topicId: string): Promise<Comment[]> => {
   try {
     // First fetch all comments for this topic
     const { data: commentsData, error: commentsError } = await supabase
@@ -276,17 +284,17 @@ export const fetchCommentsForTopic = async (topicId: string): Promise<Discussion
       return {
         id: comment.id,
         content: comment.content,
-        topicId: comment.topic_id,
-        createdBy: comment.user_id,
-        createdAt: comment.created_at,
-        updatedAt: comment.updated_at,
-        parentId: comment.parent_id || null,
+        created_at: comment.created_at,
+        updated_at: comment.updated_at,
+        user_id: comment.user_id,
+        topic_id: comment.topic_id,
+        parent_id: comment.parent_id || undefined,
         author: author ? {
           id: author.id,
           firstName: author.first_name,
           lastName: author.last_name,
           imageUrl: author.image_url
-        } : null
+        } : undefined
       };
     });
   } catch (error) {
@@ -301,7 +309,7 @@ export const addCommentToTopic = async (
   userId: string,
   content: string,
   parentId?: string
-): Promise<DiscussionComment> => {
+): Promise<Comment> => {
   try {
     const { data, error } = await supabase
       .from('discussion_comments')
@@ -325,15 +333,15 @@ export const addCommentToTopic = async (
 
     if (profileError) throw profileError;
 
-    // Map DB fields to TS interface fields
+    // Return the comment with author information, mapped to the TS interface
     return {
       id: data.id,
       content: data.content,
-      topicId: data.topic_id,
-      createdBy: data.user_id,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      parentId: data.parent_id || null,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      user_id: data.user_id,
+      topic_id: data.topic_id,
+      parent_id: data.parent_id || undefined,
       author: {
         id: profile.id,
         firstName: profile.first_name,
@@ -377,8 +385,7 @@ export const deleteComment = async (commentId: string): Promise<boolean> => {
 export const getTopics = fetchDiscussionTopics;
 export const getTopic = fetchDiscussionTopicById;
 
-// FIX: Updated to return a Promise<DiscussionTopic> instead of using a non-async return with Promise
-export const createTopic = async (electionId: string, title: string, content: string): Promise<DiscussionTopic> => {
+export const createTopic = async (electionId: string, title: string, content: string): Promise<Discussion> => {
   // Get the current user ID
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
@@ -387,10 +394,10 @@ export const createTopic = async (electionId: string, title: string, content: st
   
   // Now call createDiscussionTopic with the user ID
   return createDiscussionTopic({
-    electionId,
+    election_id: electionId,
     title,
     content,
-    createdBy: data.user.id
+    created_by: data.user.id
   });
 };
 
@@ -398,7 +405,7 @@ export const updateTopic = updateDiscussionTopic;
 export const deleteTopic = deleteDiscussionTopic;
 export const getComments = fetchCommentsForTopic;
 
-export const createComment = async (topicId: string, content: string, parentId?: string | null): Promise<DiscussionComment> => {
+export const createComment = async (topicId: string, content: string, parentId?: string | null): Promise<Comment> => {
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
     throw new Error("User not authenticated");
@@ -406,7 +413,7 @@ export const createComment = async (topicId: string, content: string, parentId?:
   return addCommentToTopic(topicId, data.user.id, content, parentId || undefined);
 };
 
-export const updateComment = async (commentId: string, content: string): Promise<DiscussionComment> => {
+export const updateComment = async (commentId: string, content: string): Promise<Comment> => {
   try {
     const { data, error } = await supabase
       .from('discussion_comments')
@@ -426,15 +433,15 @@ export const updateComment = async (commentId: string, content: string): Promise
 
     if (profileError) throw profileError;
 
-    // Map DB fields to TS interface fields
+    // Return the comment with author information, mapped to the TS interface
     return {
       id: data.id,
       content: data.content,
-      topicId: data.topic_id,
-      createdBy: data.user_id,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      parentId: data.parent_id || null,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      user_id: data.user_id,
+      topic_id: data.topic_id,
+      parent_id: data.parent_id || undefined,
       author: {
         id: profile.id,
         firstName: profile.first_name,
