@@ -79,7 +79,7 @@ export const fetchCandidateApplicationsForElection = async (electionId: string):
           .from('profiles')
           .select('first_name, last_name, department, year_level, student_id')
           .eq('id', application.user_id)
-          .single();
+          .maybeSingle();
         
         if (profileError) {
           console.warn("Error fetching profile for user:", application.user_id, profileError);
@@ -119,6 +119,8 @@ export const updateCandidateApplication = async (
   }
 ): Promise<void> => {
   try {
+    console.log(`Updating application ${applicationId} with status: ${updates.status}`);
+    
     // Remove any fields that aren't in the database schema
     const validUpdates = {
       status: updates.status,
@@ -128,12 +130,15 @@ export const updateCandidateApplication = async (
       updated_at: new Date().toISOString()
     };
     
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from('candidate_applications')
       .update(validUpdates)
       .eq('id', applicationId);
     
-    if (error) throw error;
+    if (updateError) {
+      console.error("Error updating application status:", updateError);
+      throw updateError;
+    }
     
     // If the status is approved, automatically add the candidate to the candidates table
     if (updates.status === 'approved') {
@@ -144,9 +149,14 @@ export const updateCandidateApplication = async (
         .eq('id', applicationId)
         .single();
         
-      if (appError) throw appError;
+      if (appError) {
+        console.error("Error fetching application data for candidate creation:", appError);
+        throw appError;
+      }
       
       if (appData) {
+        console.log(`Creating candidate from approved application: ${applicationId}`);
+        
         // Add the candidate to the candidates table
         const { error: candidateError } = await supabase
           .from('candidates')
@@ -156,10 +166,17 @@ export const updateCandidateApplication = async (
             bio: appData.bio || null,
             image_url: appData.image_url || null,
             election_id: appData.election_id,
-            created_by: appData.user_id
+            created_by: appData.user_id,
+            department: appData.department || null,
+            year_level: appData.year_level || null
           });
           
-        if (candidateError) throw candidateError;
+        if (candidateError) {
+          console.error("Error adding approved candidate to candidates table:", candidateError);
+          throw candidateError;
+        }
+        
+        console.log(`Successfully created candidate from application: ${applicationId}`);
       }
     }
     
@@ -172,9 +189,14 @@ export const updateCandidateApplication = async (
         .eq('id', applicationId)
         .single();
         
-      if (appError) throw appError;
+      if (appError) {
+        console.error("Error fetching application data for disqualification:", appError);
+        throw appError;
+      }
       
       if (appData) {
+        console.log(`Removing candidate due to disqualification for application: ${applicationId}`);
+        
         // Remove any candidate entries for this user in this election
         const { error: removeError } = await supabase
           .from('candidates')
@@ -182,17 +204,22 @@ export const updateCandidateApplication = async (
           .eq('created_by', appData.user_id)
           .eq('election_id', appData.election_id);
           
-        if (removeError) throw removeError;
+        if (removeError) {
+          console.error("Error removing disqualified candidate:", removeError);
+          throw removeError;
+        }
       }
     }
   } catch (error) {
-    console.error("Error updating application:", error);
+    console.error("Error in updateCandidateApplication:", error);
     throw error;
   }
 };
 
 export const deleteCandidateApplication = async (applicationId: string): Promise<boolean> => {
   try {
+    console.log(`Attempting to delete application: ${applicationId}`);
+    
     // First, get the application data to check if it's approved
     const { data: appData, error: appError } = await supabase
       .from('candidate_applications')
@@ -201,17 +228,19 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
       .single();
     
     if (appError) {
-      console.error("Error fetching application:", appError);
-      return false;
+      console.error(`Error fetching application ${applicationId}:`, appError);
+      throw appError;
     }
     
     if (!appData) {
-      console.error("Application not found with ID:", applicationId);
+      console.error(`Application not found with ID: ${applicationId}`);
       return false;
     }
     
     // If the application is approved, also remove the candidate
     if (appData.status === 'approved') {
+      console.log(`Application ${applicationId} has approved status, removing related candidate`);
+      
       const { error: candidateError } = await supabase
         .from('candidates')
         .delete()
@@ -219,25 +248,28 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
         .eq('election_id', appData.election_id);
         
       if (candidateError) {
-        console.error("Error deleting related candidate:", candidateError);
+        console.error(`Error deleting related candidate for application ${applicationId}:`, candidateError);
         // Continue with application deletion even if candidate deletion fails
+      } else {
+        console.log(`Successfully removed candidate for application: ${applicationId}`);
       }
     }
     
     // Delete the application
-    const { error } = await supabase
+    const { error: deleteError } = await supabase
       .from('candidate_applications')
       .delete()
       .eq('id', applicationId);
     
-    if (error) {
-      console.error("Database error when deleting application:", error);
-      return false;
+    if (deleteError) {
+      console.error(`Database error when deleting application ${applicationId}:`, deleteError);
+      throw deleteError;
     }
     
+    console.log(`Successfully deleted application: ${applicationId}`);
     return true;
   } catch (error) {
-    console.error("Error deleting application:", error);
+    console.error(`Error deleting application ${applicationId}:`, error);
     return false;
   }
 };

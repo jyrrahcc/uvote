@@ -11,36 +11,52 @@ export const useCandidateApplications = (electionId: string) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
+    if (!electionId) {
+      console.log('No election ID provided to fetch applications');
+      setApplications([]);
+      setLoading(false);
+      return;
+    }
+    
     try {
+      console.log(`Fetching applications for election: ${electionId}`);
       setLoading(true);
       const data = await fetchCandidateApplicationsForElection(electionId);
+      console.log(`Received ${data.length} applications`);
       setApplications(data);
       setError(null);
     } catch (err: any) {
       console.error("Error fetching applications:", err);
       setError(err);
+      toast.error("Failed to load candidate applications");
     } finally {
       setLoading(false);
     }
   }, [electionId]);
 
   const deleteApplication = async (applicationId: string) => {
-    if (isDeleting) return false; // Prevent multiple deletion attempts
+    if (isDeleting) {
+      console.log("Already processing a delete operation");
+      return false;
+    }
 
     try {
+      console.log(`Starting deletion of application: ${applicationId}`);
       setIsDeleting(true);
+      
       // Call the service function that now returns a boolean indicating success
       const isDeleted = await deleteCandidateApplication(applicationId);
       
       if (isDeleted) {
-        // Only update the UI and show success if the deletion was verified
+        // Update the UI optimistically
         setApplications(prev => prev.filter(app => app.id !== applicationId));
         toast.success("Application deleted successfully");
+        
         // Explicitly refetch to ensure UI is in sync with database
         await fetchData();
         return true;
       } else {
-        toast.error("Failed to delete application: The application could not be deleted or was not found");
+        toast.error("Failed to delete application");
         return false;
       }
     } catch (err: any) {
@@ -90,22 +106,21 @@ export const useUserCandidateApplications = () => {
   }, []);
   
   const deleteApplication = async (applicationId: string) => {
-    if (isDeleting) return false; // Prevent multiple deletion attempts
+    if (isDeleting) return false;
 
     try {
       setIsDeleting(true);
-      // Call the service function that now returns a boolean indicating success
       const isDeleted = await deleteCandidateApplication(applicationId);
       
       if (isDeleted) {
-        // Only update the UI and show success if the deletion was verified
+        // Update the UI optimistically
         setApplications(prev => prev.filter(app => app.id !== applicationId));
         toast.success("Application deleted successfully");
         // Explicitly refetch to ensure UI is in sync with database
         await fetchData();
         return true;
       } else {
-        toast.error("Failed to delete application: The application could not be deleted or was not found");
+        toast.error("Failed to delete application");
         return false;
       }
     } catch (err: any) {

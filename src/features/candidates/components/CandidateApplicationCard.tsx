@@ -17,7 +17,7 @@ interface CandidateApplicationCardProps {
   application: CandidateApplication;
   isAdmin: boolean;
   onStatusChange: () => void;
-  onDelete?: (applicationId: string) => void;
+  onDelete?: (applicationId: string) => Promise<boolean>;
 }
 
 const CandidateApplicationCard = ({ 
@@ -41,17 +41,20 @@ const CandidateApplicationCard = ({
 
     try {
       setSubmitting(true);
+      console.log(`Updating application ${application.id} status to ${status}`);
+      
       await updateCandidateApplication(application.id, {
         status,
         feedback: feedback || null,
         reviewed_by: user?.id || null,
         reviewed_at: new Date().toISOString()
       });
-      toast.success(`Application ${status}`);
+      
+      toast.success(`Application ${status} successfully`);
       onStatusChange();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating application status:", error);
-      toast.error("Failed to update application status");
+      toast.error(`Failed to update application status: ${error.message || 'Unknown error'}`);
     } finally {
       setSubmitting(false);
       setIsStatusChangeDialogOpen(false);
@@ -66,9 +69,11 @@ const CandidateApplicationCard = ({
 
   const handleDelete = async () => {
     if (onDelete) {
-      await onDelete(application.id);
+      const success = await onDelete(application.id);
+      if (success) {
+        setIsDeleteDialogOpen(false);
+      }
     }
-    setIsDeleteDialogOpen(false);
   };
 
   return (
@@ -79,6 +84,12 @@ const CandidateApplicationCard = ({
           <ApplicationStatusBadge status={application.status} />
         </div>
         <div className="text-sm text-gray-500">Position: {application.position}</div>
+        {application.department && (
+          <div className="text-xs text-gray-500">Department: {application.department}</div>
+        )}
+        {application.year_level && (
+          <div className="text-xs text-gray-500">Year Level: {application.year_level}</div>
+        )}
       </CardHeader>
       <CardContent className="flex-grow">
         {application.image_url && (
@@ -114,19 +125,20 @@ const CandidateApplicationCard = ({
           </div>
         )}
 
-        {isAdmin && application.status === "pending" && (
+        {isAdmin && (
           <div className="mt-4">
-            <h4 className="text-sm font-medium mb-1">Feedback (required for rejection/disqualification):</h4>
+            <h4 className="text-sm font-medium mb-1">Feedback {(application.status === "pending") && "(required for rejection/disqualification)"}</h4>
             <Textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Provide feedback to the candidate"
               className="h-20"
+              disabled={!isAdmin || submitting}
             />
           </div>
         )}
 
-        {application.feedback && (
+        {application.feedback && !isAdmin && (
           <div className="mt-4">
             <h4 className="text-sm font-medium mb-1">Feedback:</h4>
             <p className="text-sm bg-gray-50 p-2 rounded">{application.feedback}</p>
@@ -163,13 +175,31 @@ const CandidateApplicationCard = ({
                 </Button>
               </>
             )}
-            <Button 
-              variant="destructive" 
-              size="icon" 
-              onClick={() => setIsDeleteDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {application.status !== "pending" && (
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  if (feedback && feedback !== application.feedback) {
+                    handleStatusChange(application.status as any);
+                  } else {
+                    toast.info("No changes to save");
+                  }
+                }}
+                disabled={submitting || (feedback === application.feedback)}
+              >
+                Update Feedback
+              </Button>
+            )}
+            {onDelete && (
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                onClick={() => setIsDeleteDialogOpen(true)}
+                disabled={submitting}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </>
         )}
       </CardFooter>
@@ -181,6 +211,11 @@ const CandidateApplicationCard = ({
             <AlertDialogTitle>Delete Application</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this application? This action cannot be undone.
+              {application.status === 'approved' && (
+                <p className="mt-2 text-amber-600">
+                  This application is approved. Deleting it will also remove the candidate from the election.
+                </p>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
