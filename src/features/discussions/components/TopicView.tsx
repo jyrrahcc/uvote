@@ -227,13 +227,13 @@ const TopicView = ({
           <div className="mt-6">
             <div className="flex items-center space-x-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.image_url} />
+                <AvatarImage src={(user as DlsudProfile)?.image_url} />
                 <AvatarFallback className="text-xs">
-                  {user ? getInitials(user.first_name, user.last_name) : '??'}
+                  {user ? getInitials((user as DlsudProfile)?.first_name || '', (user as DlsudProfile)?.last_name || '') : '??'}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium leading-none">
-                {user?.first_name} {user?.last_name}
+                {(user as DlsudProfile)?.first_name} {(user as DlsudProfile)?.last_name}
               </span>
             </div>
             <div className="mt-2">
