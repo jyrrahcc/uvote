@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -167,8 +166,8 @@ export const updateCandidateApplication = async (
             image_url: appData.image_url || null,
             election_id: appData.election_id,
             created_by: appData.user_id,
-            department: appData.department || null, // Make sure to use optional chaining
-            year_level: appData.year_level || null, // Make sure to use optional chaining
+            department: appData.department || null,
+            year_level: appData.year_level || null,
             student_id: appData.student_id || null
           });
           
@@ -297,8 +296,16 @@ export const submitCandidateApplication = async (applicationData: Omit<Candidate
     const { data, error } = await supabase
       .from('candidate_applications')
       .insert({
-        ...applicationData,
+        name: applicationData.name,
+        bio: applicationData.bio,
+        position: applicationData.position,
+        image_url: applicationData.image_url,
+        election_id: applicationData.election_id,
+        user_id: applicationData.user_id,
         status: 'pending',
+        department: applicationData.department,
+        year_level: applicationData.year_level,
+        student_id: applicationData.student_id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
