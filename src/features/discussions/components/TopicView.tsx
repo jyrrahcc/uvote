@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { ArrowLeft, MessageCircle, Calendar, User, Pin, Lock, Edit, Trash } from "lucide-react";
-import { DiscussionTopic, DiscussionComment } from "@/types/discussions";
+import { Discussion, Comment } from "@/types/discussions";
 import { formatDistanceToNow, format } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,8 +12,8 @@ import { useRole } from "@/features/auth/context/RoleContext";
 import CommentItem from "./CommentItem";
 
 interface TopicViewProps {
-  topic: DiscussionTopic | null;
-  comments: DiscussionComment[];
+  topic: Discussion | null;
+  comments: Comment[];
   loading: boolean;
   commentLoading: boolean;
   onBack: () => void;
@@ -21,7 +21,7 @@ interface TopicViewProps {
   onEditComment: (commentId: string, content: string) => Promise<boolean>;
   onDeleteComment: (commentId: string) => Promise<boolean>;
   onDeleteTopic: (topicId: string) => Promise<boolean>;
-  onEditTopic: (topicId: string, updates: Partial<DiscussionTopic>) => Promise<any>;
+  onEditTopic: (topicId: string, updates: Partial<Discussion>) => Promise<any>;
 }
 
 const TopicView = ({
@@ -65,12 +65,12 @@ const TopicView = ({
   
   const handleTogglePin = async () => {
     if (!topic) return;
-    await onEditTopic(topic.id, { isPinned: !topic.isPinned });
+    await onEditTopic(topic.id, { is_pinned: !topic.is_pinned });
   };
   
   const handleToggleLock = async () => {
     if (!topic) return;
-    await onEditTopic(topic.id, { isLocked: !topic.isLocked });
+    await onEditTopic(topic.id, { is_locked: !topic.is_locked });
   };
   
   const handleDeleteTopic = async () => {
@@ -114,7 +114,7 @@ const TopicView = ({
   
   const canManageTopic = () => {
     if (!user || !topic) return false;
-    return isAdmin || topic.createdBy === user.id;
+    return isAdmin || topic.created_by === user.id;
   };
 
   if (loading || !topic) {
@@ -155,13 +155,13 @@ const TopicView = ({
                 ) : (
                   <>
                     <CardTitle className="text-xl flex items-center">
-                      {topic.isPinned && <Pin size={18} className="mr-2 text-green-600" />}
-                      {topic.isLocked && <Lock size={18} className="mr-2 text-yellow-600" />}
+                      {topic.is_pinned && <Pin size={18} className="mr-2 text-green-600" />}
+                      {topic.is_locked && <Lock size={18} className="mr-2 text-yellow-600" />}
                       {topic.title}
                     </CardTitle>
                     <CardDescription className="flex items-center mt-2">
                       <Calendar className="h-4 w-4 mr-1" />
-                      <span className="mr-2">Posted {format(new Date(topic.createdAt), 'PPp')}</span>
+                      <span className="mr-2">Posted {format(new Date(topic.created_at), 'PPp')}</span>
                       <span className="mx-1">•</span>
                       <User className="h-4 w-4 mr-1" />
                       <span>{topic.author?.firstName} {topic.author?.lastName}</span>
@@ -179,8 +179,8 @@ const TopicView = ({
                         size="sm"
                         onClick={handleTogglePin}
                       >
-                        <Pin size={16} className={`mr-1 ${topic.isPinned ? 'text-green-600' : ''}`} />
-                        {topic.isPinned ? 'Unpin' : 'Pin'}
+                        <Pin size={16} className={`mr-1 ${topic.is_pinned ? 'text-green-600' : ''}`} />
+                        {topic.is_pinned ? 'Unpin' : 'Pin'}
                       </Button>
                       
                       <Button 
@@ -188,13 +188,13 @@ const TopicView = ({
                         size="sm"
                         onClick={handleToggleLock}
                       >
-                        <Lock size={16} className={`mr-1 ${topic.isLocked ? 'text-yellow-600' : ''}`} />
-                        {topic.isLocked ? 'Unlock' : 'Lock'}
+                        <Lock size={16} className={`mr-1 ${topic.is_locked ? 'text-yellow-600' : ''}`} />
+                        {topic.is_locked ? 'Unlock' : 'Lock'}
                       </Button>
                     </>
                   )}
                   
-                  {(isAdmin || topic.createdBy === user?.id) && (
+                  {(isAdmin || topic.created_by === user?.id) && (
                     <>
                       <Button 
                         variant="outline" 
@@ -274,7 +274,7 @@ const TopicView = ({
           Comments ({comments.length})
         </h3>
         
-        {user && isVoter && !topic.isLocked && (
+        {user && isVoter && !topic.is_locked && (
           <form onSubmit={handleSubmitComment} className="mb-6">
             <div className="space-y-4">
               <Textarea

@@ -82,3 +82,4 @@ export const createPoll = createNewPoll;
 export const updatePoll = updateExistingPoll;
 export const deletePoll = deletePollAndVotes;
 export const voteOnPoll = submitVote;
+export const checkUserVote = hasUserVotedOnPoll;

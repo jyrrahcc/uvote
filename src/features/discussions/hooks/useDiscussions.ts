@@ -1,7 +1,6 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { DiscussionTopic, DiscussionComment } from '@/types/discussions';
+import { Discussion, Comment } from '@/types/discussions';
 import {
   getTopics,
   getTopic,
@@ -19,9 +18,9 @@ import { toast } from '@/hooks/use-toast';
 // Only adjusting the loadTopics callback to provide better logging
 export const useDiscussions = (electionId: string) => {
   const { user } = useAuth();
-  const [topics, setTopics] = useState<DiscussionTopic[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState<DiscussionTopic | null>(null);
-  const [comments, setComments] = useState<DiscussionComment[]>([]);
+  const [topics, setTopics] = useState<Discussion[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<Discussion | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentLoading, setCommentLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,8 +119,8 @@ export const useDiscussions = (electionId: string) => {
       const commentsData = await getComments(topicId);
       
       // Process comments to create a threaded structure
-      const commentMap: Record<string, DiscussionComment> = {};
-      const rootComments: DiscussionComment[] = [];
+      const commentMap: Record<string, Comment> = {};
+      const rootComments: Comment[] = [];
       
       // First pass: create a map of all comments
       commentsData.forEach(comment => {
@@ -135,11 +134,13 @@ export const useDiscussions = (electionId: string) => {
       
       // Second pass: organize comments into a tree structure
       commentsData.forEach(comment => {
-        if (comment.parentId) {
+        if (comment.parent_id) {
           // This is a reply, add it to its parent's replies
-          if (commentMap[comment.parentId]) {
-            commentMap[comment.parentId].replies = commentMap[comment.parentId].replies || [];
-            commentMap[comment.parentId].replies!.push(commentMap[comment.id]);
+          if (commentMap[comment.parent_id]) {
+            if (!commentMap[comment.parent_id].replies) {
+              commentMap[comment.parent_id].replies = [];
+            }
+            commentMap[comment.parent_id].replies!.push(commentMap[comment.id]);
           } else {
             // If parent doesn't exist (which shouldn't happen), add as root
             rootComments.push(commentMap[comment.id]);
@@ -236,7 +237,7 @@ export const useDiscussions = (electionId: string) => {
     }
   };
   
-  const updateExistingTopic = async (topicId: string, updates: Partial<DiscussionTopic>) => {
+  const updateExistingTopic = async (topicId: string, updates: Partial<Discussion>) => {
     try {
       console.log("Updating topic:", topicId, updates);
       const updatedTopic = await updateTopic(topicId, updates);
@@ -376,11 +377,202 @@ export const useDiscussions = (electionId: string) => {
     error,
     loadTopic,
     loadTopics,
-    addTopic,
-    updateTopic: updateExistingTopic,
-    removeTopic,
-    addComment,
-    editComment,
-    removeComment
+    addTopic: async (title: string, content: string) => {
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to create a discussion",
+          variant: "destructive"
+        });
+        return null;
+      }
+      
+      if (!electionId) {
+        toast({
+          title: "Error",
+          description: "No election ID provided",
+          variant: "destructive"
+        });
+        return null;
+      }
+      
+      try {
+        console.log("Creating new topic:", { title, content, electionId });
+        const topic = await createTopic(electionId, title, content);
+        
+        if (topic) {
+          setTopics(prevTopics => [topic, ...prevTopics]);
+          return topic;
+        }
+        
+        toast({
+          title: "Error",
+          description: "Failed to create discussion topic",
+          variant: "destructive"
+        });
+        return null;
+      } catch (error: any) {
+        console.error("Error creating topic:", error);
+        toast({
+          title: "Error",
+          description: `Failed to create topic: ${error.message}`,
+          variant: "destructive"
+        });
+        return null;
+      }
+    },
+    updateTopic: async (topicId: string, updates: Partial<Discussion>) => {
+      try {
+        console.log("Updating topic:", topicId, updates);
+        const updatedTopic = await updateTopic(topicId, updates);
+        
+        if (updatedTopic) {
+          // Update topics list
+          setTopics(prevTopics => 
+            prevTopics.map(topic => 
+              topic.id === topicId ? updatedTopic : topic
+            )
+          );
+          
+          // Update selected topic if it's the one being updated
+          if (selectedTopic?.id === topicId) {
+            setSelectedTopic(updatedTopic);
+          }
+          
+          return updatedTopic;
+        }
+        
+        toast({
+          title: "Error",
+          description: "Failed to update discussion topic",
+          variant: "destructive"
+        });
+        return null;
+      } catch (error: any) {
+        console.error("Error updating topic:", error);
+        toast({
+          title: "Error",
+          description: `Failed to update topic: ${error.message}`,
+          variant: "destructive"
+        });
+        return null;
+      }
+    },
+    removeTopic: async (topicId: string) => {
+      try {
+        console.log("Deleting topic:", topicId);
+        const success = await deleteTopic(topicId);
+        
+        if (success) {
+          setTopics(prevTopics => prevTopics.filter(topic => topic.id !== topicId));
+          return true;
+        }
+        
+        toast({
+          title: "Error",
+          description: "Failed to delete discussion topic",
+          variant: "destructive"
+        });
+        return false;
+      } catch (error: any) {
+        console.error("Error deleting topic:", error);
+        toast({
+          title: "Error",
+          description: `Failed to delete topic: ${error.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+    },
+    addComment: async (topicId: string, content: string, parentId?: string | null) => {
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to comment",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      try {
+        console.log("Adding comment:", { topicId, content, parentId });
+        const comment = await createComment(topicId, content, parentId);
+        
+        if (comment) {
+          // Reload comments to get the proper threaded structure
+          await loadComments(topicId);
+          return true;
+        }
+        
+        toast({
+          title: "Error",
+          description: "Failed to add comment",
+          variant: "destructive"
+        });
+        return false;
+      } catch (error: any) {
+        console.error("Error adding comment:", error);
+        toast({
+          title: "Error",
+          description: `Failed to add comment: ${error.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+    },
+    editComment: async (commentId: string, content: string) => {
+      try {
+        console.log("Editing comment:", commentId, content);
+        const updatedComment = await updateComment(commentId, content);
+        
+        if (updatedComment && selectedTopic) {
+          // Reload comments to get the updated content
+          await loadComments(selectedTopic.id);
+          return true;
+        }
+        
+        toast({
+          title: "Error",
+          description: "Failed to update comment",
+          variant: "destructive"
+        });
+        return false;
+      } catch (error: any) {
+        console.error("Error editing comment:", error);
+        toast({
+          title: "Error",
+          description: `Failed to edit comment: ${error.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+    },
+    removeComment: async (commentId: string) => {
+      try {
+        console.log("Deleting comment:", commentId);
+        const success = await deleteComment(commentId);
+        
+        if (success && selectedTopic) {
+          // Reload comments to get the updated structure
+          await loadComments(selectedTopic.id);
+          return true;
+        }
+        
+        toast({
+          title: "Error",
+          description: "Failed to delete comment",
+          variant: "destructive"
+        });
+        return false;
+      } catch (error: any) {
+        console.error("Error removing comment:", error);
+        toast({
+          title: "Error",
+          description: `Failed to delete comment: ${error.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
   };
 };

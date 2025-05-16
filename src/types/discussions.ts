@@ -20,10 +20,21 @@ export interface Discussion {
   is_pinned?: boolean;
   is_locked?: boolean;
   view_count?: number;
+  
+  // Frontend properties (not in DB)
+  author?: DiscussionUser;
+  repliesCount?: number;
 }
 
-// Alias for backward compatibility
-export type DiscussionTopic = Discussion;
+// Extended interface for component usage with camelCase properties
+export interface DiscussionTopic extends Discussion {
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  electionId: string;
+  isPinned?: boolean;
+  isLocked?: boolean;
+}
 
 export interface Comment {
   id: string;
@@ -33,10 +44,20 @@ export interface Comment {
   user_id: string;
   topic_id: string;
   parent_id?: string;
+  
+  // Frontend properties (not in DB)
+  author?: DiscussionUser;
+  replies?: Comment[];
 }
 
-// Alias for backward compatibility
-export type DiscussionComment = Comment;
+// Extended interface for component usage with camelCase properties
+export interface DiscussionComment extends Comment {
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  topicId: string;
+  parentId?: string;
+}
 
 export interface Poll {
   id: string;
@@ -52,11 +73,16 @@ export interface Poll {
   ends_at?: string;
   votes_count?: number;
   has_voted?: boolean;
-  author?: {
-    firstName: string;
-    lastName: string;
-    imageUrl?: string;
-  };
+  
+  // Frontend properties (camelCase aliases)
+  createdAt?: string;
+  createdBy?: string;
+  electionId?: string;
+  topicId?: string;
+  multipleChoice?: boolean;
+  isClosed?: boolean;
+  endsAt?: string;
+  author?: DiscussionUser;
 }
 
 export interface PollOption {

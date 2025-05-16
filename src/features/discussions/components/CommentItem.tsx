@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { MoreVertical, Trash, Edit, Check, X } from "lucide-react";
-import { DiscussionComment } from "@/types/discussions";
+import { Comment, DiscussionComment } from "@/types/discussions";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
 import {
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface CommentItemProps {
-  comment: DiscussionComment;
+  comment: Comment;
   onDelete?: (commentId: string) => Promise<boolean>;
   onEdit?: (commentId: string, content: string) => Promise<boolean>;
   isReply?: boolean;
@@ -29,7 +29,7 @@ const CommentItem = ({
   onDelete,
   onEdit,
   isReply = false,
-  showReplyButton = false, // Changed default to false to remove reply button
+  showReplyButton = false,
 }: CommentItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -37,7 +37,7 @@ const CommentItem = ({
   const { user } = useAuth();
   const { isAdmin } = useRole();
   
-  const isOwner = user && comment.createdBy === user.id;
+  const isOwner = user && comment.user_id === user.id;
   const canManage = isAdmin || isOwner;
   
   const getInitials = (firstName?: string, lastName?: string) => {
@@ -102,7 +102,7 @@ const CommentItem = ({
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">
-                  {formatDate(comment.createdAt)}
+                  {formatDate(comment.created_at)}
                 </span>
                 
                 {canManage && (

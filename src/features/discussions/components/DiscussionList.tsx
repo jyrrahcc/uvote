@@ -8,13 +8,13 @@ import { toast } from "@/hooks/use-toast";
 import DiscussionTopicCard from "./DiscussionTopicCard";
 import NewTopicDialog from "./NewTopicDialog";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { DiscussionTopic } from "@/types/discussions";
+import { Discussion } from "@/types/discussions";
 
 export interface DiscussionListProps {
-  topics: DiscussionTopic[];
+  topics: Discussion[];
   isLoading: boolean;
-  onSelectTopic: (topic: DiscussionTopic) => void;
-  onCreateTopic: (title: string, content: string) => Promise<DiscussionTopic | null>;
+  onSelectTopic: (topic: Discussion) => void;
+  onCreateTopic: (title: string, content: string) => Promise<Discussion | null>;
   electionId: string;
   onRefresh: () => void;
 }
@@ -43,11 +43,11 @@ const DiscussionList = ({
       (topic.content || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     if (activeTab === "all") return matchesSearch;
-    if (activeTab === "my-topics" && user) return matchesSearch && topic.createdBy === user.id;
+    if (activeTab === "my-topics" && user) return matchesSearch && topic.created_by === user.id;
     if (activeTab === "recent") {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      return matchesSearch && new Date(topic.createdAt) >= oneWeekAgo;
+      return matchesSearch && new Date(topic.created_at) >= oneWeekAgo;
     }
     return matchesSearch;
   });

@@ -26,7 +26,8 @@ export const transformPollData = (dbPoll: DbPoll): Poll => {
     }
   }
 
-  return {
+  // Create the Poll object with both snake_case and camelCase properties
+  const poll: Poll = {
     id: dbPoll.id,
     question: dbPoll.question,
     description: dbPoll.description || undefined,
@@ -38,7 +39,17 @@ export const transformPollData = (dbPoll: DbPoll): Poll => {
     multiple_choice: dbPoll.multiple_choice || false,
     is_closed: dbPoll.is_closed || false,
     ends_at: dbPoll.ends_at || undefined,
+    // Add camelCase aliases for component usage
+    createdAt: dbPoll.created_at,
+    createdBy: dbPoll.created_by,
+    electionId: dbPoll.election_id,
+    topicId: dbPoll.topic_id || undefined,
+    multipleChoice: dbPoll.multiple_choice || false,
+    isClosed: dbPoll.is_closed || false,
+    endsAt: dbPoll.ends_at || undefined,
     // Author details will need to be populated separately
     author: undefined
   };
+
+  return poll;
 };
