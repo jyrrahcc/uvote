@@ -1,6 +1,6 @@
 
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, Pin, LockClosedIcon } from "lucide-react";
+import { MessageSquare, Pin, Lock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Discussion } from "@/types/discussions";
@@ -28,7 +28,7 @@ const DiscussionTopicCard = ({ topic, electionId, onClick }: DiscussionTopicCard
               <Pin className="inline-block h-4 w-4 mr-1.5 mb-0.5 text-amber-500" />
             )}
             {topic.is_locked && (
-              <LockClosedIcon className="inline-block h-4 w-4 mr-1.5 mb-0.5 text-gray-500" />
+              <Lock className="inline-block h-4 w-4 mr-1.5 mb-0.5 text-gray-500" />
             )}
             {topic.title}
           </h3>
