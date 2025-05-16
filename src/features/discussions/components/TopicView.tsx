@@ -56,9 +56,19 @@ const TopicView = ({
   const { user } = useAuth();
   const { isAdmin } = useRole();
   
+  // Check if user is a DlsudProfile type by checking for the presence of first_name
+  const isDlsudProfile = (user: any): user is DlsudProfile => {
+    return user && 'first_name' in user && 'last_name' in user;
+  };
+  
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
+  
+  // Get user profile data safely
+  const getUserFirstName = () => isDlsudProfile(user) ? user.first_name : '';
+  const getUserLastName = () => isDlsudProfile(user) ? user.last_name : '';
+  const getUserImageUrl = () => isDlsudProfile(user) ? user.image_url : null;
   
   const handleAddComment = async () => {
     if (!commentContent.trim()) {
@@ -227,13 +237,13 @@ const TopicView = ({
           <div className="mt-6">
             <div className="flex items-center space-x-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={(user as DlsudProfile)?.image_url} />
+                <AvatarImage src={getUserImageUrl()} />
                 <AvatarFallback className="text-xs">
-                  {user ? getInitials((user as DlsudProfile)?.first_name || '', (user as DlsudProfile)?.last_name || '') : '??'}
+                  {user ? getInitials(getUserFirstName(), getUserLastName()) : '??'}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium leading-none">
-                {(user as DlsudProfile)?.first_name} {(user as DlsudProfile)?.last_name}
+                {getUserFirstName()} {getUserLastName()}
               </span>
             </div>
             <div className="mt-2">
