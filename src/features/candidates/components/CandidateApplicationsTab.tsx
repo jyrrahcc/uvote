@@ -33,6 +33,7 @@ const CandidateApplicationsTab = ({ electionId, isAdmin }: CandidateApplications
     if (success) {
       console.log(`Successfully deleted application: ${applicationId}`);
     }
+    return success; // Return the success boolean to ensure the promise returns a boolean
   };
   
   const filteredApplications = filterStatus 

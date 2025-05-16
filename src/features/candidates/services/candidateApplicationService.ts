@@ -167,8 +167,9 @@ export const updateCandidateApplication = async (
             image_url: appData.image_url || null,
             election_id: appData.election_id,
             created_by: appData.user_id,
-            department: appData.department || null,
-            year_level: appData.year_level || null
+            department: appData.department || null, // Make sure to use optional chaining
+            year_level: appData.year_level || null, // Make sure to use optional chaining
+            student_id: appData.student_id || null
           });
           
         if (candidateError) {
