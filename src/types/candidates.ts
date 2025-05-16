@@ -1,27 +1,5 @@
 
 /**
- * Database Candidate Application type for mapping
- */
-export interface DbCandidateApplication {
-  id: string;
-  name: string;
-  bio?: string | null;
-  position: string;
-  image_url?: string | null;
-  election_id: string;
-  user_id: string;
-  created_at?: string | null;
-  updated_at?: string | null;
-  status: string;
-  feedback?: string | null;
-  reviewed_by?: string | null;
-  reviewed_at?: string | null;
-  department?: string | null;
-  year_level?: string | null;
-  student_id?: string | null;
-}
-
-/**
  * Candidate type definition
  */
 export interface Candidate {
@@ -55,9 +33,6 @@ export interface CandidateApplication {
   feedback?: string;
   reviewed_by?: string;
   reviewed_at?: string;
-  department?: string;
-  year_level?: string;
-  student_id?: string;
 }
 
 /**
@@ -75,6 +50,25 @@ export interface DbCandidate {
   student_id?: string | null;
   department?: string | null;
   year_level?: string | null;
+}
+
+/**
+ * Database Candidate Application type for mapping
+ */
+export interface DbCandidateApplication {
+  id: string;
+  name: string;
+  bio?: string | null;
+  position: string;
+  image_url?: string | null;
+  election_id: string;
+  user_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  status: string;
+  feedback?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
 }
 
 /**
@@ -121,9 +115,6 @@ export const mapDbCandidateApplicationToCandidateApplication = (
     status: status,
     feedback: dbApplication.feedback || undefined,
     reviewed_by: dbApplication.reviewed_by || undefined,
-    reviewed_at: dbApplication.reviewed_at || undefined,
-    department: dbApplication.department || undefined,
-    year_level: dbApplication.year_level || undefined,
-    student_id: dbApplication.student_id || undefined
+    reviewed_at: dbApplication.reviewed_at || undefined
   };
 };

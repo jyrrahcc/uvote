@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -156,41 +157,18 @@ export const updateCandidateApplication = async (
       if (appData) {
         console.log(`Creating candidate from approved application: ${applicationId}`);
         
-        // Type assertion to ensure TypeScript recognizes the extended fields
-        type ExtendedAppData = {
-          id: string;
-          name: string;
-          position: string;
-          bio: string | null;
-          image_url: string | null;
-          election_id: string;
-          user_id: string;
-          department: string | null;
-          year_level: string | null;
-          student_id: string | null;
-          status: string;
-          feedback: string | null;
-          reviewed_by: string | null;
-          reviewed_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        
-        const typedAppData = appData as unknown as ExtendedAppData;
-        
         // Add the candidate to the candidates table
         const { error: candidateError } = await supabase
           .from('candidates')
           .insert({
-            name: typedAppData.name,
-            position: typedAppData.position,
-            bio: typedAppData.bio || null,
-            image_url: typedAppData.image_url || null,
-            election_id: typedAppData.election_id,
-            created_by: typedAppData.user_id,
-            department: typedAppData.department || null,
-            year_level: typedAppData.year_level || null,
-            student_id: typedAppData.student_id || null
+            name: appData.name,
+            position: appData.position,
+            bio: appData.bio || null,
+            image_url: appData.image_url || null,
+            election_id: appData.election_id,
+            created_by: appData.user_id,
+            department: appData.department || null,
+            year_level: appData.year_level || null
           });
           
         if (candidateError) {
@@ -251,7 +229,7 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
     
     if (appError) {
       console.error(`Error fetching application ${applicationId}:`, appError);
-      return false;
+      throw appError;
     }
     
     if (!appData) {
@@ -272,15 +250,12 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
       if (candidateError) {
         console.error(`Error deleting related candidate for application ${applicationId}:`, candidateError);
         // Continue with application deletion even if candidate deletion fails
-        console.log("Will attempt to continue with application deletion despite candidate deletion failure");
       } else {
         console.log(`Successfully removed candidate for application: ${applicationId}`);
       }
     }
     
-    // Delete the application - THIS IS THE CRITICAL PART THAT NEEDS TO BE FIXED
-    console.log(`Now attempting to delete the application record ${applicationId} from the database`);
-    
+    // Delete the application
     const { error: deleteError } = await supabase
       .from('candidate_applications')
       .delete()
@@ -288,7 +263,7 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
     
     if (deleteError) {
       console.error(`Database error when deleting application ${applicationId}:`, deleteError);
-      return false; // Return false to indicate failure instead of throwing
+      throw deleteError;
     }
     
     console.log(`Successfully deleted application: ${applicationId}`);
@@ -321,16 +296,8 @@ export const submitCandidateApplication = async (applicationData: Omit<Candidate
     const { data, error } = await supabase
       .from('candidate_applications')
       .insert({
-        name: applicationData.name,
-        bio: applicationData.bio,
-        position: applicationData.position,
-        image_url: applicationData.image_url,
-        election_id: applicationData.election_id,
-        user_id: applicationData.user_id,
+        ...applicationData,
         status: 'pending',
-        department: applicationData.department,
-        year_level: applicationData.year_level,
-        student_id: applicationData.student_id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
