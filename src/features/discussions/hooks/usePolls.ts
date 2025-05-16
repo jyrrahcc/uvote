@@ -1,7 +1,6 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { Poll, PollResults } from '@/types/discussions';
+import { Poll, PollResults } from '@/types';
 import { 
   getPolls,
   getPoll,
@@ -144,22 +143,15 @@ export const usePolls = (electionId: string) => {
     
     try {
       console.log("Creating new poll:", { question, options, description, topicId, multipleChoice, endsAt });
-      
-      // Convert options from Record<string, string> to PollOption[]
-      const pollOptions = Object.entries(options).map(([key, value]) => ({
-        id: key,
-        text: value
-      }));
-      
       const poll = await createPollService({
         question,
-        options: pollOptions,
+        options,
         description: description || undefined,
-        topic_id: topicId || undefined,
-        multiple_choice: multipleChoice || false,
-        ends_at: endsAt || undefined,
-        election_id: electionId,
-        created_by: user.id
+        topicId: topicId || undefined,
+        multipleChoice: multipleChoice || false,
+        endsAt: endsAt || undefined,
+        electionId,
+        createdBy: user.id
       });
       
       if (poll) {
@@ -229,7 +221,7 @@ export const usePolls = (electionId: string) => {
           setSelectedPoll(updatedPoll);
           
           // If poll is closed, refresh the results
-          if (updates.is_closed !== undefined) {
+          if (updates.isClosed !== undefined) {
             const results = await getPollResults(pollId);
             setPollResults(results);
           }
@@ -273,8 +265,8 @@ export const usePolls = (electionId: string) => {
       const optionsObj: Record<string, boolean> = {};
       if (selectedPoll) {
         // Initialize all options to false
-        selectedPoll.options.forEach(option => {
-          optionsObj[option.id] = false;
+        Object.keys(selectedPoll.options).forEach(optionId => {
+          optionsObj[optionId] = false;
         });
         
         // Set selected options to true

@@ -1,39 +1,27 @@
 
-import React, { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
-import { ChevronLeft, Pin, Lock, MoreVertical, Trash, Edit, Flag } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { ArrowLeft, MessageCircle, Calendar, User, Pin, Lock, Edit, Trash } from "lucide-react";
+import { DiscussionTopic, DiscussionComment } from "@/types/discussions";
+import { formatDistanceToNow, format } from "date-fns";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-import CommentItem from "./CommentItem";
-import { Discussion, Comment } from "@/types/discussions";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { DlsudProfile } from "@/types";
+import CommentItem from "./CommentItem";
 
 interface TopicViewProps {
-  topic: Discussion | null;
-  comments: Comment[];
+  topic: DiscussionTopic | null;
+  comments: DiscussionComment[];
   loading: boolean;
   commentLoading: boolean;
   onBack: () => void;
-  onAddComment: (topicId: string, content: string, parentId?: string) => Promise<Comment | null>;
-  onEditComment: (commentId: string, content: string) => Promise<Comment | null>;
+  onAddComment: (topicId: string, content: string, parentId?: string | null) => Promise<boolean>;
+  onEditComment: (commentId: string, content: string) => Promise<boolean>;
   onDeleteComment: (commentId: string) => Promise<boolean>;
   onDeleteTopic: (topicId: string) => Promise<boolean>;
-  onEditTopic: (topicId: string, updates: Partial<Discussion>) => Promise<Discussion | null>;
+  onEditTopic: (topicId: string, updates: Partial<DiscussionTopic>) => Promise<any>;
 }
 
 const TopicView = ({
@@ -49,253 +37,288 @@ const TopicView = ({
   onEditTopic
 }: TopicViewProps) => {
   const [commentContent, setCommentContent] = useState("");
-  const [isDeletingTopic, setIsDeletingTopic] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState(topic?.title || "");
-  const [editContent, setEditContent] = useState(topic?.content || "");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
-  const { isAdmin } = useRole();
+  const { isAdmin, isVoter } = useRole();
   
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  const formatDate = (dateString: string) => {
+    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
   
-  const handleAddComment = async () => {
-    if (!commentContent.trim()) {
-      toast({
-        title: "Error",
-        description: "Comment cannot be empty.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (!topic) {
-      toast({
-        title: "Error",
-        description: "Topic not loaded.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!commentContent.trim() || !topic) return;
     
-    await onAddComment(topic.id, commentContent);
-    setCommentContent(""); // Clear the input after successful comment
+    try {
+      const success = await onAddComment(topic.id, commentContent);
+      if (success) {
+        setCommentContent("");
+      }
+    } catch (error) {
+      console.error("Failed to add comment:", error);
+    }
+  };
+  
+  const handleTogglePin = async () => {
+    if (!topic) return;
+    await onEditTopic(topic.id, { isPinned: !topic.isPinned });
+  };
+  
+  const handleToggleLock = async () => {
+    if (!topic) return;
+    await onEditTopic(topic.id, { isLocked: !topic.isLocked });
   };
   
   const handleDeleteTopic = async () => {
-    setIsDeletingTopic(true);
-    try {
-      if (topic) {
-        await onDeleteTopic(topic.id);
-        toast({
-          title: "Success",
-          description: "Topic deleted successfully.",
-        });
-        onBack(); // Navigate back after successful deletion
-      }
-    } catch (error) {
-      console.error("Error deleting topic:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete topic. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeletingTopic(false);
-    }
-  };
-  
-  const handleEditTopic = async () => {
     if (!topic) return;
     
+    if (window.confirm("Are you sure you want to delete this topic? This action cannot be undone.")) {
+      const success = await onDeleteTopic(topic.id);
+      if (success) {
+        onBack();
+      }
+    }
+  };
+
+  const handleStartEdit = () => {
+    if (!topic) return;
+    setEditTitle(topic.title);
+    setEditContent(topic.content || "");
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!topic || !editTitle.trim()) return;
+    
     try {
-      const updates = {
+      setIsSubmitting(true);
+      await onEditTopic(topic.id, { 
         title: editTitle,
-        content: editContent
-      };
-      
-      await onEditTopic(topic.id, updates);
-      toast({
-        title: "Success",
-        description: "Topic updated successfully.",
+        content: editContent.trim() ? editContent : null
       });
-      setIsEditDialogOpen(false);
+      setIsEditing(false);
     } catch (error) {
-      console.error("Error updating topic:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update topic. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Failed to update topic:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
+  const canManageTopic = () => {
+    if (!user || !topic) return false;
+    return isAdmin || topic.createdBy === user.id;
+  };
+
   if (loading || !topic) {
-    return <div className="text-center py-8">Loading discussion...</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Spinner className="h-8 w-8" />
+        <span className="ml-3 text-lg">Loading topic...</span>
+      </div>
+    );
   }
-  
+
   return (
     <div>
-      <Button variant="ghost" onClick={onBack} className="mb-4">
-        <ChevronLeft className="mr-2 h-4 w-4" />
-        Back to Discussions
-      </Button>
-      
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-        <div className="flex justify-between items-start p-6">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight flex items-center">
-              {topic.is_pinned && (
-                <Pin className="inline-block h-4 w-4 mr-1.5 mb-0.5 text-amber-500" />
-              )}
-              {topic.is_locked && (
-                <Lock className="inline-block h-4 w-4 mr-1.5 mb-0.5 text-gray-500" />
-              )}
-              {topic.title}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {formatDistanceToNow(new Date(topic.created_at), {
-                addSuffix: true,
-              })}{" "}
-              by {topic.author?.firstName} {topic.author?.lastName}
-            </p>
-            {topic.content && (
-              <p className="mt-2 text-muted-foreground">{topic.content}</p>
-            )}
-          </div>
-          
-          {(user?.id === topic.created_by || isAdmin) && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open dropdown menu</span>
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Topic
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    toast({
-                      title: "Feature not implemented",
-                      description: "This feature is under development.",
-                    })
-                  }
-                >
-                  <Flag className="mr-2 h-4 w-4" />
-                  Report Topic
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleDeleteTopic}
-                  disabled={isDeletingTopic}
-                  className="text-red-500 focus:text-red-500"
-                >
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete Topic
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+      <div className="mb-6">
+        <Button variant="ghost" onClick={onBack} className="mb-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Discussions
+        </Button>
         
-        <div className="p-6 border-t">
-          <h2 className="text-lg font-semibold tracking-tight mb-4">Comments</h2>
-          
-          {comments.length === 0 ? (
-            <Alert>
-              <AlertTitle>No comments yet</AlertTitle>
-              <AlertDescription>Be the first to comment!</AlertDescription>
-            </Alert>
-          ) : (
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <CommentItem
-                  key={comment.id}
-                  comment={comment}
-                  onDelete={onDeleteComment}
-                  onEdit={onEditComment}
-                />
-              ))}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                {isEditing ? (
+                  <div className="space-y-4 w-full">
+                    <div>
+                      <label htmlFor="topicTitle" className="block text-sm font-medium mb-1">Topic Title</label>
+                      <input
+                        id="topicTitle"
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Enter topic title"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <CardTitle className="text-xl flex items-center">
+                      {topic.isPinned && <Pin size={18} className="mr-2 text-green-600" />}
+                      {topic.isLocked && <Lock size={18} className="mr-2 text-yellow-600" />}
+                      {topic.title}
+                    </CardTitle>
+                    <CardDescription className="flex items-center mt-2">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      <span className="mr-2">Posted {format(new Date(topic.createdAt), 'PPp')}</span>
+                      <span className="mx-1">•</span>
+                      <User className="h-4 w-4 mr-1" />
+                      <span>{topic.author?.firstName} {topic.author?.lastName}</span>
+                    </CardDescription>
+                  </>
+                )}
+              </div>
+              
+              {canManageTopic() && !isEditing && (
+                <div className="flex gap-2 flex-wrap justify-end">
+                  {isAdmin && (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleTogglePin}
+                      >
+                        <Pin size={16} className={`mr-1 ${topic.isPinned ? 'text-green-600' : ''}`} />
+                        {topic.isPinned ? 'Unpin' : 'Pin'}
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleToggleLock}
+                      >
+                        <Lock size={16} className={`mr-1 ${topic.isLocked ? 'text-yellow-600' : ''}`} />
+                        {topic.isLocked ? 'Unlock' : 'Lock'}
+                      </Button>
+                    </>
+                  )}
+                  
+                  {(isAdmin || topic.createdBy === user?.id) && (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleStartEdit}
+                      >
+                        <Edit size={16} className="mr-1" />
+                        Edit
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleDeleteTopic}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <Trash size={16} className="mr-1" />
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          </CardHeader>
           
-          <div className="mt-6">
-            <div className="flex items-center space-x-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.image_url} />
-                <AvatarFallback className="text-xs">
-                  {user ? getInitials(user.first_name, user.last_name) : '??'}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium leading-none">
-                {user?.first_name} {user?.last_name}
-              </span>
-            </div>
-            <div className="mt-2">
-              <Textarea
-                value={commentContent}
-                onChange={(e) => setCommentContent(e.target.value)}
-                placeholder="Add your comment..."
-                className="w-full"
-              />
-              <Button
-                onClick={handleAddComment}
-                disabled={commentLoading}
-                className="mt-2"
+          <CardContent>
+            {isEditing ? (
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="topicContent" className="block text-sm font-medium mb-1">Topic Content</label>
+                  <Textarea
+                    id="topicContent"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="min-h-[150px]"
+                    placeholder="Enter topic content (optional)"
+                  />
+                </div>
+              </div>
+            ) : (
+              topic.content ? (
+                <div className="prose max-w-none">
+                  <p className="whitespace-pre-wrap">{topic.content}</p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic">No content provided</p>
+              )
+            )}
+          </CardContent>
+          
+          {isEditing && (
+            <CardFooter className="border-t pt-4 flex justify-end space-x-2">
+              <Button 
+                variant="outline"
+                onClick={handleCancelEdit}
+                disabled={isSubmitting}
               >
-                {commentLoading ? "Adding..." : "Add Comment"}
+                Cancel
               </Button>
-            </div>
-          </div>
-        </div>
+              <Button 
+                onClick={handleSaveEdit}
+                disabled={!editTitle.trim() || isSubmitting}
+                className="bg-[#008f50] hover:bg-[#007a45]"
+              >
+                {isSubmitting ? <Spinner className="mr-2" /> : null}
+                Save Changes
+              </Button>
+            </CardFooter>
+          )}
+        </Card>
       </div>
       
-      <Dialog open={isEditDialogOpen} onOpenChange={() => setIsEditDialogOpen(false)}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle>Edit Discussion Topic</DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">
-                Title
-              </Label>
-              <Input
-                id="title"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="content" className="text-right">
-                Content
-              </Label>
+      <div className="mb-6">
+        <h3 className="text-xl font-medium mb-4 flex items-center">
+          <MessageCircle className="mr-2 h-5 w-5" />
+          Comments ({comments.length})
+        </h3>
+        
+        {user && isVoter && !topic.isLocked && (
+          <form onSubmit={handleSubmitComment} className="mb-6">
+            <div className="space-y-4">
               <Textarea
-                id="content"
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="col-span-3"
+                placeholder="Write a comment..."
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                className="min-h-[100px]"
               />
+              <div className="flex justify-end">
+                <Button 
+                  type="submit"
+                  className="bg-[#008f50] hover:bg-[#007a45]"
+                  disabled={!commentContent.trim() || commentLoading}
+                >
+                  {commentLoading ? <Spinner className="mr-2" /> : null}
+                  Post Comment
+                </Button>
+              </div>
             </div>
+          </form>
+        )}
+        
+        {commentLoading ? (
+          <div className="flex justify-center py-6">
+            <Spinner className="h-6 w-6" />
           </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" onClick={handleEditTopic}>
-              Update Topic
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        ) : comments.length === 0 ? (
+          <div className="text-center py-6 border rounded-lg bg-muted/30">
+            <p className="text-muted-foreground">No comments yet</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {comments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                onEdit={onEditComment}
+                onDelete={onDeleteComment}
+                showReplyButton={false}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

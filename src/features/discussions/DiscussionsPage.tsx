@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDiscussions } from "./hooks/useDiscussions";
@@ -14,7 +13,7 @@ import DiscussionList from "./components/DiscussionList";
 import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
-import { Discussion, Poll } from "@/types/discussions";
+import { DiscussionTopic, Poll } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -36,7 +35,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
   
   const { isAdmin, isVoter } = useRole();
   const { user } = useAuth();
-
+  
   // Add better error logging for debugging
   useEffect(() => {
     console.log("🔍 DiscussionsPage mounted with props electionId:", electionId);
@@ -132,7 +131,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     vote,
     loadPolls
   } = usePolls(finalElectionId);
-
+  
   // Log topics and polls whenever they change
   useEffect(() => {
     console.log("🔍 Current topics in DiscussionsPage:", topics);
@@ -176,7 +175,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     setViewingPoll(false);
   };
   
-  const handleSelectTopic = async (topic: Discussion) => {
+  const handleSelectTopic = async (topic: DiscussionTopic) => {
     console.log("🔄 Selecting topic:", topic.id);
     await loadTopic(topic.id);
     setViewingTopic(true);
@@ -266,25 +265,6 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     );
   }
   
-  // Wrapper function to handle poll update
-  const handleUpdatePoll = async (pollId: string, updates: Partial<Poll>) => {
-    // Convert camelCase to snake_case for poll updates
-    const snakeCaseUpdates: Partial<Poll> = {};
-    
-    if (updates.is_closed !== undefined) snakeCaseUpdates.is_closed = updates.is_closed;
-    if (updates.multiple_choice !== undefined) snakeCaseUpdates.multiple_choice = updates.multiple_choice;
-    if (updates.ends_at !== undefined) snakeCaseUpdates.ends_at = updates.ends_at;
-    
-    // Add any other fields that might need conversion
-    Object.keys(updates).forEach(key => {
-      if (!['is_closed', 'multiple_choice', 'ends_at'].includes(key)) {
-        snakeCaseUpdates[key] = updates[key];
-      }
-    });
-    
-    return updatePoll(pollId, snakeCaseUpdates);
-  };
-  
   // Show main discussions content for eligible users
   return (
     <div className="container mx-auto py-8 px-4">
@@ -330,7 +310,7 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
               voteLoading={voteLoading}
               onBack={handleBackToPolls}
               onVote={vote}
-              onClosePoll={(pollId) => handleUpdatePoll(pollId, { is_closed: true })}
+              onClosePoll={(pollId) => updatePoll(pollId, { isClosed: true })}
               onDeletePoll={removePoll}
             />
           ) : (

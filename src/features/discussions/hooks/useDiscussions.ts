@@ -1,273 +1,371 @@
 
-import { useState, useCallback } from "react";
-import { toast } from "sonner";
-import { Discussion, Comment } from "@/types/discussions";
-import * as discussionService from "../services/discussionService";
+import { useState, useCallback, useEffect } from 'react';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { DiscussionTopic, DiscussionComment } from '@/types/discussions';
+import {
+  getTopics,
+  getTopic,
+  createTopic,
+  updateTopic,
+  deleteTopic,
+  getComments,
+  createComment,
+  updateComment,
+  deleteComment
+} from '../services/discussionService';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
+// Only adjusting the loadTopics callback to provide better logging
 export const useDiscussions = (electionId: string) => {
-  const [topics, setTopics] = useState<Discussion[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState<Discussion | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const { user } = useAuth();
+  const [topics, setTopics] = useState<DiscussionTopic[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<DiscussionTopic | null>(null);
+  const [comments, setComments] = useState<DiscussionComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentLoading, setCommentLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load all topics for an election
   const loadTopics = useCallback(async () => {
     if (!electionId) {
-      console.error("No election ID provided to useDiscussions");
+      console.error("No election ID provided, skipping topics load");
+      setTopics([]);
+      setLoading(false);
       return;
     }
     
-    setLoading(true);
     try {
-      const data = await discussionService.getTopics(electionId);
+      setLoading(true);
+      setError(null);
+      console.log("Loading topics for election:", electionId);
+      const data = await getTopics(electionId);
+      console.log("Loaded topics:", data);
       setTopics(data);
-    } catch (error) {
-      console.error("Failed to load discussion topics:", error);
-      toast.error("Could not load discussions");
+    } catch (error: any) {
+      console.error("Error loading topics:", error);
+      setError("Failed to load topics");
+      toast({
+        title: "Error",
+        description: "Failed to load discussion topics",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   }, [electionId]);
 
-  // Load a specific topic and its comments
-  const loadTopic = useCallback(async (topicId: string) => {
-    setLoading(true);
-    setCommentLoading(true);
+  // Set up initial load and realtime subscription
+  useEffect(() => {
+    if (!electionId) return;
     
+    loadTopics();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('discussion-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'discussion_topics',
+        filter: `election_id=eq.${electionId}`
+      }, () => {
+        console.log("Detected change in topics, reloading...");
+        loadTopics();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [electionId, loadTopics]);
+  
+  const loadTopic = async (topicId: string) => {
     try {
-      const topic = await discussionService.getTopic(topicId);
+      setLoading(true);
+      setError(null);
+      console.log("Loading topic details:", topicId);
+      const topic = await getTopic(topicId);
       setSelectedTopic(topic);
       
-      const topicComments = await discussionService.getComments(topicId);
+      if (topic) {
+        await loadComments(topicId);
+        return topic;
+      }
       
-      // Organize comments into a tree structure
-      const commentMap = new Map();
-      const rootComments: Comment[] = [];
-      
-      // First pass: create a lookup table
-      topicComments.forEach(comment => {
-        // Initialize empty replies array for each comment
-        comment.replies = comment.replies || [];
-        commentMap.set(comment.id, comment);
+      console.error("Failed to load topic, no data returned");
+      toast({
+        title: "Error",
+        description: "Failed to load discussion topic",
+        variant: "destructive"
       });
-      
-      // Second pass: link replies to their parents or add to root
-      topicComments.forEach(comment => {
-        if (comment.parent_id) {
-          const parentComment = commentMap.get(comment.parent_id);
-          if (parentComment) {
-            if (!parentComment.replies) parentComment.replies = [];
-            parentComment.replies.push(comment);
-          } else {
-            rootComments.push(comment);
-          }
-        } else {
-          rootComments.push(comment);
-        }
+      return null;
+    } catch (error: any) {
+      console.error("Error loading topic:", error);
+      setError("Failed to load topic");
+      toast({
+        title: "Error",
+        description: `Failed to load topic: ${error.message}`,
+        variant: "destructive"
       });
-      
-      setComments(rootComments);
-    } catch (error) {
-      console.error("Failed to load discussion topic:", error);
-      toast.error("Could not load the discussion");
+      return null;
     } finally {
       setLoading(false);
-      setCommentLoading(false);
     }
-  }, []);
-
-  // Add a new topic
-  const addTopic = useCallback(async (title: string, content: string): Promise<Discussion | null> => {
-    if (!electionId) throw new Error("No election ID provided");
-    
+  };
+  
+  const loadComments = async (topicId: string) => {
     try {
-      const newTopic = await discussionService.createTopic(electionId, title, content);
-      setTopics(prev => [newTopic, ...prev]);
-      return newTopic;
-    } catch (error) {
-      console.error("Failed to create topic:", error);
-      toast.error("Could not create the discussion topic");
-      return null;
-    }
-  }, [electionId]);
-
-  // Update an existing topic
-  const updateTopic = useCallback(async (topicId: string, updates: Partial<Discussion>): Promise<Discussion | null> => {
-    try {
-      const updatedTopic = await discussionService.updateTopic(topicId, updates);
+      setCommentLoading(true);
+      console.log("Loading comments for topic:", topicId);
+      const commentsData = await getComments(topicId);
       
-      // Update topics list
-      setTopics(prev => prev.map(topic => 
-        topic.id === updatedTopic.id ? updatedTopic : topic
-      ));
+      // Process comments to create a threaded structure
+      const commentMap: Record<string, DiscussionComment> = {};
+      const rootComments: DiscussionComment[] = [];
       
-      // Update selected topic if it's the one being viewed
-      if (selectedTopic && selectedTopic.id === updatedTopic.id) {
-        setSelectedTopic(updatedTopic);
-      }
-      
-      return updatedTopic;
-    } catch (error) {
-      console.error("Failed to update topic:", error);
-      toast.error("Could not update the discussion topic");
-      return null;
-    }
-  }, [selectedTopic]);
-
-  // Remove a topic
-  const removeTopic = useCallback(async (topicId: string): Promise<boolean> => {
-    try {
-      const success = await discussionService.deleteTopic(topicId);
-      
-      if (success) {
-        // Update topics list
-        setTopics(prev => prev.filter(topic => topic.id !== topicId));
-        
-        // Clear selected topic if it's the one being removed
-        if (selectedTopic && selectedTopic.id === topicId) {
-          setSelectedTopic(null);
-        }
-      }
-      
-      return success;
-    } catch (error) {
-      console.error("Failed to delete topic:", error);
-      toast.error("Could not delete the discussion topic");
-      return false;
-    }
-  }, [selectedTopic]);
-
-  // Add a comment to a topic
-  const addComment = useCallback(async (topicId: string, content: string, parentId?: string): Promise<Comment | null> => {
-    setCommentLoading(true);
-    
-    try {
-      const newComment = await discussionService.createComment(topicId, content, parentId);
-      
-      // If it's a reply to an existing comment
-      if (parentId) {
-        // Find the parent comment
-        setComments(prevComments => {
-          const findAndAddReply = (comments: Comment[]): Comment[] => {
-            return comments.map(comment => {
-              if (comment.id === parentId) {
-                // Add reply to this comment
-                return {
-                  ...comment,
-                  replies: [...(comment.replies || []), newComment]
-                };
-              } else if (comment.replies && comment.replies.length > 0) {
-                // Check in replies recursively
-                return {
-                  ...comment,
-                  replies: findAndAddReply(comment.replies)
-                };
-              }
-              return comment;
-            });
-          };
-          
-          return findAndAddReply(prevComments);
-        });
-      } else {
-        // Top-level comment
-        setComments(prev => [...prev, { ...newComment, replies: [] }]);
-      }
-      
-      return newComment;
-    } catch (error) {
-      console.error("Failed to add comment:", error);
-      toast.error("Could not add your comment");
-      return null;
-    } finally {
-      setCommentLoading(false);
-    }
-  }, []);
-
-  // Edit an existing comment
-  const editComment = useCallback(async (commentId: string, content: string): Promise<Comment | null> => {
-    setCommentLoading(true);
-    
-    try {
-      const updatedComment = await discussionService.updateComment(commentId, content);
-      
-      // Update the comment in the state
-      setComments(prevComments => {
-        const findAndUpdateComment = (comments: Comment[]): Comment[] => {
-          return comments.map(comment => {
-            if (comment.id === commentId) {
-              // Update this comment
-              return {
-                ...comment,
-                content: updatedComment.content,
-                updated_at: updatedComment.updated_at
-              };
-            } else if (comment.replies && comment.replies.length > 0) {
-              // Check in replies recursively
-              return {
-                ...comment,
-                replies: findAndUpdateComment(comment.replies)
-              };
-            }
-            return comment;
-          });
+      // First pass: create a map of all comments
+      commentsData.forEach(comment => {
+        // Initialize replies array if needed
+        const commentWithReplies = {
+          ...comment,
+          replies: []
         };
-        
-        return findAndUpdateComment(prevComments);
+        commentMap[comment.id] = commentWithReplies;
       });
       
-      return updatedComment;
+      // Second pass: organize comments into a tree structure
+      commentsData.forEach(comment => {
+        if (comment.parentId) {
+          // This is a reply, add it to its parent's replies
+          if (commentMap[comment.parentId]) {
+            commentMap[comment.parentId].replies = commentMap[comment.parentId].replies || [];
+            commentMap[comment.parentId].replies!.push(commentMap[comment.id]);
+          } else {
+            // If parent doesn't exist (which shouldn't happen), add as root
+            rootComments.push(commentMap[comment.id]);
+          }
+        } else {
+          // This is a root comment
+          rootComments.push(commentMap[comment.id]);
+        }
+      });
+      
+      console.log("Processed comments:", rootComments);
+      setComments(rootComments);
     } catch (error) {
-      console.error("Failed to edit comment:", error);
-      toast.error("Could not update your comment");
-      return null;
+      console.error("Error loading comments:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load comments",
+        variant: "destructive"
+      });
     } finally {
       setCommentLoading(false);
     }
-  }, []);
-
-  // Remove a comment
-  const removeComment = useCallback(async (commentId: string): Promise<boolean> => {
-    setCommentLoading(true);
+  };
+  
+  const addTopic = async (title: string, content: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to create a discussion",
+        variant: "destructive"
+      });
+      return null;
+    }
+    
+    if (!electionId) {
+      toast({
+        title: "Error",
+        description: "No election ID provided",
+        variant: "destructive"
+      });
+      return null;
+    }
     
     try {
-      const success = await discussionService.deleteComment(commentId);
+      console.log("Creating new topic:", { title, content, electionId });
+      const topic = await createTopic(electionId, title, content);
       
-      if (success) {
-        // Remove the comment from state
-        setComments(prevComments => {
-          // Filter out top-level comments matching this ID
-          const filteredComments = prevComments.filter(comment => comment.id !== commentId);
-          
-          // For each remaining comment, filter out replies matching this ID
-          const recursivelyFilterReplies = (comments: Comment[]): Comment[] => {
-            return comments.map(comment => {
-              if (comment.replies && comment.replies.length > 0) {
-                return {
-                  ...comment,
-                  replies: recursivelyFilterReplies(
-                    comment.replies.filter(reply => reply.id !== commentId)
-                  )
-                };
-              }
-              return comment;
-            });
-          };
-          
-          return recursivelyFilterReplies(filteredComments);
-        });
+      if (topic) {
+        setTopics(prevTopics => [topic, ...prevTopics]);
+        return topic;
       }
       
-      return success;
-    } catch (error) {
-      console.error("Failed to delete comment:", error);
-      toast.error("Could not delete the comment");
-      return false;
-    } finally {
-      setCommentLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to create discussion topic",
+        variant: "destructive"
+      });
+      return null;
+    } catch (error: any) {
+      console.error("Error creating topic:", error);
+      toast({
+        title: "Error",
+        description: `Failed to create topic: ${error.message}`,
+        variant: "destructive"
+      });
+      return null;
     }
-  }, []);
+  };
+  
+  const removeTopic = async (topicId: string) => {
+    try {
+      console.log("Deleting topic:", topicId);
+      const success = await deleteTopic(topicId);
+      
+      if (success) {
+        setTopics(prevTopics => prevTopics.filter(topic => topic.id !== topicId));
+        return true;
+      }
+      
+      toast({
+        title: "Error",
+        description: "Failed to delete discussion topic",
+        variant: "destructive"
+      });
+      return false;
+    } catch (error: any) {
+      console.error("Error deleting topic:", error);
+      toast({
+        title: "Error",
+        description: `Failed to delete topic: ${error.message}`,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+  
+  const updateExistingTopic = async (topicId: string, updates: Partial<DiscussionTopic>) => {
+    try {
+      console.log("Updating topic:", topicId, updates);
+      const updatedTopic = await updateTopic(topicId, updates);
+      
+      if (updatedTopic) {
+        // Update topics list
+        setTopics(prevTopics => 
+          prevTopics.map(topic => 
+            topic.id === topicId ? updatedTopic : topic
+          )
+        );
+        
+        // Update selected topic if it's the one being updated
+        if (selectedTopic?.id === topicId) {
+          setSelectedTopic(updatedTopic);
+        }
+        
+        return updatedTopic;
+      }
+      
+      toast({
+        title: "Error",
+        description: "Failed to update discussion topic",
+        variant: "destructive"
+      });
+      return null;
+    } catch (error: any) {
+      console.error("Error updating topic:", error);
+      toast({
+        title: "Error",
+        description: `Failed to update topic: ${error.message}`,
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+  
+  const addComment = async (topicId: string, content: string, parentId?: string | null) => {
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to comment",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    try {
+      console.log("Adding comment:", { topicId, content, parentId });
+      const comment = await createComment(topicId, content, parentId);
+      
+      if (comment) {
+        // Reload comments to get the proper threaded structure
+        await loadComments(topicId);
+        return true;
+      }
+      
+      toast({
+        title: "Error",
+        description: "Failed to add comment",
+        variant: "destructive"
+      });
+      return false;
+    } catch (error: any) {
+      console.error("Error adding comment:", error);
+      toast({
+        title: "Error",
+        description: `Failed to add comment: ${error.message}`,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+  
+  const editComment = async (commentId: string, content: string) => {
+    try {
+      console.log("Editing comment:", commentId, content);
+      const updatedComment = await updateComment(commentId, content);
+      
+      if (updatedComment && selectedTopic) {
+        // Reload comments to get the updated content
+        await loadComments(selectedTopic.id);
+        return true;
+      }
+      
+      toast({
+        title: "Error",
+        description: "Failed to update comment",
+        variant: "destructive"
+      });
+      return false;
+    } catch (error: any) {
+      console.error("Error editing comment:", error);
+      toast({
+        title: "Error",
+        description: `Failed to edit comment: ${error.message}`,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+  
+  const removeComment = async (commentId: string) => {
+    try {
+      console.log("Deleting comment:", commentId);
+      const success = await deleteComment(commentId);
+      
+      if (success && selectedTopic) {
+        // Reload comments to get the updated structure
+        await loadComments(selectedTopic.id);
+        return true;
+      }
+      
+      toast({
+        title: "Error",
+        description: "Failed to delete comment",
+        variant: "destructive"
+      });
+      return false;
+    } catch (error: any) {
+      console.error("Error removing comment:", error);
+      toast({
+        title: "Error",
+        description: `Failed to delete comment: ${error.message}`,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
 
   return {
     topics,
@@ -275,10 +373,11 @@ export const useDiscussions = (electionId: string) => {
     comments,
     loading,
     commentLoading,
-    loadTopics,
+    error,
     loadTopic,
+    loadTopics,
     addTopic,
-    updateTopic,
+    updateTopic: updateExistingTopic,
     removeTopic,
     addComment,
     editComment,

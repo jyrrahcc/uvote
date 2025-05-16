@@ -1,77 +1,48 @@
 
-import { DbPoll, Poll, PollOption } from '@/types/discussions';
+import { Poll } from "@/types";
 
-export const transformPollData = (dbPoll: DbPoll): Poll => {
-  let pollOptions: PollOption[] = [];
-
-  // Process options based on their structure in the database
-  if (dbPoll.options) {
-    // If options is an array structure
-    if (Array.isArray(dbPoll.options)) {
-      pollOptions = dbPoll.options.map((opt: any) => ({
-        id: opt.id,
-        text: opt.text,
-        votes: opt.votes || 0,
-        percentage: opt.percentage || 0
-      }));
-    } 
-    // If options is a record structure (key-value pairs)
-    else if (typeof dbPoll.options === 'object') {
-      pollOptions = Object.entries(dbPoll.options).map(([id, value]) => {
-        // Handle different formats of options storage
-        if (typeof value === 'string') {
-          // Simple format: { "id1": "Option Text 1", ... }
-          return {
-            id, 
-            text: value,
-            votes: 0,
-            percentage: 0
-          };
-        } else if (typeof value === 'object' && value !== null) {
-          // Complex format: { "id1": { text: "Option Text 1", ... }, ... }
-          return {
-            id,
-            text: (value as any).text || String(value),
-            votes: (value as any).votes || 0,
-            percentage: (value as any).percentage || 0
-          };
-        } else {
-          // Fallback for other formats
-          return {
-            id,
-            text: String(value),
-            votes: 0,
-            percentage: 0
-          };
+// Helper function to transform poll data from the database
+export const transformPollData = (dbPoll: any, creator?: any): Poll => {
+  // Parse options from string or use as is if already an object
+  let parsedOptions: Record<string, string> = {};
+  
+  try {
+    if (typeof dbPoll.options === 'string') {
+      const optionsArray = JSON.parse(dbPoll.options);
+      if (Array.isArray(optionsArray)) {
+        optionsArray.forEach((option: any) => {
+          if (option.id && option.text) {
+            parsedOptions[option.id] = option.text;
+          }
+        });
+      }
+    } else if (Array.isArray(dbPoll.options)) {
+      dbPoll.options.forEach((option: any) => {
+        if (option.id && option.text) {
+          parsedOptions[option.id] = option.text;
         }
       });
+    } else if (typeof dbPoll.options === 'object' && dbPoll.options !== null) {
+      parsedOptions = dbPoll.options;
     }
+  } catch (error) {
+    console.error("Error parsing poll options:", error);
+    // Default to empty options if parsing fails
+    parsedOptions = {};
   }
-
-  // Create the Poll object with both snake_case and camelCase properties
-  const poll: Poll = {
+  
+  return {
     id: dbPoll.id,
     question: dbPoll.question,
     description: dbPoll.description || undefined,
-    options: pollOptions,
-    created_at: dbPoll.created_at,
-    created_by: dbPoll.created_by,
-    election_id: dbPoll.election_id,
-    topic_id: dbPoll.topic_id || undefined,
-    multiple_choice: dbPoll.multiple_choice || false,
-    is_closed: dbPoll.is_closed || false,
-    ends_at: dbPoll.ends_at || undefined,
-    // Add camelCase aliases for component usage
-    createdAt: dbPoll.created_at,
-    createdBy: dbPoll.created_by,
-    electionId: dbPoll.election_id,
-    topicId: dbPoll.topic_id || undefined,
+    options: parsedOptions,
     multipleChoice: dbPoll.multiple_choice || false,
     isClosed: dbPoll.is_closed || false,
+    createdAt: dbPoll.created_at,
     endsAt: dbPoll.ends_at || undefined,
-    // Author details will need to be populated separately
-    author: undefined
+    electionId: dbPoll.election_id,
+    topicId: dbPoll.topic_id || undefined,
+    createdBy: dbPoll.created_by,
+    author: creator || null
   };
-
-  return poll;
 };

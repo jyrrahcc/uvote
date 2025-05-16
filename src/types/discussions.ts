@@ -1,15 +1,6 @@
 
 import { Json } from "@/integrations/supabase/types";
 
-// User interface for discussions and comments
-export interface DiscussionUser {
-  id: string;
-  firstName: string;
-  lastName: string;
-  imageUrl?: string;
-}
-
-// Base discussion interface with snake_case properties (as in DB)
 export interface Discussion {
   id: string;
   title: string;
@@ -21,24 +12,8 @@ export interface Discussion {
   is_pinned?: boolean;
   is_locked?: boolean;
   view_count?: number;
-  
-  // Frontend properties (not in DB)
-  author?: DiscussionUser;
-  repliesCount?: number;
 }
 
-// Extended interface for component usage with camelCase properties
-export interface DiscussionTopic extends Discussion {
-  // Add camelCase aliases for component usage
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-  electionId: string;
-  isPinned?: boolean;
-  isLocked?: boolean;
-}
-
-// Base comment interface with snake_case properties (as in DB)
 export interface Comment {
   id: string;
   content: string;
@@ -47,20 +22,6 @@ export interface Comment {
   user_id: string;
   topic_id: string;
   parent_id?: string;
-  
-  // Frontend properties (not in DB)
-  author?: DiscussionUser;
-  replies?: Comment[];
-}
-
-// Extended interface for component usage with camelCase properties
-export interface DiscussionComment extends Comment {
-  // Add camelCase aliases for component usage
-  createdAt: string;
-  updatedAt: string;
-  userId: string;
-  topicId: string;
-  parentId?: string;
 }
 
 export interface Poll {
@@ -77,16 +38,6 @@ export interface Poll {
   ends_at?: string;
   votes_count?: number;
   has_voted?: boolean;
-  
-  // Frontend properties (camelCase aliases)
-  createdAt?: string;
-  createdBy?: string;
-  electionId?: string;
-  topicId?: string;
-  multipleChoice?: boolean;
-  isClosed?: boolean;
-  endsAt?: string;
-  author?: DiscussionUser;
 }
 
 export interface PollOption {
@@ -94,19 +45,6 @@ export interface PollOption {
   text: string;
   votes?: number;
   percentage?: number;
-}
-
-export interface PollResults {
-  optionId: string;
-  optionText: string;
-  votes: number;
-  percentage: number;
-  voters?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    imageUrl?: string;
-  }[];
 }
 
 export interface PollVote {

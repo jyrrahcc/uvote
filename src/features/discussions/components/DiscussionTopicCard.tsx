@@ -1,61 +1,66 @@
 
+import { Calendar, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, Pin, Lock } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Discussion } from "@/types/discussions";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { DiscussionTopic } from "@/types/discussions";
+import { Badge } from "@/components/ui/badge";
 
-interface DiscussionTopicCardProps {
-  topic: Discussion;
+export interface DiscussionTopicCardProps {
+  topic: DiscussionTopic;
   electionId: string;
-  onClick: () => void;
+  onClick: () => void;  // Added onClick prop
 }
 
 const DiscussionTopicCard = ({ topic, electionId, onClick }: DiscussionTopicCardProps) => {
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  const formatDate = (dateString: string) => {
+    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
 
   return (
     <Card 
-      className="cursor-pointer hover:border-primary/50 transition-colors"
+      className="cursor-pointer hover:border-green-300 transition-colors"
       onClick={onClick}
     >
-      <CardContent className="p-4">
+      <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <h3 className="text-lg font-semibold line-clamp-2 pr-8 flex-grow">
-            {topic.is_pinned && (
-              <Pin className="inline-block h-4 w-4 mr-1.5 mb-0.5 text-amber-500" />
-            )}
-            {topic.is_locked && (
-              <Lock className="inline-block h-4 w-4 mr-1.5 mb-0.5 text-gray-500" />
-            )}
+          <CardTitle className="text-lg">
             {topic.title}
-          </h3>
+          </CardTitle>
+          <div className="flex gap-1.5">
+            {topic.isPinned && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                Pinned
+              </Badge>
+            )}
+            {topic.isLocked && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                Locked
+              </Badge>
+            )}
+          </div>
         </div>
-        
+      </CardHeader>
+      <CardContent className="pb-2">
         {topic.content && (
-          <p className="text-muted-foreground mt-2 line-clamp-2">{topic.content}</p>
+          <p className="text-muted-foreground line-clamp-2">
+            {topic.content}
+          </p>
         )}
       </CardContent>
-      
-      <CardFooter className="px-4 py-3 border-t flex justify-between items-center text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={topic.author?.imageUrl} />
-            <AvatarFallback className="text-xs">
-              {topic.author ? getInitials(topic.author.firstName, topic.author.lastName) : '??'}
-            </AvatarFallback>
-          </Avatar>
-          <span>
-            {formatDistanceToNow(new Date(topic.created_at), { addSuffix: true })}
-            {topic.author && ` by ${topic.author.firstName} ${topic.author.lastName}`}
-          </span>
-        </div>
-        
-        <div className="flex items-center">
-          <MessageSquare className="h-4 w-4 mr-1" />
-          <span>{topic.repliesCount || 0} replies</span>
+      <CardFooter className="pt-0 text-xs text-muted-foreground">
+        <div className="flex flex-wrap justify-between w-full">
+          <div className="flex items-center">
+            <Calendar size={14} className="mr-1" />
+            {formatDate(topic.createdAt)}
+            <span className="mx-2">•</span>
+            <span>
+              By {topic.author?.firstName} {topic.author?.lastName}
+            </span>
+          </div>
+          <div className="flex items-center">
+            <MessageSquare size={14} className="mr-1" />
+            {topic.repliesCount || 0} {(topic.repliesCount === 1) ? 'reply' : 'replies'}
+          </div>
         </div>
       </CardFooter>
     </Card>
