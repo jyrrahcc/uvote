@@ -1,6 +1,6 @@
 
 import React from "react";
-import { FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AcademicInfoFieldsProps {
@@ -22,41 +22,37 @@ const AcademicInfoFields: React.FC<AcademicInfoFieldsProps> = ({
 }) => {
   return (
     <>
-      <FormField>
-        <FormItem>
-          <FormLabel className="text-base">Department/College</FormLabel>
-          <Select value={department} onValueChange={setDepartment} required>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select your department/college" />
-            </SelectTrigger>
-            <SelectContent>
-              {departments.map((dept) => (
-                <SelectItem key={dept} value={dept}>
-                  {dept}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormItem>
-      </FormField>
+      <div className="mb-4">
+        <FormLabel className="text-base">Department/College</FormLabel>
+        <Select value={department} onValueChange={setDepartment} required>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select your department/college" />
+          </SelectTrigger>
+          <SelectContent>
+            {departments.map((dept) => (
+              <SelectItem key={dept} value={dept}>
+                {dept}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      <FormField>
-        <FormItem>
-          <FormLabel className="text-base">Year Level</FormLabel>
-          <Select value={yearLevel} onValueChange={setYearLevel} required>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select your year level" />
-            </SelectTrigger>
-            <SelectContent>
-              {yearLevels.map((year) => (
-                <SelectItem key={year} value={year}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormItem>
-      </FormField>
+      <div className="mb-4">
+        <FormLabel className="text-base">Year Level</FormLabel>
+        <Select value={yearLevel} onValueChange={setYearLevel} required>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select your year level" />
+          </SelectTrigger>
+          <SelectContent>
+            {yearLevels.map((year) => (
+              <SelectItem key={year} value={year}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </>
   );
 };

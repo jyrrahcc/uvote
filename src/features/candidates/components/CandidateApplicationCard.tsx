@@ -30,10 +30,10 @@ const CandidateApplicationCard = ({
   const [submitting, setSubmitting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isStatusChangeDialogOpen, setIsStatusChangeDialogOpen] = useState(false);
-  const [statusToSet, setStatusToSet] = useState<"approved" | "rejected" | "disqualified" | null>(null);
+  const [statusToSet, setStatusToSet] = useState<"approved" | "rejected" | "disqualified" | "pending" | null>(null);
   const { user } = useAuth();
 
-  const handleStatusChange = async (status: "approved" | "rejected" | "disqualified") => {
+  const handleStatusChange = async (status: "approved" | "rejected" | "disqualified" | "pending") => {
     if ((status === "rejected" || status === "disqualified") && !feedback.trim()) {
       toast.error("Feedback is required when rejecting or disqualifying an application");
       return;
@@ -59,7 +59,7 @@ const CandidateApplicationCard = ({
     }
   };
 
-  const confirmStatusChange = (status: "approved" | "rejected" | "disqualified") => {
+  const confirmStatusChange = (status: "approved" | "rejected" | "disqualified" | "pending") => {
     setStatusToSet(status);
     setIsStatusChangeDialogOpen(true);
   };

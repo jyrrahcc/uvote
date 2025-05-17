@@ -147,7 +147,7 @@ export const fetchCandidateApplicationsForElection = async (electionId: string):
 export const updateCandidateApplication = async (
   applicationId: string, 
   updates: { 
-    status: "approved" | "rejected" | "disqualified";
+    status: "approved" | "rejected" | "disqualified" | "pending";
     feedback?: string | null;
     reviewed_by?: string | null;
     reviewed_at?: string | null;
