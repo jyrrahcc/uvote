@@ -135,11 +135,11 @@ export const useDiscussions = (electionId: string) => {
       
       // Second pass: organize comments into a tree structure
       commentsData.forEach(comment => {
-        if (comment.parentId) {
+        if (comment.parent_id) {
           // This is a reply, add it to its parent's replies
-          if (commentMap[comment.parentId]) {
-            commentMap[comment.parentId].replies = commentMap[comment.parentId].replies || [];
-            commentMap[comment.parentId].replies!.push(commentMap[comment.id]);
+          if (commentMap[comment.parent_id]) {
+            commentMap[comment.parent_id].replies = commentMap[comment.parent_id].replies || [];
+            commentMap[comment.parent_id].replies!.push(commentMap[comment.id]);
           } else {
             // If parent doesn't exist (which shouldn't happen), add as root
             rootComments.push(commentMap[comment.id]);

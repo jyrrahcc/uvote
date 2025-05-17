@@ -9,6 +9,7 @@ export interface DiscussionUser {
   imageUrl?: string;
 }
 
+// Core interface with database field names (snake_case)
 export interface Discussion {
   id: string;
   title: string;
@@ -20,7 +21,38 @@ export interface Discussion {
   is_pinned?: boolean;
   is_locked?: boolean;
   view_count?: number;
+  // UI-friendly properties (with getters to avoid type errors)
+  author?: DiscussionUser;
+  repliesCount?: number;
 }
+
+// Property aliases for backward compatibility
+Object.defineProperties(Discussion.prototype, {
+  createdAt: { 
+    get() { return this.created_at; },
+    enumerable: true 
+  },
+  createdBy: { 
+    get() { return this.created_by; },
+    enumerable: true 
+  },
+  updatedAt: { 
+    get() { return this.updated_at; },
+    enumerable: true 
+  },
+  electionId: { 
+    get() { return this.election_id; },
+    enumerable: true 
+  },
+  isPinned: { 
+    get() { return this.is_pinned; },
+    enumerable: true 
+  },
+  isLocked: { 
+    get() { return this.is_locked; },
+    enumerable: true 
+  }
+});
 
 // Alias for backward compatibility
 export type DiscussionTopic = Discussion;
@@ -33,7 +65,34 @@ export interface Comment {
   user_id: string;
   topic_id: string;
   parent_id?: string;
+  // UI-friendly properties
+  author?: DiscussionUser;
+  replies?: Comment[];
 }
+
+// Property aliases for backward compatibility
+Object.defineProperties(Comment.prototype, {
+  createdAt: { 
+    get() { return this.created_at; },
+    enumerable: true 
+  },
+  createdBy: { 
+    get() { return this.user_id; },
+    enumerable: true 
+  },
+  updatedAt: { 
+    get() { return this.updated_at; },
+    enumerable: true 
+  },
+  topicId: { 
+    get() { return this.topic_id; },
+    enumerable: true 
+  },
+  parentId: { 
+    get() { return this.parent_id; },
+    enumerable: true 
+  }
+});
 
 // Alias for backward compatibility
 export type DiscussionComment = Comment;
@@ -132,3 +191,35 @@ export interface DbPollVote {
   options: Json;
   created_at: string;
 }
+
+// Mapping functions to convert between DB and UI representations
+export const mapDbDiscussionToDiscussion = (dbDiscussion: DbDiscussion, author?: DiscussionUser, repliesCount?: number): Discussion => {
+  return {
+    id: dbDiscussion.id,
+    title: dbDiscussion.title,
+    content: dbDiscussion.content || undefined,
+    created_at: dbDiscussion.created_at,
+    created_by: dbDiscussion.created_by,
+    updated_at: dbDiscussion.updated_at,
+    election_id: dbDiscussion.election_id,
+    is_pinned: dbDiscussion.is_pinned || false,
+    is_locked: dbDiscussion.is_locked || false,
+    view_count: dbDiscussion.view_count || 0,
+    author: author,
+    repliesCount: repliesCount
+  };
+};
+
+export const mapDbCommentToComment = (dbComment: DbComment, author?: DiscussionUser): Comment => {
+  return {
+    id: dbComment.id,
+    content: dbComment.content,
+    created_at: dbComment.created_at,
+    updated_at: dbComment.updated_at,
+    user_id: dbComment.user_id,
+    topic_id: dbComment.topic_id,
+    parent_id: dbComment.parent_id || undefined,
+    author: author,
+    replies: []
+  };
+};

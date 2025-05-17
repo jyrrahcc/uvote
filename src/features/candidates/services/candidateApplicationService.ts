@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication, DbCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -65,55 +64,38 @@ interface ExtendedApplicationData extends DbCandidateApplication {
   profiles?: {
     first_name: string;
     last_name: string;
-    department?: string;
-    year_level?: string;
-    student_id?: string;
+    department?: string | null;
+    year_level?: string | null;
+    student_id?: string | null;
   } | null;
 }
 
 export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
   try {
-    // Instead of using the profile reference directly, fetch the applications and user data separately
+    // Fetch the applications with join to profiles table
     const { data, error } = await supabase
       .from('candidate_applications')
-      .select('*')
+      .select(`
+        *,
+        profiles:user_id (
+          first_name, last_name, department, year_level, student_id
+        )
+      `)
       .eq('election_id', electionId)
       .order('created_at', { ascending: false });
       
     if (error) throw error;
     
-    // For each application, fetch the related user profile data
-    const applicationsWithProfiles = await Promise.all(
-      data.map(async (application) => {
-        // Get the user profile information
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, department, year_level, student_id')
-          .eq('id', application.user_id)
-          .single();
-        
-        if (profileError) {
-          console.warn("Error fetching profile for user:", application.user_id, profileError);
-          // Return the application without profile data
-          return mapDbCandidateApplicationToCandidateApplication(application as DbCandidateApplication);
-        }
-        
-        // Merge the application data with profile data
-        const enrichedApplication: ExtendedApplicationData = {
-          ...application as DbCandidateApplication,
-          profiles: profileData
-        };
-        
-        return mapDbCandidateApplicationToCandidateApplication({
-          ...enrichedApplication,
-          student_id: enrichedApplication.profiles?.student_id,
-          department: enrichedApplication.profiles?.department,
-          year_level: enrichedApplication.profiles?.year_level
-        });
-      })
-    );
-    
-    return applicationsWithProfiles;
+    // Map the extended data to CandidateApplication type
+    return data.map(application => {
+      const extendedApp = application as unknown as ExtendedApplicationData;
+      return mapDbCandidateApplicationToCandidateApplication({
+        ...extendedApp,
+        student_id: extendedApp.student_id || extendedApp.profiles?.student_id || null,
+        department: extendedApp.department || extendedApp.profiles?.department || null,
+        year_level: extendedApp.year_level || extendedApp.profiles?.year_level || null
+      });
+    });
   } catch (error) {
     console.error("Error fetching applications for election:", error);
     throw error;

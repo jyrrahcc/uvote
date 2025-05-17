@@ -75,6 +75,14 @@ export interface DbCandidateApplication {
   student_id?: string | null;
   department?: string | null;
   year_level?: string | null;
+  // Optional field for profile information
+  profiles?: {
+    student_id?: string | null;
+    department?: string | null;
+    year_level?: string | null;
+    first_name: string;
+    last_name: string;
+  } | null;
 }
 
 /**
@@ -122,8 +130,8 @@ export const mapDbCandidateApplicationToCandidateApplication = (
     feedback: dbApplication.feedback || undefined,
     reviewed_by: dbApplication.reviewed_by || undefined,
     reviewed_at: dbApplication.reviewed_at || undefined,
-    student_id: dbApplication.student_id || undefined,
-    department: dbApplication.department || undefined,
-    year_level: dbApplication.year_level || undefined
+    student_id: dbApplication.student_id || dbApplication.profiles?.student_id || undefined,
+    department: dbApplication.department || dbApplication.profiles?.department || undefined,
+    year_level: dbApplication.year_level || dbApplication.profiles?.year_level || undefined
   };
 };

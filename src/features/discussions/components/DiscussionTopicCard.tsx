@@ -27,12 +27,12 @@ const DiscussionTopicCard = ({ topic, electionId, onClick }: DiscussionTopicCard
             {topic.title}
           </CardTitle>
           <div className="flex gap-1.5">
-            {topic.isPinned && (
+            {topic.is_pinned && (
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                 Pinned
               </Badge>
             )}
-            {topic.isLocked && (
+            {topic.is_locked && (
               <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                 Locked
               </Badge>
@@ -51,7 +51,7 @@ const DiscussionTopicCard = ({ topic, electionId, onClick }: DiscussionTopicCard
         <div className="flex flex-wrap justify-between w-full">
           <div className="flex items-center">
             <Calendar size={14} className="mr-1" />
-            {formatDate(topic.createdAt)}
+            {formatDate(topic.created_at)}
             <span className="mx-2">•</span>
             <span>
               By {topic.author?.firstName} {topic.author?.lastName}

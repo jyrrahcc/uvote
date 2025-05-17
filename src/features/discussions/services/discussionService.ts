@@ -1,7 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DiscussionTopic, DiscussionComment } from "@/types";
+import { DiscussionTopic, DiscussionComment, mapDbDiscussionToDiscussion, mapDbCommentToComment } from "@/types";
 
 // Fetch all discussion topics for a specific election
 export const fetchDiscussionTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
@@ -34,23 +33,14 @@ export const fetchDiscussionTopics = async (electionId: string): Promise<Discuss
     // Combine the topics with their author profiles and map DB fields to TS interface fields
     return topicsData.map(topic => {
       const authorProfile = profileMap.get(topic.created_by);
-      return {
-        id: topic.id,
-        title: topic.title,
-        content: topic.content,
-        electionId: topic.election_id,
-        createdBy: topic.created_by,
-        createdAt: topic.created_at,
-        updatedAt: topic.updated_at,
-        isPinned: topic.is_pinned,
-        isLocked: topic.is_locked,
-        author: authorProfile ? {
-          id: authorProfile.id,
-          firstName: authorProfile.first_name,
-          lastName: authorProfile.last_name,
-          imageUrl: authorProfile.image_url
-        } : null
-      };
+      const author = authorProfile ? {
+        id: authorProfile.id,
+        firstName: authorProfile.first_name,
+        lastName: authorProfile.last_name,
+        imageUrl: authorProfile.image_url
+      } : undefined;
+      
+      return mapDbDiscussionToDiscussion(topic, author);
     });
   } catch (error) {
     console.error("Error fetching discussion topics:", error);
@@ -86,23 +76,14 @@ export const fetchDiscussionTopicById = async (topicId: string): Promise<Discuss
       .eq('id', topicId);
 
     // Return the topic with author information, mapped to the TS interface
-    return {
-      id: topic.id,
-      title: topic.title,
-      content: topic.content,
-      electionId: topic.election_id,
-      createdBy: topic.created_by,
-      createdAt: topic.created_at,
-      updatedAt: topic.updated_at,
-      isPinned: topic.is_pinned,
-      isLocked: topic.is_locked,
-      author: {
-        id: profile.id,
-        firstName: profile.first_name,
-        lastName: profile.last_name,
-        imageUrl: profile.image_url
-      }
+    const author = {
+      id: profile.id,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      imageUrl: profile.image_url
     };
+    
+    return mapDbDiscussionToDiscussion(topic, author);
   } catch (error) {
     console.error("Error fetching discussion topic:", error);
     throw error;
@@ -117,8 +98,8 @@ export const createDiscussionTopic = async (topicData: Partial<DiscussionTopic>)
       .insert({
         title: topicData.title || '',
         content: topicData.content || '',
-        election_id: topicData.electionId || '',
-        created_by: topicData.createdBy || ''
+        election_id: topicData.election_id || topicData.electionId || '',
+        created_by: topicData.created_by || topicData.createdBy || ''
       })
       .select()
       .single();
@@ -134,24 +115,15 @@ export const createDiscussionTopic = async (topicData: Partial<DiscussionTopic>)
 
     if (profileError) throw profileError;
 
-    // Map DB fields to TS interface fields
-    return {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      electionId: data.election_id,
-      createdBy: data.created_by,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      isPinned: data.is_pinned,
-      isLocked: data.is_locked,
-      author: {
-        id: profile.id,
-        firstName: profile.first_name,
-        lastName: profile.last_name,
-        imageUrl: profile.image_url
-      }
+    // Map DB fields to TS interface fields with author information
+    const author = {
+      id: profile.id,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      imageUrl: profile.image_url
     };
+    
+    return mapDbDiscussionToDiscussion(data, author);
   } catch (error) {
     console.error("Error creating discussion topic:", error);
     throw error;
@@ -169,8 +141,8 @@ export const updateDiscussionTopic = async (
     
     if (updates.title !== undefined) updateFields.title = updates.title;
     if (updates.content !== undefined) updateFields.content = updates.content;
-    if (updates.isPinned !== undefined) updateFields.is_pinned = updates.isPinned;
-    if (updates.isLocked !== undefined) updateFields.is_locked = updates.isLocked;
+    if (updates.is_pinned !== undefined) updateFields.is_pinned = updates.is_pinned;
+    if (updates.is_locked !== undefined) updateFields.is_locked = updates.is_locked;
     
     // Add updated_at timestamp
     updateFields.updated_at = new Date().toISOString();
@@ -194,23 +166,14 @@ export const updateDiscussionTopic = async (
     if (profileError) throw profileError;
 
     // Map DB fields to TS interface fields
-    return {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      electionId: data.election_id,
-      createdBy: data.created_by,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      isPinned: data.is_pinned,
-      isLocked: data.is_locked,
-      author: {
-        id: profile.id,
-        firstName: profile.first_name,
-        lastName: profile.last_name,
-        imageUrl: profile.image_url
-      }
+    const author = {
+      id: profile.id,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      imageUrl: profile.image_url
     };
+    
+    return mapDbDiscussionToDiscussion(data, author);
   } catch (error) {
     console.error("Error updating discussion topic:", error);
     throw error;
@@ -273,21 +236,14 @@ export const fetchCommentsForTopic = async (topicId: string): Promise<Discussion
     // Combine the comments with their author profiles and map DB fields to TS interface fields
     return commentsData.map(comment => {
       const author = profileMap.get(comment.user_id);
-      return {
-        id: comment.id,
-        content: comment.content,
-        topicId: comment.topic_id,
-        createdBy: comment.user_id,
-        createdAt: comment.created_at,
-        updatedAt: comment.updated_at,
-        parentId: comment.parent_id || null,
-        author: author ? {
-          id: author.id,
-          firstName: author.first_name,
-          lastName: author.last_name,
-          imageUrl: author.image_url
-        } : null
-      };
+      const userProfile = author ? {
+        id: author.id,
+        firstName: author.first_name,
+        lastName: author.last_name,
+        imageUrl: author.image_url
+      } : undefined;
+      
+      return mapDbCommentToComment(comment, userProfile);
     });
   } catch (error) {
     console.error("Error fetching comments:", error);
@@ -326,21 +282,14 @@ export const addCommentToTopic = async (
     if (profileError) throw profileError;
 
     // Map DB fields to TS interface fields
-    return {
-      id: data.id,
-      content: data.content,
-      topicId: data.topic_id,
-      createdBy: data.user_id,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      parentId: data.parent_id || null,
-      author: {
-        id: profile.id,
-        firstName: profile.first_name,
-        lastName: profile.last_name,
-        imageUrl: profile.image_url
-      }
+    const userProfile = {
+      id: profile.id,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      imageUrl: profile.image_url
     };
+    
+    return mapDbCommentToComment(data, userProfile);
   } catch (error) {
     console.error("Error adding comment:", error);
     throw error;
@@ -387,10 +336,10 @@ export const createTopic = async (electionId: string, title: string, content: st
   
   // Now call createDiscussionTopic with the user ID
   return createDiscussionTopic({
-    electionId,
+    election_id: electionId,
     title,
     content,
-    createdBy: data.user.id
+    created_by: data.user.id
   });
 };
 
@@ -427,21 +376,14 @@ export const updateComment = async (commentId: string, content: string): Promise
     if (profileError) throw profileError;
 
     // Map DB fields to TS interface fields
-    return {
-      id: data.id,
-      content: data.content,
-      topicId: data.topic_id,
-      createdBy: data.user_id,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      parentId: data.parent_id || null,
-      author: {
-        id: profile.id,
-        firstName: profile.first_name,
-        lastName: profile.last_name,
-        imageUrl: profile.image_url
-      }
+    const userProfile = {
+      id: profile.id,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      imageUrl: profile.image_url
     };
+    
+    return mapDbCommentToComment(data, userProfile);
   } catch (error) {
     console.error("Error updating comment:", error);
     throw error;

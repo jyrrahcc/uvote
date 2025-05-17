@@ -43,11 +43,11 @@ const DiscussionList = ({
       (topic.content || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     if (activeTab === "all") return matchesSearch;
-    if (activeTab === "my-topics" && user) return matchesSearch && topic.createdBy === user.id;
+    if (activeTab === "my-topics" && user) return matchesSearch && topic.created_by === user.id;
     if (activeTab === "recent") {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      return matchesSearch && new Date(topic.createdAt) >= oneWeekAgo;
+      return matchesSearch && new Date(topic.created_at) >= oneWeekAgo;
     }
     return matchesSearch;
   });
