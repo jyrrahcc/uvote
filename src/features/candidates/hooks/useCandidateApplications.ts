@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { CandidateApplication } from "@/types";
-import { deleteCandidateApplication, fetchCandidateApplicationsForElection, fetchUserApplications } from "../services/candidateApplicationService";
+import { deleteCandidateApplication } from "../services/applicationStatusService";
+import { fetchCandidateApplicationsForElection, fetchUserApplications } from "../services/applicationReadService";
 
 export const useCandidateApplications = (electionId: string) => {
   const [applications, setApplications] = useState<CandidateApplication[]>([]);

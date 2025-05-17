@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import ApplicationStatusBadge from "../components/ApplicationStatusBadge";
 import { useUserCandidateApplications } from "../hooks/useCandidateApplications";
-import { deleteCandidateApplication } from "../services/candidateApplicationService";
+import { deleteCandidateApplication } from "../services/applicationStatusService";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/dateUtils";
 import { Link } from "react-router-dom";

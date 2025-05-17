@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CandidateApplication } from "@/types";
-import { updateCandidateApplication } from "../services/candidateApplicationService";
+import { updateCandidateApplication } from "../services/applicationStatusService";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { toast } from "sonner";
 import ApplicationStatusBadge from "./ApplicationStatusBadge";

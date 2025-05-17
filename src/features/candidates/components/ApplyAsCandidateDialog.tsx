@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus, FileCheck, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { hasUserAppliedForElection } from "../services/candidateApplicationService";
+import { hasUserAppliedForElection } from "../services/applicationReadService";
 import CandidateApplicationForm from "./CandidateApplicationForm";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";

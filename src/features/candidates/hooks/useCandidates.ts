@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Candidate, Election, mapDbElectionToElection } from "@/types";
 import { fetchElectionDetails } from "@/features/elections/services/electionService";
 import { fetchCandidatesForElection, deleteCandidate } from "../services/candidateService";
-import { hasUserAppliedForElection } from "../services/candidateApplicationService";
+import { hasUserAppliedForElection } from "../services/applicationReadService";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 export const useCandidates = (electionId?: string, userId?: string) => {

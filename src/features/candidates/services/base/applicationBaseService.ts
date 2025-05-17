@@ -8,6 +8,12 @@ import { CandidateApplication, DbCandidateApplication } from "@/types";
 export const mapDbCandidateApplicationToCandidateApplication = (
   dbApp: DbCandidateApplication
 ): CandidateApplication => {
+  // Ensure status is one of the valid enum values
+  let status: 'pending' | 'approved' | 'rejected' | 'disqualified' = 'pending';
+  if (dbApp.status === 'approved') status = 'approved';
+  else if (dbApp.status === 'rejected') status = 'rejected';
+  else if (dbApp.status === 'disqualified') status = 'disqualified';
+
   return {
     id: dbApp.id,
     user_id: dbApp.user_id,
@@ -16,7 +22,7 @@ export const mapDbCandidateApplicationToCandidateApplication = (
     name: dbApp.name,
     bio: dbApp.bio || null,
     image_url: dbApp.image_url || null,
-    status: dbApp.status,
+    status: status,
     created_at: dbApp.created_at,
     updated_at: dbApp.updated_at,
     feedback: dbApp.feedback || null,
