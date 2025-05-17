@@ -42,11 +42,12 @@ export const fetchUserApplications = async (userId?: string): Promise<CandidateA
       userIdToUse = sessionData.session.user.id;
     }
     
+    // Fix: Explicitly spell out the join condition instead of using the simplified syntax
     const { data, error } = await supabase
       .from('candidate_applications')
       .select(`
         *,
-        profiles:user_id (
+        profiles!candidate_applications_user_id_fkey (
           first_name,
           last_name,
           department,
@@ -107,12 +108,12 @@ interface ExtendedApplicationData extends DbCandidateApplication {
  */
 export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
   try {
-    // Fetch the applications with join to profiles table
+    // Fix: Explicitly spell out the join by clarifying the foreign key relationship
     const { data, error } = await supabase
       .from('candidate_applications')
       .select(`
         *,
-        profiles:user_id (
+        profiles!candidate_applications_user_id_fkey (
           first_name, last_name, department, year_level, student_id
         )
       `)
@@ -254,7 +255,7 @@ export const submitCandidateApplication = async (applicationData: Omit<Candidate
       })
       .select(`
         *,
-        profiles:user_id (
+        profiles!candidate_applications_user_id_fkey (
           first_name, last_name, department, year_level, student_id
         )
       `)
