@@ -1,5 +1,5 @@
 
-import { Poll } from "@/types/discussions";
+import { Poll, DbPoll } from "@/types/discussions";
 import { supabase } from "@/integrations/supabase/client";
 import { transformPollData } from "./pollTransformUtils";
 
@@ -44,7 +44,7 @@ export const createNewPoll = async (pollData: {
     
     if (!data) return null;
     
-    return transformPollData(data);
+    return transformPollData(data as DbPoll);
   } catch (error) {
     console.error("Error creating poll:", error);
     throw error;
@@ -83,7 +83,7 @@ export const updateExistingPoll = async (pollId: string, updates: Partial<Poll>)
     
     if (!data) return null;
     
-    return transformPollData(data);
+    return transformPollData(data as DbPoll);
   } catch (error) {
     console.error("Error updating poll:", error);
     throw error;

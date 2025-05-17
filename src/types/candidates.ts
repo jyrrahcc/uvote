@@ -33,6 +33,9 @@ export interface CandidateApplication {
   feedback?: string;
   reviewed_by?: string;
   reviewed_at?: string;
+  student_id?: string;
+  department?: string;
+  year_level?: string;
 }
 
 /**
@@ -69,6 +72,9 @@ export interface DbCandidateApplication {
   feedback?: string | null;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
+  student_id?: string | null;
+  department?: string | null;
+  year_level?: string | null;
 }
 
 /**
@@ -115,6 +121,9 @@ export const mapDbCandidateApplicationToCandidateApplication = (
     status: status,
     feedback: dbApplication.feedback || undefined,
     reviewed_by: dbApplication.reviewed_by || undefined,
-    reviewed_at: dbApplication.reviewed_at || undefined
+    reviewed_at: dbApplication.reviewed_at || undefined,
+    student_id: dbApplication.student_id || undefined,
+    department: dbApplication.department || undefined,
+    year_level: dbApplication.year_level || undefined
   };
 };

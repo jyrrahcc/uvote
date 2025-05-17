@@ -1,5 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { Poll, PollVote } from "@/types";
+import { DbPoll, DbPollVote, Poll, PollVote } from "@/types";
 import { transformPollData } from "./pollTransformUtils";
 import { Json } from "@/integrations/supabase/types";
 
@@ -15,7 +16,7 @@ export const fetchPollsForElection = async (electionId: string): Promise<Poll[]>
     if (error) throw error;
     
     // Transform the data to match our application schema
-    return (data || []).map(poll => transformPollData(poll));
+    return (data || []).map(poll => transformPollData(poll as DbPoll));
   } catch (error) {
     console.error("Error fetching polls:", error);
     throw error;
@@ -42,7 +43,7 @@ export const fetchPollById = async (pollId: string, userId?: string): Promise<Po
     if (!data) return null;
     
     // Transform the data
-    const poll = transformPollData(data);
+    const poll = transformPollData(data as DbPoll);
     
     // Check if the user has voted on this poll
     if (userId) {
@@ -112,7 +113,7 @@ export const fetchPollsForTopic = async (topicId: string): Promise<Poll[]> => {
     if (error) throw error;
     
     // Transform the data to match our application schema
-    return (data || []).map(poll => transformPollData(poll));
+    return (data || []).map(poll => transformPollData(poll as DbPoll));
   } catch (error) {
     console.error("Error fetching polls for topic:", error);
     throw error;

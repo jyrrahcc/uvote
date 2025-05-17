@@ -1,5 +1,6 @@
 
 import { DbPoll, Poll, PollOption } from '@/types/discussions';
+import { Json } from '@/integrations/supabase/types';
 
 export const transformPollData = (dbPoll: DbPoll): Poll => {
   let pollOptions: PollOption[] = [];
@@ -8,7 +9,7 @@ export const transformPollData = (dbPoll: DbPoll): Poll => {
   if (dbPoll.options) {
     // If options is an array structure
     if (Array.isArray(dbPoll.options)) {
-      pollOptions = dbPoll.options.map((opt: any) => ({
+      pollOptions = (dbPoll.options as any[]).map((opt: any) => ({
         id: opt.id,
         text: opt.text,
         votes: opt.votes || 0,
@@ -17,7 +18,7 @@ export const transformPollData = (dbPoll: DbPoll): Poll => {
     } 
     // If options is a record structure (key-value pairs)
     else if (typeof dbPoll.options === 'object') {
-      pollOptions = Object.entries(dbPoll.options).map(([id, text]) => ({
+      pollOptions = Object.entries(dbPoll.options as Record<string, string | object>).map(([id, text]) => ({
         id,
         text: typeof text === 'string' ? text : String(text),
         votes: 0,

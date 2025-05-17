@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication } from "@/types";
+import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication, DbCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
@@ -43,7 +43,7 @@ export const fetchUserApplications = async (userId?: string): Promise<CandidateA
       
     if (error) throw error;
     
-    return data?.map(item => mapDbCandidateApplicationToCandidateApplication(item)) || [];
+    return data?.map(item => mapDbCandidateApplicationToCandidateApplication(item as DbCandidateApplication)) || [];
   } catch (error) {
     console.error("Error fetching user applications:", error);
     throw error;
@@ -59,6 +59,17 @@ export const checkUserEligibilityForElection = async (userId: string, election: 
     return { isEligible: false, reason: "Error checking eligibility" };
   }
 };
+
+// Type definition for the enriched application data that includes profile information
+interface ExtendedApplicationData extends DbCandidateApplication {
+  profiles?: {
+    first_name: string;
+    last_name: string;
+    department?: string;
+    year_level?: string;
+    student_id?: string;
+  } | null;
+}
 
 export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
   try {
@@ -84,16 +95,21 @@ export const fetchCandidateApplicationsForElection = async (electionId: string):
         if (profileError) {
           console.warn("Error fetching profile for user:", application.user_id, profileError);
           // Return the application without profile data
-          return mapDbCandidateApplicationToCandidateApplication(application);
+          return mapDbCandidateApplicationToCandidateApplication(application as DbCandidateApplication);
         }
         
         // Merge the application data with profile data
-        const enrichedApplication = {
-          ...application,
+        const enrichedApplication: ExtendedApplicationData = {
+          ...application as DbCandidateApplication,
           profiles: profileData
         };
         
-        return mapDbCandidateApplicationToCandidateApplication(enrichedApplication);
+        return mapDbCandidateApplicationToCandidateApplication({
+          ...enrichedApplication,
+          student_id: enrichedApplication.profiles?.student_id,
+          department: enrichedApplication.profiles?.department,
+          year_level: enrichedApplication.profiles?.year_level
+        });
       })
     );
     
@@ -156,7 +172,10 @@ export const updateCandidateApplication = async (
             bio: appData.bio || null,
             image_url: appData.image_url || null,
             election_id: appData.election_id,
-            created_by: appData.user_id
+            created_by: appData.user_id,
+            student_id: appData.student_id || null,
+            department: appData.department || null,
+            year_level: appData.year_level || null
           });
           
         if (candidateError) throw candidateError;
@@ -193,30 +212,31 @@ export const updateCandidateApplication = async (
 
 export const deleteCandidateApplication = async (applicationId: string): Promise<boolean> => {
   try {
-    // First, get the application data to check if it's approved
-    const { data: appData, error: appError } = await supabase
+    // First, check if the application actually exists
+    const { data: applicationExists, error: checkError } = await supabase
       .from('candidate_applications')
-      .select('*')
+      .select('status, user_id, election_id')
       .eq('id', applicationId)
       .single();
     
-    if (appError) {
-      console.error("Error fetching application:", appError);
+    if (checkError) {
+      console.error("Error checking if application exists:", checkError);
       return false;
     }
     
-    if (!appData) {
+    if (!applicationExists) {
       console.error("Application not found with ID:", applicationId);
       return false;
     }
     
     // If the application is approved, also remove the candidate
-    if (appData.status === 'approved') {
+    if (applicationExists.status === 'approved') {
+      console.log("Application was approved, removing related candidate...");
       const { error: candidateError } = await supabase
         .from('candidates')
         .delete()
-        .eq('created_by', appData.user_id)
-        .eq('election_id', appData.election_id);
+        .eq('created_by', applicationExists.user_id)
+        .eq('election_id', applicationExists.election_id);
         
       if (candidateError) {
         console.error("Error deleting related candidate:", candidateError);
@@ -235,6 +255,7 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
       return false;
     }
     
+    console.log("Application deleted successfully:", applicationId);
     return true;
   } catch (error) {
     console.error("Error deleting application:", error);
@@ -274,7 +295,7 @@ export const submitCandidateApplication = async (applicationData: Omit<Candidate
       
     if (error) throw error;
     
-    return mapDbCandidateApplicationToCandidateApplication(data);
+    return mapDbCandidateApplicationToCandidateApplication(data as DbCandidateApplication);
   } catch (error) {
     console.error("Error submitting application:", error);
     throw error;
