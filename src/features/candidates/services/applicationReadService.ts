@@ -40,25 +40,40 @@ export const fetchUserApplications = async (userId?: string): Promise<CandidateA
       userIdToUse = sessionData.session.user.id;
     }
     
-    // Fix: Explicitly spell out the join condition instead of using the simplified syntax
-    const { data, error } = await supabase
+    // Changed to use separate query approach rather than join with explicit hint
+    const { data: applications, error: applicationsError } = await supabase
       .from('candidate_applications')
-      .select(`
-        *,
-        profiles!candidate_applications_user_id_fkey (
-          first_name,
-          last_name,
-          department,
-          year_level,
-          student_id
-        )
-      `)
+      .select('*')
       .eq('user_id', userIdToUse)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (applicationsError) throw applicationsError;
     
-    return data.map(item => processApplicationWithProfile(item));
+    // Fetch profiles separately
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, department, year_level, student_id')
+      .in('id', applications.map(app => app.user_id));
+      
+    if (profilesError) throw profilesError;
+    
+    // Merge the profile data with applications
+    const enrichedApplications = applications.map(app => {
+      const profile = profiles.find(p => p.id === app.user_id);
+      
+      return {
+        ...app,
+        profiles: profile ? {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          department: profile.department,
+          year_level: profile.year_level,
+          student_id: profile.student_id
+        } : null
+      };
+    });
+    
+    return enrichedApplications.map(item => processApplicationWithProfile(item));
   } catch (error) {
     console.error("Error fetching user applications:", error);
     throw error;
@@ -70,21 +85,45 @@ export const fetchUserApplications = async (userId?: string): Promise<CandidateA
  */
 export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
   try {
-    // Fix: Explicitly spell out the join by clarifying the foreign key relationship
-    const { data, error } = await supabase
+    // Changed to use separate query approach rather than join with explicit hint
+    const { data: applications, error: applicationsError } = await supabase
       .from('candidate_applications')
-      .select(`
-        *,
-        profiles!candidate_applications_user_id_fkey (
-          first_name, last_name, department, year_level, student_id
-        )
-      `)
+      .select('*')
       .eq('election_id', electionId)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (applicationsError) throw applicationsError;
     
-    return data.map(application => processApplicationWithProfile(application));
+    // Empty array check to avoid unnecessary profile query
+    if (!applications || applications.length === 0) {
+      return [];
+    }
+    
+    // Fetch profiles separately
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, department, year_level, student_id')
+      .in('id', applications.map(app => app.user_id));
+      
+    if (profilesError) throw profilesError;
+    
+    // Merge the profile data with applications
+    const enrichedApplications = applications.map(app => {
+      const profile = profiles.find(p => p.id === app.user_id);
+      
+      return {
+        ...app,
+        profiles: profile ? {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          department: profile.department,
+          year_level: profile.year_level,
+          student_id: profile.student_id
+        } : null
+      };
+    });
+    
+    return enrichedApplications.map(application => processApplicationWithProfile(application));
   } catch (error) {
     console.error("Error fetching applications for election:", error);
     throw error;
