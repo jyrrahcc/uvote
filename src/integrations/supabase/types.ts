@@ -165,7 +165,7 @@ export type Database = {
           content: string | null
           created_at: string
           created_by: string
-          election_id: string
+          election_id: string | null
           id: string
           is_locked: boolean | null
           is_pinned: boolean | null
@@ -177,7 +177,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           created_by: string
-          election_id: string
+          election_id?: string | null
           id?: string
           is_locked?: boolean | null
           is_pinned?: boolean | null
@@ -189,7 +189,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           created_by?: string
-          election_id?: string
+          election_id?: string | null
           id?: string
           is_locked?: boolean | null
           is_pinned?: boolean | null
@@ -342,7 +342,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
-          election_id: string
+          election_id: string | null
           ends_at: string | null
           id: string
           is_closed: boolean | null
@@ -355,7 +355,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
-          election_id: string
+          election_id?: string | null
           ends_at?: string | null
           id?: string
           is_closed?: boolean | null
@@ -368,7 +368,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
-          election_id?: string
+          election_id?: string | null
           ends_at?: string | null
           id?: string
           is_closed?: boolean | null
@@ -561,6 +561,21 @@ export type Database = {
       }
       get_topics_with_comment_counts: {
         Args: { election_id_param: string }
+        Returns: {
+          id: string
+          title: string
+          content: string
+          election_id: string
+          created_by: string
+          created_at: string
+          updated_at: string
+          is_pinned: boolean
+          is_locked: boolean
+          replies_count: number
+        }[]
+      }
+      get_topics_with_comment_counts_global: {
+        Args: Record<PropertyKey, never>
         Returns: {
           id: string
           title: string

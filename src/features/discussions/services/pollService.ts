@@ -12,15 +12,19 @@ export const getPolls = async (electionId: string): Promise<Poll[]> => {
       .from('polls')
       .select('*');
     
-    if (isGlobalDiscussion(electionId)) {
-      // Filter for global polls (null election_id)
-      if (error) throw error;
-      return (pollsData || []).filter(poll => poll.election_id === null);
-    } else {
-      // Filter for election specific polls
-      if (error) throw error;
-      return (pollsData || []).filter(poll => poll.election_id === electionId);
-    }
+    if (error) throw error;
+    
+    const polls = isGlobalDiscussion(electionId)
+      ? // Filter for global polls (null election_id)
+        (pollsData || []).filter(poll => poll.election_id === null)
+      : // Filter for election specific polls
+        (pollsData || []).filter(poll => poll.election_id === electionId);
+    
+    // Transform the data to ensure options are properly typed
+    return polls.map(poll => ({
+      ...poll,
+      options: poll.options as unknown as PollOption[]
+    }));
   } catch (error) {
     console.error("Error getting polls:", error);
     throw error;
@@ -40,7 +44,11 @@ export const getPoll = async (pollId: string): Promise<Poll | null> => {
       
     if (error) throw error;
     
-    return data;
+    // Transform options to ensure they're properly typed
+    return data ? {
+      ...data,
+      options: data.options as unknown as PollOption[]
+    } : null;
   } catch (error) {
     console.error("Error getting poll:", error);
     throw error;
@@ -84,7 +92,11 @@ export const createPoll = async (pollData: {
       
     if (error) throw error;
     
-    return data;
+    // Transform options to ensure they're properly typed
+    return data ? {
+      ...data,
+      options: data.options as unknown as PollOption[]
+    } : null;
   } catch (error) {
     console.error("Error creating poll:", error);
     throw error;
@@ -96,16 +108,29 @@ export const createPoll = async (pollData: {
  */
 export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promise<Poll | null> => {
   try {
+    // Convert options to the format expected by Supabase if present
+    const updateData: any = { ...updates };
+    if (updates.options) {
+      updateData.options = updates.options.map(option => ({
+        id: option.id,
+        text: option.text
+      }));
+    }
+    
     const { data, error } = await supabase
       .from('polls')
-      .update(updates)
+      .update(updateData)
       .eq('id', pollId)
       .select()
       .single();
       
     if (error) throw error;
     
-    return data;
+    // Transform options to ensure they're properly typed
+    return data ? {
+      ...data,
+      options: data.options as unknown as PollOption[]
+    } : null;
   } catch (error) {
     console.error("Error updating poll:", error);
     throw error;
@@ -154,7 +179,8 @@ export const getPollResults = async (pollId: string): Promise<PollResults[]> => 
       
     if (votesError) throw votesError;
     
-    const pollOptions = poll.options as PollOption[];
+    // Cast the options to the correct type
+    const pollOptions = poll.options as unknown as PollOption[];
     
     // Calculate votes per option
     const results: PollResults[] = pollOptions.map(option => {

@@ -17,11 +17,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useDiscussions } from "@/features/discussions/hooks/useDiscussions";
 import { usePolls } from "@/features/discussions/hooks/usePolls";
-import { MessageSquare, Plus, PlusCircle, Poll } from "lucide-react";
+import { MessageSquare, Plus, PlusCircle, LineChart } from "lucide-react";
 import DiscussionList from "@/features/discussions/components/DiscussionList";
 import PollsList from "@/features/discussions/components/PollsList";
-import { NewTopicDialog } from "@/features/discussions/components/NewTopicDialog";
-import { NewPollDialog } from "@/features/discussions/components/NewPollDialog";
+import NewTopicDialog from "@/features/discussions/components/NewTopicDialog";
+import NewPollDialog from "@/features/discussions/components/NewPollDialog";
 import { Spinner } from "@/components/ui/spinner";
 
 const Discussions = () => {
@@ -76,7 +76,7 @@ const Discussions = () => {
             <MessageSquare className="mr-2 h-4 w-4" /> Discussions
           </TabsTrigger>
           <TabsTrigger value="polls" className="flex items-center">
-            <Poll className="mr-2 h-4 w-4" /> Polls
+            <LineChart className="mr-2 h-4 w-4" /> Polls
           </TabsTrigger>
         </TabsList>
         
@@ -91,7 +91,7 @@ const Discussions = () => {
             <CardContent>
               {topicsLoading ? (
                 <div className="flex justify-center py-8">
-                  <Spinner size="lg" />
+                  <Spinner />
                 </div>
               ) : topics.length === 0 ? (
                 <div className="text-center py-8">
@@ -105,7 +105,7 @@ const Discussions = () => {
                   </Button>
                 </div>
               ) : (
-                <DiscussionList topics={topics} onDelete={removeTopic} />
+                <DiscussionList topics={topics} onSelectTopic={() => {}} />
               )}
             </CardContent>
           </Card>
@@ -122,11 +122,11 @@ const Discussions = () => {
             <CardContent>
               {pollsLoading ? (
                 <div className="flex justify-center py-8">
-                  <Spinner size="lg" />
+                  <Spinner />
                 </div>
               ) : polls.length === 0 ? (
                 <div className="text-center py-8">
-                  <Poll className="mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-4" />
+                  <LineChart className="mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-4" />
                   <h3 className="text-lg font-medium">No polls yet</h3>
                   <p className="text-muted-foreground mb-4">
                     Be the first to create a poll for the community to vote on
@@ -136,7 +136,7 @@ const Discussions = () => {
                   </Button>
                 </div>
               ) : (
-                <PollsList polls={polls} onDelete={removePoll} />
+                <PollsList polls={polls} onSelectPoll={() => {}} />
               )}
             </CardContent>
           </Card>
@@ -144,9 +144,10 @@ const Discussions = () => {
       </Tabs>
 
       <NewTopicDialog 
-        open={newTopicDialogOpen} 
-        onOpenChange={setNewTopicDialogOpen} 
+        isOpen={newTopicDialogOpen} 
+        onClose={() => setNewTopicDialogOpen(false)} 
         onCreateTopic={addTopic}
+        electionId={globalElectionId}
       />
 
       <NewPollDialog

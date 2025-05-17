@@ -120,7 +120,12 @@ export const manageGlobalPoll = async (
         .single();
         
       if (error) throw error;
-      return newPoll;
+      
+      // Convert Json options back to proper PollOption type
+      return newPoll ? {
+        ...newPoll,
+        options: newPoll.options as unknown as PollOption[]
+      } : null;
     } else if (action === 'update' && pollId) {
       const { data: updatedPoll, error } = await supabase
         .from('polls')
@@ -137,7 +142,12 @@ export const manageGlobalPoll = async (
         .single();
         
       if (error) throw error;
-      return updatedPoll;
+      
+      // Convert Json options back to proper PollOption type
+      return updatedPoll ? {
+        ...updatedPoll,
+        options: updatedPoll.options as unknown as PollOption[]
+      } : null;
     }
     
     return null;

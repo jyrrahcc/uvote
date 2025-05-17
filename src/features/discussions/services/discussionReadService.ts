@@ -49,30 +49,47 @@ export const getTopicsWithCommentCounts = async (electionId: string): Promise<Di
  */
 export const getCommentsForTopic = async (topicId: string): Promise<DiscussionComment[]> => {
   try {
-    const { data, error } = await supabase
+    // First fetch the comment data
+    const { data: comments, error: commentsError } = await supabase
       .from('discussion_comments')
-      .select(`
-        *,
-        profiles:user_id (
-          first_name,
-          last_name,
-          image_url
-        )
-      `)
+      .select('*')
       .eq('topic_id', topicId)
       .order('created_at', { ascending: true });
     
-    if (error) throw error;
+    if (commentsError) throw commentsError;
     
-    return (data || []).map(comment => ({
-      ...comment,
-      author: comment.profiles ? {
-        id: comment.user_id,
-        firstName: comment.profiles.first_name,
-        lastName: comment.profiles.last_name,
-        imageUrl: comment.profiles.image_url
-      } : undefined
-    }));
+    // Then fetch the profiles separately
+    const userIds = comments.map(comment => comment.user_id);
+    
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .in('id', userIds);
+    
+    if (profilesError) throw profilesError;
+    
+    // Map profiles to comments
+    const profilesById = (profiles || []).reduce((acc, profile) => {
+      acc[profile.id] = profile;
+      return acc;
+    }, {} as Record<string, any>);
+    
+    // Merge comment and profile data
+    const commentsWithProfiles = (comments || []).map(comment => {
+      const profile = profilesById[comment.user_id];
+      
+      return {
+        ...comment,
+        author: profile ? {
+          id: comment.user_id,
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          imageUrl: profile.image_url
+        } : undefined
+      };
+    });
+    
+    return commentsWithProfiles;
   } catch (error) {
     console.error("Error getting comments for topic:", error);
     throw error;

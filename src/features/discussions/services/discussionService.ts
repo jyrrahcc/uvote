@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Discussion, DiscussionTopic, DiscussionComment } from "@/types/discussions";
 import { getElectionIdCondition, isGlobalDiscussion } from "./globalDiscussionService";
@@ -10,18 +11,20 @@ export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> 
     let query;
     
     if (isGlobalDiscussion(electionId)) {
-      query = supabase.rpc('get_topics_with_comment_counts_global');
+      // For global discussions, use the specific RPC function
+      const { data, error } = await supabase.rpc('get_topics_with_comment_counts_global');
+      
+      if (error) throw error;
+      return data || [];
     } else {
-      query = supabase.rpc('get_topics_with_comment_counts', {
+      // For election-specific discussions
+      const { data, error } = await supabase.rpc('get_topics_with_comment_counts', {
         election_id_param: electionId
       });
+      
+      if (error) throw error;
+      return data || [];
     }
-    
-    const { data, error } = await query;
-    
-    if (error) throw error;
-    
-    return data || [];
   } catch (error) {
     console.error("Error getting topics:", error);
     throw error;
