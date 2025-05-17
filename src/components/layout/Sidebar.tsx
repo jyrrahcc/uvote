@@ -10,6 +10,7 @@ import {
   History,
   Home,
   LogOut,
+  MessageSquare,
   Settings,
   UserCircle,
   Users,
@@ -35,6 +36,7 @@ const Sidebar = () => {
   const navItems: SidebarItem[] = [
     { icon: <Home size={20} />, label: "Dashboard", to: "/dashboard" },
     { icon: <Vote size={20} />, label: "Elections", to: "/elections" },
+    { icon: <MessageSquare size={20} />, label: "Discussions", to: "/discussions" },
     { icon: <History size={20} />, label: "My Votes", to: "/my-votes" },
     { icon: <FileText size={20} />, label: "My Applications", to: "/my-applications" },
     { icon: <UserCircle size={20} />, label: "Profile", to: "/profile" },
@@ -42,7 +44,7 @@ const Sidebar = () => {
     { icon: <Users size={20} />, label: "Users", to: "/admin/users", isAdmin: true },
     { icon: <FileSpreadsheet size={20} />, label: "Manage Elections", to: "/admin/elections", isAdmin: true },
     { icon: <BarChart3 size={20} />, label: "Analytics", to: "/admin/analytics", isAdmin: true },
-    { icon: <Settings size={20} />, label: "System Settings", to: "/admin/settings", isAdmin: true },
+    { icon: <Settings size={20} />, label: "Settings", to: "/admin/settings", isAdmin: true },
   ];
 
   const isActive = (path: string) => {

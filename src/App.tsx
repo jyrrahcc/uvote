@@ -34,6 +34,7 @@ import ResultsPage from "./features/elections/pages/ResultsPage";
 import CandidatesPage from "./features/candidates/pages/CandidatesPage";
 import MyApplicationsPage from "./features/candidates/pages/MyApplicationsPage";
 import ElectionDetailPage from "./features/elections/pages/ElectionDetailPage";
+import Discussions from "./pages/Discussions";
 
 // Import other pages
 import Security from "./pages/Security";
@@ -97,6 +98,7 @@ const App = () => {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/elections" element={<Elections />} />
+                    <Route path="/discussions" element={<Discussions />} />
                     <Route path="/elections/details/:electionId" element={<ElectionDetailPage />} />
                     
                     {/* Routes that require voter role */}
