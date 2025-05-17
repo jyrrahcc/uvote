@@ -21,38 +21,11 @@ export interface Discussion {
   is_pinned?: boolean;
   is_locked?: boolean;
   view_count?: number;
-  // UI-friendly properties (with getters to avoid type errors)
+  
+  // UI-friendly properties
   author?: DiscussionUser;
   repliesCount?: number;
 }
-
-// Property aliases for backward compatibility
-Object.defineProperties(Discussion.prototype, {
-  createdAt: { 
-    get() { return this.created_at; },
-    enumerable: true 
-  },
-  createdBy: { 
-    get() { return this.created_by; },
-    enumerable: true 
-  },
-  updatedAt: { 
-    get() { return this.updated_at; },
-    enumerable: true 
-  },
-  electionId: { 
-    get() { return this.election_id; },
-    enumerable: true 
-  },
-  isPinned: { 
-    get() { return this.is_pinned; },
-    enumerable: true 
-  },
-  isLocked: { 
-    get() { return this.is_locked; },
-    enumerable: true 
-  }
-});
 
 // Alias for backward compatibility
 export type DiscussionTopic = Discussion;
@@ -65,34 +38,11 @@ export interface Comment {
   user_id: string;
   topic_id: string;
   parent_id?: string;
+  
   // UI-friendly properties
   author?: DiscussionUser;
   replies?: Comment[];
 }
-
-// Property aliases for backward compatibility
-Object.defineProperties(Comment.prototype, {
-  createdAt: { 
-    get() { return this.created_at; },
-    enumerable: true 
-  },
-  createdBy: { 
-    get() { return this.user_id; },
-    enumerable: true 
-  },
-  updatedAt: { 
-    get() { return this.updated_at; },
-    enumerable: true 
-  },
-  topicId: { 
-    get() { return this.topic_id; },
-    enumerable: true 
-  },
-  parentId: { 
-    get() { return this.parent_id; },
-    enumerable: true 
-  }
-});
 
 // Alias for backward compatibility
 export type DiscussionComment = Comment;

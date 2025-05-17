@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication, DbCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
@@ -89,12 +90,16 @@ export const fetchCandidateApplicationsForElection = async (electionId: string):
     // Map the extended data to CandidateApplication type
     return data.map(application => {
       const extendedApp = application as unknown as ExtendedApplicationData;
-      return mapDbCandidateApplicationToCandidateApplication({
+      
+      // Create a valid DbCandidateApplication with additional fields from profiles
+      const validDbCandidateApplication: DbCandidateApplication = {
         ...extendedApp,
         student_id: extendedApp.student_id || extendedApp.profiles?.student_id || null,
         department: extendedApp.department || extendedApp.profiles?.department || null,
         year_level: extendedApp.year_level || extendedApp.profiles?.year_level || null
-      });
+      };
+      
+      return mapDbCandidateApplicationToCandidateApplication(validDbCandidateApplication);
     });
   } catch (error) {
     console.error("Error fetching applications for election:", error);
@@ -138,26 +143,33 @@ export const updateCandidateApplication = async (
       // Get the application data
       const { data: appData, error: appError } = await supabase
         .from('candidate_applications')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            first_name, last_name, department, year_level, student_id
+          )
+        `)
         .eq('id', applicationId)
         .single();
         
       if (appError) throw appError;
       
       if (appData) {
+        const applicationWithProfiles = appData as unknown as ExtendedApplicationData;
+        
         // Add the candidate to the candidates table
         const { error: candidateError } = await supabase
           .from('candidates')
           .insert({
-            name: appData.name,
-            position: appData.position,
-            bio: appData.bio || null,
-            image_url: appData.image_url || null,
-            election_id: appData.election_id,
-            created_by: appData.user_id,
-            student_id: appData.student_id || null,
-            department: appData.department || null,
-            year_level: appData.year_level || null
+            name: applicationWithProfiles.name,
+            position: applicationWithProfiles.position,
+            bio: applicationWithProfiles.bio || null,
+            image_url: applicationWithProfiles.image_url || null,
+            election_id: applicationWithProfiles.election_id,
+            created_by: applicationWithProfiles.user_id,
+            student_id: applicationWithProfiles.student_id || applicationWithProfiles.profiles?.student_id || null,
+            department: applicationWithProfiles.department || applicationWithProfiles.profiles?.department || null,
+            year_level: applicationWithProfiles.year_level || applicationWithProfiles.profiles?.year_level || null
           });
           
         if (candidateError) throw candidateError;
