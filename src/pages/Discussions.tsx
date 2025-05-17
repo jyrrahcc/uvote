@@ -43,6 +43,62 @@ const Discussions = () => {
     removePoll 
   } = usePolls(globalElectionId);
 
+  // Create a handler for selecting a topic (stub for now)
+  const handleSelectTopic = () => {
+    // This is a placeholder - we'll implement topic selection functionality later
+    console.log("Topic selected");
+  };
+
+  // Create a handler for selecting a poll (stub for now)
+  const handleSelectPoll = () => {
+    // This is a placeholder - we'll implement poll selection functionality later
+    console.log("Poll selected");
+  };
+
+  // Create a handler for refreshing topics
+  const handleRefreshTopics = () => {
+    // This should call the loadTopics function from useDiscussions
+    console.log("Refreshing topics");
+  };
+
+  // Handler for creating a topic that matches the required signature
+  const handleCreateTopic = async (title: string, content: string) => {
+    if (!user) {
+      console.error("User not authenticated");
+      return null;
+    }
+    
+    try {
+      return await addTopic(title, content);
+    } catch (error) {
+      console.error("Error creating topic:", error);
+      return null;
+    }
+  };
+
+  // Handler for creating a poll that matches the required signature
+  const handleCreatePoll = async (
+    question: string, 
+    options: Record<string, string>, 
+    description?: string,
+    multipleChoice?: boolean,
+    endsAt?: string
+  ) => {
+    if (!user) {
+      console.error("User not authenticated");
+      return null;
+    }
+    
+    try {
+      // Ensuring we pass parameters in the correct order and with the correct types
+      // Passing null for topicId as we're creating from the polls tab
+      return await addPoll(question, options, description || null, null, multipleChoice || false, endsAt || null);
+    } catch (error) {
+      console.error("Error creating poll:", error);
+      return null;
+    }
+  };
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between mb-6">
@@ -105,7 +161,14 @@ const Discussions = () => {
                   </Button>
                 </div>
               ) : (
-                <DiscussionList topics={topics} onSelectTopic={() => {}} />
+                <DiscussionList 
+                  topics={topics} 
+                  isLoading={topicsLoading} 
+                  onSelectTopic={handleSelectTopic} 
+                  onCreateTopic={handleCreateTopic}
+                  electionId={globalElectionId}
+                  onRefresh={handleRefreshTopics}
+                />
               )}
             </CardContent>
           </Card>
@@ -136,7 +199,13 @@ const Discussions = () => {
                   </Button>
                 </div>
               ) : (
-                <PollsList polls={polls} onSelectPoll={() => {}} />
+                <PollsList 
+                  polls={polls} 
+                  loading={pollsLoading} 
+                  onSelectPoll={handleSelectPoll}
+                  onCreatePoll={handleCreatePoll}
+                  electionId={globalElectionId}
+                />
               )}
             </CardContent>
           </Card>
@@ -146,14 +215,15 @@ const Discussions = () => {
       <NewTopicDialog 
         isOpen={newTopicDialogOpen} 
         onClose={() => setNewTopicDialogOpen(false)} 
-        onCreateTopic={addTopic}
+        onCreateTopic={handleCreateTopic}
         electionId={globalElectionId}
       />
 
       <NewPollDialog
-        open={newPollDialogOpen}
-        onOpenChange={setNewPollDialogOpen}
-        onCreatePoll={addPoll}
+        isOpen={newPollDialogOpen}
+        onClose={() => setNewPollDialogOpen(false)}
+        onCreatePoll={handleCreatePoll}
+        electionId={globalElectionId}
       />
     </div>
   );
