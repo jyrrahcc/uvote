@@ -3,7 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { CandidateApplication, mapDbCandidateApplicationToCandidateApplication, DbCandidateApplication } from "@/types";
 import { Election, mapDbElectionToElection } from "@/types";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Check if a user has already applied for a specific election
+ */
 export const hasUserAppliedForElection = async (electionId: string, userId: string): Promise<boolean> => {
   try {
     const { data } = await supabase
@@ -19,6 +23,9 @@ export const hasUserAppliedForElection = async (electionId: string, userId: stri
   }
 };
 
+/**
+ * Fetch applications for the current user
+ */
 export const fetchUserApplications = async (userId?: string): Promise<CandidateApplication[]> => {
   try {
     // If userId is provided, use it; otherwise, get the current user's ID from the session
@@ -37,19 +44,43 @@ export const fetchUserApplications = async (userId?: string): Promise<CandidateA
     
     const { data, error } = await supabase
       .from('candidate_applications')
-      .select('*, elections(title, candidacy_start_date, candidacy_end_date, status)')
+      .select(`
+        *,
+        profiles:user_id (
+          first_name,
+          last_name,
+          department,
+          year_level,
+          student_id
+        )
+      `)
       .eq('user_id', userIdToUse)
       .order('created_at', { ascending: false });
       
     if (error) throw error;
     
-    return data?.map(item => mapDbCandidateApplicationToCandidateApplication(item as DbCandidateApplication)) || [];
+    return data.map(item => {
+      const extendedApp = item as unknown as ExtendedApplicationData;
+      
+      // Create a valid DbCandidateApplication with additional fields from profiles
+      const dbApp: DbCandidateApplication = {
+        ...extendedApp,
+        student_id: extendedApp.student_id || extendedApp.profiles?.student_id || null,
+        department: extendedApp.department || extendedApp.profiles?.department || null,
+        year_level: extendedApp.year_level || extendedApp.profiles?.year_level || null
+      };
+      
+      return mapDbCandidateApplicationToCandidateApplication(dbApp);
+    });
   } catch (error) {
     console.error("Error fetching user applications:", error);
     throw error;
   }
 };
 
+/**
+ * Check if user is eligible to apply for an election
+ */
 export const checkUserEligibilityForElection = async (userId: string, election: Election): Promise<{isEligible: boolean; reason: string | null}> => {
   try {
     // Use the centralized eligibility checker
@@ -71,6 +102,9 @@ interface ExtendedApplicationData extends DbCandidateApplication {
   } | null;
 }
 
+/**
+ * Fetch all applications for a specific election (for admin use)
+ */
 export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
   try {
     // Fetch the applications with join to profiles table
@@ -107,11 +141,9 @@ export const fetchCandidateApplicationsForElection = async (electionId: string):
   }
 };
 
-export const fetchCandidateApplicationsByUser = async (): Promise<CandidateApplication[]> => {
-  // This is now redundant with fetchUserApplications, but we'll keep it for backward compatibility
-  return fetchUserApplications();
-};
-
+/**
+ * Update status and feedback for a candidate application (for admin use)
+ */
 export const updateCandidateApplication = async (
   applicationId: string, 
   updates: { 
@@ -138,78 +170,22 @@ export const updateCandidateApplication = async (
     
     if (error) throw error;
     
-    // If the status is approved, automatically add the candidate to the candidates table
-    if (updates.status === 'approved') {
-      // Get the application data
-      const { data: appData, error: appError } = await supabase
-        .from('candidate_applications')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name, last_name, department, year_level, student_id
-          )
-        `)
-        .eq('id', applicationId)
-        .single();
-        
-      if (appError) throw appError;
-      
-      if (appData) {
-        const applicationWithProfiles = appData as unknown as ExtendedApplicationData;
-        
-        // Add the candidate to the candidates table
-        const { error: candidateError } = await supabase
-          .from('candidates')
-          .insert({
-            name: applicationWithProfiles.name,
-            position: applicationWithProfiles.position,
-            bio: applicationWithProfiles.bio || null,
-            image_url: applicationWithProfiles.image_url || null,
-            election_id: applicationWithProfiles.election_id,
-            created_by: applicationWithProfiles.user_id,
-            student_id: applicationWithProfiles.student_id || applicationWithProfiles.profiles?.student_id || null,
-            department: applicationWithProfiles.department || applicationWithProfiles.profiles?.department || null,
-            year_level: applicationWithProfiles.year_level || applicationWithProfiles.profiles?.year_level || null
-          });
-          
-        if (candidateError) throw candidateError;
-      }
-    }
-    
-    // If the status is disqualified, remove any existing candidate entry for this user in this election
-    if (updates.status === 'disqualified') {
-      // Get the application data
-      const { data: appData, error: appError } = await supabase
-        .from('candidate_applications')
-        .select('*')
-        .eq('id', applicationId)
-        .single();
-        
-      if (appError) throw appError;
-      
-      if (appData) {
-        // Remove any candidate entries for this user in this election
-        const { error: removeError } = await supabase
-          .from('candidates')
-          .delete()
-          .eq('created_by', appData.user_id)
-          .eq('election_id', appData.election_id);
-          
-        if (removeError) throw removeError;
-      }
-    }
+    // The database trigger will handle adding or removing the candidate
   } catch (error) {
     console.error("Error updating application:", error);
     throw error;
   }
 };
 
+/**
+ * Delete a candidate application (for admin or user)
+ */
 export const deleteCandidateApplication = async (applicationId: string): Promise<boolean> => {
   try {
     // First, check if the application actually exists
     const { data: applicationExists, error: checkError } = await supabase
       .from('candidate_applications')
-      .select('status, user_id, election_id')
+      .select('id, status')
       .eq('id', applicationId)
       .single();
     
@@ -221,21 +197,6 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
     if (!applicationExists) {
       console.error("Application not found with ID:", applicationId);
       return false;
-    }
-    
-    // If the application is approved, also remove the candidate
-    if (applicationExists.status === 'approved') {
-      console.log("Application was approved, removing related candidate...");
-      const { error: candidateError } = await supabase
-        .from('candidates')
-        .delete()
-        .eq('created_by', applicationExists.user_id)
-        .eq('election_id', applicationExists.election_id);
-        
-      if (candidateError) {
-        console.error("Error deleting related candidate:", candidateError);
-        // Continue with application deletion even if candidate deletion fails
-      }
     }
     
     // Delete the application
@@ -257,8 +218,14 @@ export const deleteCandidateApplication = async (applicationId: string): Promise
   }
 };
 
+/**
+ * Submit a new candidate application
+ */
 export const submitCandidateApplication = async (applicationData: Omit<CandidateApplication, 'id'>): Promise<CandidateApplication> => {
   try {
+    // Generate a UUID for the application
+    const id = uuidv4();
+    
     // Check eligibility first
     const { data: electionData, error: electionError } = await supabase
       .from('elections')
@@ -279,30 +246,34 @@ export const submitCandidateApplication = async (applicationData: Omit<Candidate
     const { data, error } = await supabase
       .from('candidate_applications')
       .insert({
+        id,
         ...applicationData,
         status: 'pending',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .select()
+      .select(`
+        *,
+        profiles:user_id (
+          first_name, last_name, department, year_level, student_id
+        )
+      `)
       .single();
       
     if (error) throw error;
     
-    return mapDbCandidateApplicationToCandidateApplication(data as DbCandidateApplication);
+    // Map the extended data to CandidateApplication type
+    const extendedApp = data as unknown as ExtendedApplicationData;
+    const dbApp: DbCandidateApplication = {
+      ...extendedApp,
+      student_id: extendedApp.student_id || extendedApp.profiles?.student_id || null,
+      department: extendedApp.department || extendedApp.profiles?.department || null,
+      year_level: extendedApp.year_level || extendedApp.profiles?.year_level || null
+    };
+    
+    return mapDbCandidateApplicationToCandidateApplication(dbApp);
   } catch (error) {
     console.error("Error submitting application:", error);
-    throw error;
-  }
-};
-
-export const getApplicationHistory = async (applicationId: string): Promise<any[]> => {
-  try {
-    // This is a placeholder for a future feature to track application history
-    // We would need to create a new table for tracking history
-    return [];
-  } catch (error) {
-    console.error("Error fetching application history:", error);
     throw error;
   }
 };

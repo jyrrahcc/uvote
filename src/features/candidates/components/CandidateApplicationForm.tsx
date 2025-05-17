@@ -8,6 +8,7 @@ import {
   PositionSelector,
   BioTextarea,
   ImageUploader,
+  AcademicInfoFields,
   useApplicationForm
 } from "./application-form";
 
@@ -16,7 +17,7 @@ interface CandidateApplicationFormProps {
   userId?: string;
   open?: boolean;
   onClose?: () => void;
-  onSuccess?: (candidate?: any) => void;  // Updated type to match how it's called
+  onSuccess?: (candidate?: any) => void;
   onApplicationSubmitted?: () => void;
   onCancel?: () => void;
   isUserEligible?: boolean;
@@ -44,6 +45,12 @@ const CandidateApplicationForm = ({
     setImage,
     imageUrl,
     setImageUrl,
+    department,
+    setDepartment,
+    yearLevel,
+    setYearLevel,
+    departments,
+    yearLevels,
     submitting,
     imageUploading,
     setImageUploading,
@@ -101,6 +108,15 @@ const CandidateApplicationForm = ({
         position={position}
         setPosition={setPosition}
         availablePositions={availablePositions}
+      />
+      
+      <AcademicInfoFields
+        department={department}
+        setDepartment={setDepartment}
+        yearLevel={yearLevel}
+        setYearLevel={setYearLevel}
+        departments={departments}
+        yearLevels={yearLevels}
       />
       
       <BioTextarea

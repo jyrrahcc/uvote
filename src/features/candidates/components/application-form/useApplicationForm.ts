@@ -1,15 +1,29 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Election, mapDbElectionToElection } from "@/types";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
-import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/features/elections/components/candidate-manager/constants";
+
+// Department and year level constants
+export const DLSU_DEPARTMENTS = [
+  "College of Science (COS)",
+  "College of Liberal Arts (CLA)",
+  "College of Engineering and Architecture (CEA)",
+  "College of Education (COE)",
+  "College of Business Administration (CBA)",
+  "College of Criminal Justice (CJUS)",
+  "College of Tourism and Hospitality Management (CTHM)",
+  "College of International Hospitality Management (CIHM)"
+];
+
+export const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "Graduate Student"];
 
 interface UseApplicationFormProps {
   electionId: string;
   userId: string;
-  onSuccess?: (candidate?: any) => void;  // Updated type to accept optional parameter
+  onSuccess?: (candidate?: any) => void;
   onApplicationSubmitted?: () => void;
   onClose?: () => void;
   initialEligibility?: boolean;
@@ -66,6 +80,15 @@ export const useApplicationForm = ({
         if (profileData) {
           setUserProfile(profileData);
           setName(`${profileData.first_name || ''} ${profileData.last_name || ''}`.trim());
+          
+          // Pre-fill department and year level if available
+          if (profileData.department) {
+            setDepartment(profileData.department);
+          }
+          
+          if (profileData.year_level) {
+            setYearLevel(profileData.year_level);
+          }
         } else {
           console.warn("No profile data found for user:", userId);
         }
