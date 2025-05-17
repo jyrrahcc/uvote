@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DiscussionTopic, DiscussionComment, mapDbDiscussionToDiscussion, mapDbCommentToComment } from "@/types";
@@ -98,8 +99,8 @@ export const createDiscussionTopic = async (topicData: Partial<DiscussionTopic>)
       .insert({
         title: topicData.title || '',
         content: topicData.content || '',
-        election_id: topicData.election_id || topicData.electionId || '',
-        created_by: topicData.created_by || topicData.createdBy || ''
+        election_id: topicData.election_id || '',
+        created_by: topicData.created_by || ''
       })
       .select()
       .single();
