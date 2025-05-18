@@ -7,7 +7,7 @@ import ElectionDetailsHeader from "@/features/candidates/components/election-hea
 import { ApplicationForm } from "@/features/candidates/components/ApplicationForm";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Election } from "@/types";
+import { Election, mapDbElectionToElection } from "@/types";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 const CandidatesPage = () => {
@@ -40,29 +40,8 @@ const CandidatesPage = () => {
         }
 
         if (electionData) {
-          // Map database election to app Election type
-          const mappedElection: Election = {
-            id: electionData.id,
-            title: electionData.title,
-            description: electionData.description || '',
-            startDate: electionData.start_date,
-            endDate: electionData.end_date,
-            createdBy: electionData.created_by || '',
-            createdAt: electionData.created_at || '',
-            updatedAt: electionData.updated_at || '',
-            isPrivate: electionData.is_private || false,
-            candidacyStartDate: electionData.candidacy_start_date || '',
-            candidacyEndDate: electionData.candidacy_end_date || '',
-            status: electionData.status as 'upcoming' | 'active' | 'completed',
-            colleges: electionData.departments || [],
-            positions: electionData.positions || [],
-            bannerUrls: electionData.banner_urls || [],
-            eligibleYearLevels: electionData.eligible_year_levels || [],
-            department: electionData.department || '',
-            restrictVoting: electionData.restrict_voting || false,
-            allowFaculty: electionData.allow_faculty || false
-          };
-          
+          // Map database election to app Election type using the mapper function
+          const mappedElection = mapDbElectionToElection(electionData);
           setElection(mappedElection);
 
           // Check user eligibility

@@ -1,4 +1,29 @@
 
+// Export types from candidates.ts
+export { 
+  CandidateApplication,
+  mapDbApplicationToApplication, 
+  mapApplicationToDbApplication,
+  DbCandidateApplication
+} from './candidates';
+
+// Export types from users.ts
+export { 
+  DlsudProfile, 
+  mapDbProfileToProfile 
+} from './users';
+
+// Export types from discussions.ts
+export {
+  Poll,
+  PollOption,
+  PollVote,
+  DbPoll,
+  DbPollVote,
+  mapDbPollToPoll,
+  mapDbPollVoteToPollVote
+} from './discussions';
+
 // Election type definition
 export interface Election {
   id: string;
@@ -38,6 +63,7 @@ export interface Candidate {
   yearLevel?: string;
   isFaculty?: boolean;
   facultyPosition?: string;
+  studentId?: string;
 }
 
 /**
@@ -126,19 +152,6 @@ export const mapDbCandidateToCandidate = (dbCandidate: any): Candidate => ({
   department: dbCandidate.department,
   yearLevel: dbCandidate.year_level,
   isFaculty: dbCandidate.is_faculty || false,
-  facultyPosition: dbCandidate.faculty_position
+  facultyPosition: dbCandidate.faculty_position,
+  studentId: dbCandidate.student_id
 });
-
-// Export types from candidates.ts
-export { 
-  CandidateApplication,
-  mapDbApplicationToApplication, 
-  mapApplicationToDbApplication,
-  DbCandidateApplication
-} from './candidates';
-
-// Export types from users.ts
-export { 
-  DlsudProfile, 
-  mapDbProfileToProfile 
-} from './users';

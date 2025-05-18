@@ -20,8 +20,8 @@ interface CandidateApplicationFormProps {
   onSuccess?: (candidate?: any) => void;
   onApplicationSubmitted?: () => void;
   onCancel?: () => void;
-  isUserEligible?: boolean;
-  eligibilityReason?: string | null;
+  initialEligibility?: boolean;
+  initialEligibilityReason?: string | null;
 }
 
 const CandidateApplicationForm = ({ 
@@ -31,8 +31,8 @@ const CandidateApplicationForm = ({
   onSuccess,
   onApplicationSubmitted,
   onCancel,
-  isUserEligible: initialEligibility,
-  eligibilityReason: initialEligibilityReason
+  initialEligibility,
+  initialEligibilityReason
 }: CandidateApplicationFormProps) => {
   const {
     name,

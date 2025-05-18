@@ -1,5 +1,5 @@
+
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CandidateApplication } from "@/types";
+import { CandidateApplication, mapDbApplicationToApplication } from "@/types/candidates";
 import { supabase } from "@/integrations/supabase/client";
 import ApplicationActions from "./ApplicationActions";
 
@@ -38,7 +38,9 @@ const CandidateApplicationsTab = ({ electionId }: CandidateApplicationsTabProps)
           return;
         }
 
-        setApplications(data);
+        // Convert db format to application format using the mapper
+        const mappedApplications = data.map(mapDbApplicationToApplication);
+        setApplications(mappedApplications);
       } catch (error) {
         console.error("Error fetching applications:", error);
         toast.error("Failed to load candidate applications");
@@ -75,7 +77,7 @@ const CandidateApplicationsTab = ({ electionId }: CandidateApplicationsTabProps)
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedApplications.map((application) => (
+                {sortedApplications?.map((application) => (
                   <TableRow key={application.id}>
                     <TableCell>{application.name}</TableCell>
                     <TableCell>{application.position}</TableCell>

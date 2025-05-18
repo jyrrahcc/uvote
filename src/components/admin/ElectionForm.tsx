@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -149,6 +150,15 @@ const ElectionForm: React.FC<ElectionFormProps> = ({ electionData }) => {
       const candidacyStartDate = new Date(formData.candidacyStartDate).toISOString();
       const candidacyEndDate = new Date(formData.candidacyEndDate).toISOString();
 
+      // Determine the status based on dates
+      let status = 'upcoming';
+      const now = new Date();
+      if (now >= new Date(startDate) && now <= new Date(endDate)) {
+        status = 'active';
+      } else if (now > new Date(endDate)) {
+        status = 'completed';
+      }
+
       const dbElection = {
         title: formData.title,
         description: formData.description,
@@ -165,7 +175,8 @@ const ElectionForm: React.FC<ElectionFormProps> = ({ electionData }) => {
         banner_urls: formData.bannerUrls,
         total_eligible_voters: formData.totalEligibleVoters,
         allow_faculty: formData.allowFaculty,
-        restrict_voting: formData.restrictVoting
+        restrict_voting: formData.restrictVoting,
+        status: status // Add the calculated status
       };
 
       if (isEditMode && id) {
@@ -186,13 +197,11 @@ const ElectionForm: React.FC<ElectionFormProps> = ({ electionData }) => {
         // Create new election
         const { data, error } = await supabase
           .from('elections')
-          .insert([
-            {
-              ...dbElection,
-              created_by: 'admin-user', // Replace with actual user ID
-            }
-          ])
-          .select()
+          .insert({
+            ...dbElection,
+            created_by: 'admin-user', // Replace with actual user ID
+          })
+          .select();
 
         if (error) {
           console.error("Error creating election:", error);

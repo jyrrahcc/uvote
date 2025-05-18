@@ -1,63 +1,45 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { CandidateApplication, DbCandidateApplication } from "@/types";
+import { CandidateApplication, mapApplicationToDbApplication } from '@/types/candidates';
+import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Map database application data to CandidateApplication type
- */
-export const mapDbCandidateApplicationToCandidateApplication = (
-  dbApp: DbCandidateApplication
-): CandidateApplication => {
-  // Ensure status is one of the valid enum values
-  let status: 'pending' | 'approved' | 'rejected' | 'disqualified' = 'pending';
-  if (dbApp.status === 'approved') status = 'approved';
-  else if (dbApp.status === 'rejected') status = 'rejected';
-  else if (dbApp.status === 'disqualified') status = 'disqualified';
+export class ApplicationBaseService {
+  /**
+   * Fetches a single application by ID
+   */
+  static async getApplicationById(applicationId: string): Promise<CandidateApplication | null> {
+    try {
+      const { data, error } = await supabase
+        .from('candidate_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
 
-  return {
-    id: dbApp.id,
-    user_id: dbApp.user_id,
-    election_id: dbApp.election_id,
-    position: dbApp.position,
-    name: dbApp.name,
-    bio: dbApp.bio || null,
-    image_url: dbApp.image_url || null,
-    status: status,
-    created_at: dbApp.created_at,
-    updated_at: dbApp.updated_at,
-    feedback: dbApp.feedback || null,
-    reviewed_at: dbApp.reviewed_at || null,
-    reviewed_by: dbApp.reviewed_by || null,
-    student_id: dbApp.student_id || null,
-    department: dbApp.department || null,
-    year_level: dbApp.year_level || null
-  };
-};
+      if (error) throw error;
+      if (!data) return null;
 
-// Type definition for the enriched application data that includes profile information
-export interface ExtendedApplicationData extends DbCandidateApplication {
-  profiles?: {
-    first_name: string;
-    last_name: string;
-    department?: string | null;
-    year_level?: string | null;
-    student_id?: string | null;
-  } | null;
+      return {
+        id: data.id,
+        electionId: data.election_id,
+        userId: data.user_id,
+        name: data.name,
+        position: data.position,
+        bio: data.bio || '',
+        imageUrl: data.image_url,
+        studentId: data.student_id,
+        department: data.department,
+        yearLevel: data.year_level,
+        isFaculty: data.is_faculty || false,
+        facultyPosition: data.faculty_position,
+        status: data.status as 'pending' | 'approved' | 'rejected' | 'disqualified',
+        feedback: data.feedback,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        reviewedBy: data.reviewed_by,
+        reviewedAt: data.reviewed_at
+      };
+    } catch (error) {
+      console.error('Error fetching application:', error);
+      throw error;
+    }
+  }
 }
-
-/**
- * Process application data from database with profiles information
- */
-export const processApplicationWithProfile = (application: any): CandidateApplication => {
-  const extendedApp = application as unknown as ExtendedApplicationData;
-  
-  // Create a valid DbCandidateApplication with additional fields from profiles
-  const dbApp: DbCandidateApplication = {
-    ...extendedApp,
-    student_id: extendedApp.student_id || extendedApp.profiles?.student_id || null,
-    department: extendedApp.department || extendedApp.profiles?.department || null,
-    year_level: extendedApp.year_level || extendedApp.profiles?.year_level || null
-  };
-  
-  return mapDbCandidateApplicationToCandidateApplication(dbApp);
-};
