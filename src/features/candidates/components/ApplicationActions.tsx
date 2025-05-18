@@ -43,10 +43,11 @@ const ApplicationActions: React.FC<ApplicationActionsProps> = ({ application }) 
         return (
           <>
             <Button 
-              variant="success" 
+              variant="default" // Changed from "success" to "default"
               size="sm" 
               onClick={() => handleUpdateStatus('approved')}
               disabled={isLoading}
+              className="bg-green-600 hover:bg-green-700" // Added green color via className
             >
               Approve
             </Button>

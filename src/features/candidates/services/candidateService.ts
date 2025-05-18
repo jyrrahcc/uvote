@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Candidate, mapDbCandidateToCandidate } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface DbCandidate {
+// Define the database candidate interface
+interface DbCandidate {
   id: string;
   name: string;
   position: string;
@@ -37,6 +38,11 @@ export const fetchCandidates = async (electionId: string): Promise<Candidate[]> 
   }
 };
 
+// Add this function for CandidatesHook
+export const fetchCandidatesForElection = async (electionId: string): Promise<Candidate[]> => {
+  return fetchCandidates(electionId);
+};
+
 export const addCandidate = async (candidateData: Partial<Candidate>): Promise<Candidate> => {
   try {
     const id = uuidv4();
@@ -47,12 +53,12 @@ export const addCandidate = async (candidateData: Partial<Candidate>): Promise<C
       name: candidateData.name || '',
       position: candidateData.position || '',
       bio: candidateData.bio,
-      image_url: candidateData.imageUrl,
-      election_id: candidateData.electionId,
-      created_by: candidateData.createdBy,
-      student_id: candidateData.studentId,
+      image_url: candidateData.imageUrl, // Fixed camelCase to snake_case
+      election_id: candidateData.electionId, // Fixed camelCase to snake_case
+      created_by: candidateData.createdBy, // Fixed camelCase to snake_case
+      student_id: candidateData.studentId, // Fixed camelCase to snake_case
       department: candidateData.department,
-      year_level: candidateData.yearLevel,
+      year_level: candidateData.yearLevel, // Fixed camelCase to snake_case
       is_faculty: candidateData.isFaculty,
       faculty_position: candidateData.facultyPosition,
     };
@@ -70,6 +76,31 @@ export const addCandidate = async (candidateData: Partial<Candidate>): Promise<C
     return mapDbCandidateToCandidate(data);
   } catch (error) {
     console.error('Error adding candidate:', error);
+    throw error;
+  }
+};
+
+// Add this function for useCandidateRegistration hook
+export const createCandidate = async (candidateData: any): Promise<Candidate> => {
+  try {
+    // Convert form data to candidate data structure if needed
+    const candidateToCreate: Partial<Candidate> = {
+      name: candidateData.name,
+      position: candidateData.position,
+      bio: candidateData.bio,
+      imageUrl: candidateData.image_url, 
+      electionId: candidateData.election_id,
+      createdBy: candidateData.created_by,
+      studentId: candidateData.student_id,
+      department: candidateData.department,
+      yearLevel: candidateData.year_level,
+      isFaculty: candidateData.is_faculty || false,
+      facultyPosition: candidateData.faculty_position
+    };
+
+    return addCandidate(candidateToCreate);
+  } catch (error) {
+    console.error('Error creating candidate:', error);
     throw error;
   }
 };

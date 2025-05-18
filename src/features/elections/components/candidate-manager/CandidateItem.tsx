@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,14 +43,14 @@ const CandidateItem = ({
     const file = event.target.files[0];
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `candidate-posters/${candidate.election_id}/${fileName}`;
+    const filePath = `candidate-posters/${candidate.electionId}/${fileName}`;
 
     try {
       setUploading(true);
       
       // Create a temporary preview URL
       const objectUrl = URL.createObjectURL(file);
-      onUpdate(index, 'image_url', objectUrl);
+      onUpdate(index, 'imageUrl', objectUrl);
       
       // Upload the file to Supabase storage
       const { error: uploadError } = await supabase.storage
@@ -76,7 +75,7 @@ const CandidateItem = ({
       }
 
       // Update the candidate with the new image URL
-      onUpdate(index, 'image_url', publicURL.publicUrl);
+      onUpdate(index, 'imageUrl', publicURL.publicUrl);
       toast.success("Campaign poster uploaded successfully");
     } catch (error) {
       console.error("Error uploading poster:", error);
@@ -115,8 +114,8 @@ const CandidateItem = ({
             <Label htmlFor={`candidate-studentId-${index}`}>Student ID</Label>
             <Input 
               id={`candidate-studentId-${index}`} 
-              value={candidate.student_id || ''}
-              onChange={(e) => onUpdate(index, 'student_id', e.target.value)}
+              value={candidate.studentId || ''}
+              onChange={(e) => onUpdate(index, 'studentId', e.target.value)}
               placeholder="e.g., 20120001"
             />
           </div>
@@ -167,8 +166,8 @@ const CandidateItem = ({
           <div className="space-y-2">
             <Label htmlFor={`candidate-yearLevel-${index}`}>Year Level</Label>
             <Select 
-              value={candidate.year_level || UNKNOWN_YEAR}
-              onValueChange={(value) => onUpdate(index, 'year_level', value)}
+              value={candidate.yearLevel || UNKNOWN_YEAR}
+              onValueChange={(value) => onUpdate(index, 'yearLevel', value)}
             >
               <SelectTrigger id={`candidate-yearLevel-${index}`}>
                 <SelectValue placeholder="Select year level" />
@@ -209,11 +208,11 @@ const CandidateItem = ({
                   {uploading ? "Uploading..." : "Upload Poster"}
                 </Button>
                 
-                {candidate.image_url && (
+                {candidate.imageUrl && (
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => onPreviewImage(candidate.image_url!)}
+                    onClick={() => onPreviewImage(candidate.imageUrl!)}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -229,10 +228,10 @@ const CandidateItem = ({
                 disabled={uploading}
               />
               
-              {candidate.image_url && (
+              {candidate.imageUrl && (
                 <div className="mt-2 relative w-full h-48 border rounded-md overflow-hidden">
                   <img 
-                    src={candidate.image_url} 
+                    src={candidate.imageUrl} 
                     alt="Campaign poster preview" 
                     className="w-full h-full object-cover"
                   />
@@ -240,7 +239,7 @@ const CandidateItem = ({
                     variant="destructive" 
                     size="icon" 
                     className="absolute top-2 right-2 h-7 w-7"
-                    onClick={() => onUpdate(index, 'image_url', '')}
+                    onClick={() => onUpdate(index, 'imageUrl', '')}
                   >
                     <X className="h-3 w-3" />
                   </Button>
