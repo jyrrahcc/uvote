@@ -26,7 +26,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { formatNumberWithSuffix, calculatePercentage } from "@/utils/admin/helperUtils";
 import { Separator } from "@/components/ui/separator";
-import { Election } from "@/types";
+import { Election, mapDbElectionToElection } from "@/types";
 
 const COLORS = [
   "#008f50", // Primary DLSU color
@@ -96,8 +96,8 @@ const Analytics = () => {
           
         if (profilesError) throw profilesError;
         
-        // Process data
-        const typedElections = electionsData as Election[];
+        // Process data - map DB elections to our Election type
+        const typedElections: Election[] = electionsData ? electionsData.map(mapDbElectionToElection) : [];
         setElections(typedElections);
         
         // Group data for analysis
@@ -147,6 +147,7 @@ const Analytics = () => {
     // Get monthly data for elections created this year
     const monthlyElections = months.map((month, index) => {
       const monthElections = elections.filter(election => {
+        if (!election.createdAt) return false;
         const createdAt = new Date(election.createdAt);
         return createdAt.getMonth() === index && createdAt.getFullYear() === currentYear;
       });

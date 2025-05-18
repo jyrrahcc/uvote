@@ -8,6 +8,7 @@ export interface VotingStats {
   positionVoteCounts: Record<string, number>;
   votesOverTime?: Array<{date: string, votes: number}>;
   departmentParticipation?: Array<{department: string, votes: number, percentage: number}>;
+  collegeParticipation?: Array<{college: string, votes: number, percentage: number}>;
 }
 
 /**
@@ -21,7 +22,8 @@ export const calculateVotingStats = (election: Election, votes: any[]): VotingSt
     votingPercentage: 0,
     positionVoteCounts: {},
     votesOverTime: [],
-    departmentParticipation: []
+    departmentParticipation: [],
+    collegeParticipation: []
   };
 
   if (!votes || votes.length === 0) {
@@ -34,8 +36,8 @@ export const calculateVotingStats = (election: Election, votes: any[]): VotingSt
   // Position vote counts
   const positionVoteCounts: Record<string, number> = {};
   
-  // Department vote tracking
-  const departmentVotes: Record<string, {count: number, total: number}> = {};
+  // College vote tracking (renamed from departmentVotes to collegeVotes)
+  const collegeVotes: Record<string, {count: number, total: number}> = {};
   
   // Date tracking for votes over time
   const dateVotes: Record<string, number> = {};
@@ -53,12 +55,12 @@ export const calculateVotingStats = (election: Election, votes: any[]): VotingSt
       const voteDate = new Date(vote.timestamp).toISOString().split('T')[0];
       dateVotes[voteDate] = (dateVotes[voteDate] || 0) + 1;
       
-      // Track department if available
-      if (vote.department) {
-        if (!departmentVotes[vote.department]) {
-          departmentVotes[vote.department] = {count: 0, total: 0};
+      // Track college if available (renamed from department to college)
+      if (vote.college) {
+        if (!collegeVotes[vote.college]) {
+          collegeVotes[vote.college] = {count: 0, total: 0};
         }
-        departmentVotes[vote.department].count += 1;
+        collegeVotes[vote.college].count += 1;
       }
     }
     
@@ -83,21 +85,21 @@ export const calculateVotingStats = (election: Election, votes: any[]): VotingSt
     .map(([date, votes]) => ({ date, votes }))
     .sort((a, b) => a.date.localeCompare(b.date));
   
-  // Process department participation
-  if (Object.keys(departmentVotes).length > 0) {
-    // Calculate total eligible voters per department if available
+  // Process college participation (renamed from department to college)
+  if (Object.keys(collegeVotes).length > 0) {
+    // Calculate total eligible voters per college if available
     if (election.colleges && election.colleges.length > 0) {
-      election.colleges.forEach(dept => {
-        if (!departmentVotes[dept]) {
-          departmentVotes[dept] = {count: 0, total: election.totalEligibleVoters / election.colleges.length};
+      election.colleges.forEach(college => {
+        if (!collegeVotes[college]) {
+          collegeVotes[college] = {count: 0, total: election.totalEligibleVoters / election.colleges.length};
         } else {
-          departmentVotes[dept].total = election.totalEligibleVoters / election.colleges.length;
+          collegeVotes[college].total = election.totalEligibleVoters / election.colleges.length;
         }
       });
     }
     
-    stats.departmentParticipation = Object.entries(departmentVotes).map(([department, data]) => ({
-      department,
+    stats.collegeParticipation = Object.entries(collegeVotes).map(([college, data]) => ({
+      college,
       votes: data.count,
       percentage: data.total > 0 ? (data.count / data.total) * 100 : 0
     }));
