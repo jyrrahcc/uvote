@@ -1,84 +1,36 @@
 
 /**
- * User type definition
- */
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'user' | 'admin';
-  createdAt: string;
-  studentId?: string; // Added student ID field for DLSU-D context
-  department?: string; // Added department field for DLSU-D context
-  yearLevel?: string; // Added year level field for DLSU-D context
-  isFaculty?: boolean; // Added flag for faculty members
-  facultyPosition?: string; // Added position for faculty members
-}
-
-/**
- * DLSU-D Voter type definition
- */
-export interface DlsudVoter {
-  id: string;
-  userId: string;
-  studentId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  department: string;
-  yearLevel?: string;
-  isFaculty?: boolean;
-  facultyPosition?: string;
-}
-
-/**
- * Supabase Profile type definition for DLSU-D
+ * DLSU-D User Profile type definition
  */
 export interface DlsudProfile {
   id: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  first_name: string;
-  last_name: string;
-  created_at: string;
-  updated_at: string;
-  student_id?: string;
+  imageUrl?: string;
+  studentId?: string;
   department?: string;
-  year_level?: string;
-  is_faculty?: boolean;
-  faculty_position?: string;
-  image_url?: string | null;
+  yearLevel?: string;
+  isFaculty?: boolean;
+  facultyPosition?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
- * Maps database voter data to app voter object
+ * Maps database profile data to app profile object
  */
-export const mapDbVoterToVoter = (dbVoter: any): DlsudVoter => ({
-  id: dbVoter.id,
-  userId: dbVoter.user_id,
-  studentId: dbVoter.student_id,
-  firstName: dbVoter.first_name,
-  lastName: dbVoter.last_name,
-  email: dbVoter.email,
-  department: dbVoter.department,
-  yearLevel: dbVoter.year_level,
-  isFaculty: dbVoter.is_faculty,
-  facultyPosition: dbVoter.faculty_position
-});
-
-/**
- * Maps database profile to app profile object
- */
-export const mapDbProfileToProfile = (profile: any): DlsudProfile => ({
-  id: profile.id,
-  email: profile.email,
-  first_name: profile.first_name,
-  last_name: profile.last_name,
-  created_at: profile.created_at,
-  updated_at: profile.updated_at,
-  student_id: profile.student_id || '',
-  department: profile.department || '',
-  year_level: profile.year_level || '',
-  is_faculty: profile.is_faculty || false,
-  faculty_position: profile.faculty_position || '',
-  image_url: profile.image_url || undefined
+export const mapDbProfileToProfile = (dbProfile: any): DlsudProfile => ({
+  id: dbProfile.id,
+  firstName: dbProfile.first_name || '',
+  lastName: dbProfile.last_name || '',
+  email: dbProfile.email || '',
+  imageUrl: dbProfile.image_url,
+  studentId: dbProfile.student_id,
+  department: dbProfile.department,
+  yearLevel: dbProfile.year_level,
+  isFaculty: dbProfile.is_faculty || false,
+  facultyPosition: dbProfile.faculty_position || '',
+  createdAt: dbProfile.created_at,
+  updatedAt: dbProfile.updated_at
 });

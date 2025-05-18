@@ -70,3 +70,25 @@ export const mapApplicationToDbApplication = (application: CandidateApplication)
   reviewed_by: application.reviewedBy,
   reviewed_at: application.reviewedAt
 });
+
+// Define the database application type for internal usage
+export interface DbCandidateApplication {
+  id: string;
+  election_id: string;
+  user_id: string;
+  name: string;
+  position: string;
+  bio?: string;
+  image_url?: string;
+  student_id?: string;
+  department?: string;
+  year_level?: string;
+  is_faculty?: boolean;
+  faculty_position?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'disqualified';
+  feedback?: string;
+  created_at: string;
+  updated_at?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+}
