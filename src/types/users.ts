@@ -1,99 +1,74 @@
 
 /**
- * DLSU-D User Profile interface
+ * User type definition
  */
-export interface DlsudProfile {
+export interface User {
   id: string;
+  email: string;
+  name: string;
+  role: 'user' | 'admin';
+  createdAt: string;
+  studentId?: string; // Added student ID field for DLSU-D context
+  department?: string; // Added department field for DLSU-D context
+  yearLevel?: string; // Added year level field for DLSU-D context
+}
+
+/**
+ * DLSU-D Voter type definition
+ */
+export interface DlsudVoter {
+  id: string;
+  userId: string;
+  studentId: string;
   firstName: string;
   lastName: string;
   email: string;
-  studentId?: string;
-  department?: string;
-  yearLevel?: string;
-  imageUrl?: string;
-  createdAt: string;
-  updatedAt: string;
+  department: string;
+  yearLevel: string;
 }
 
 /**
- * Database representation of a user profile
+ * Supabase Profile type definition for DLSU-D
  */
-export interface DbDlsudProfile {
+export interface DlsudProfile {
   id: string;
+  email: string;
   first_name: string;
   last_name: string;
-  email: string;
+  created_at: string;
+  updated_at: string;
   student_id?: string;
   department?: string;
   year_level?: string;
-  image_url?: string;
-  created_at: string;
-  updated_at: string;
+  image_url?: string | null;
 }
 
 /**
- * Maps database profile to application profile
+ * Maps database voter data to app voter object
  */
-export const mapDbProfileToProfile = (dbProfile: DbDlsudProfile): DlsudProfile => ({
-  id: dbProfile.id,
-  firstName: dbProfile.first_name,
-  lastName: dbProfile.last_name,
-  email: dbProfile.email,
-  studentId: dbProfile.student_id,
-  department: dbProfile.department,
-  yearLevel: dbProfile.year_level,
-  imageUrl: dbProfile.image_url,
-  createdAt: dbProfile.created_at,
-  updatedAt: dbProfile.updated_at
+export const mapDbVoterToVoter = (dbVoter: any): DlsudVoter => ({
+  id: dbVoter.id,
+  userId: dbVoter.user_id,
+  studentId: dbVoter.student_id,
+  firstName: dbVoter.first_name,
+  lastName: dbVoter.last_name,
+  email: dbVoter.email,
+  department: dbVoter.department,
+  yearLevel: dbVoter.year_level
 });
 
 /**
- * Maps application profile to database profile
+ * Maps database profile to app profile object
  */
-export const mapProfileToDbProfile = (profile: DlsudProfile): DbDlsudProfile => ({
+export const mapDbProfileToProfile = (profile: any): DlsudProfile => ({
   id: profile.id,
-  first_name: profile.firstName,
-  last_name: profile.lastName,
   email: profile.email,
-  student_id: profile.studentId,
-  department: profile.department,
-  year_level: profile.yearLevel,
-  image_url: profile.imageUrl,
-  created_at: profile.createdAt,
-  updated_at: profile.updatedAt
-});
-
-/**
- * User role type
- */
-export type UserRole = 'voter' | 'candidate' | 'officer' | 'admin';
-
-/**
- * User role information
- */
-export interface UserRoleInfo {
-  id: string;
-  userId: string;
-  role: UserRole;
-  createdAt: string;
-}
-
-/**
- * Database representation of a user role
- */
-export interface DbUserRoleInfo {
-  id: string;
-  user_id: string;
-  role: UserRole;
-  created_at: string;
-}
-
-/**
- * Maps database user role to application user role
- */
-export const mapDbUserRoleToUserRole = (dbUserRole: DbUserRoleInfo): UserRoleInfo => ({
-  id: dbUserRole.id,
-  userId: dbUserRole.user_id,
-  role: dbUserRole.role,
-  createdAt: dbUserRole.created_at
+  first_name: profile.first_name,
+  last_name: profile.last_name,
+  created_at: profile.created_at,
+  updated_at: profile.updated_at,
+  student_id: profile.student_id || '',
+  department: profile.department || '',
+  year_level: profile.year_level || '',
+  image_url: profile.image_url || undefined
 });

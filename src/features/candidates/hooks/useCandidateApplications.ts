@@ -1,10 +1,8 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { CandidateApplication } from "@/types";
 import { deleteCandidateApplication } from "../services/applicationStatusService";
 import { fetchCandidateApplicationsForElection, fetchUserApplications } from "../services/applicationReadService";
-import { useAuth } from "@/features/auth/context/AuthContext";
 
 export const useCandidateApplications = (electionId: string) => {
   const [applications, setApplications] = useState<CandidateApplication[]>([]);
@@ -76,17 +74,11 @@ export const useUserCandidateApplications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { user } = useAuth();
-  
+
   const fetchData = useCallback(async () => {
-    if (!user?.id) {
-      console.error("No user ID available for fetching applications");
-      return;
-    }
-    
     try {
       setLoading(true);
-      const data = await fetchUserApplications(user.id);
+      const data = await fetchUserApplications();
       setApplications(data);
       setError(null);
     } catch (err: any) {
@@ -95,7 +87,7 @@ export const useUserCandidateApplications = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, []);
   
   const deleteApplication = async (applicationId: string) => {
     if (isDeleting) return false; // Prevent multiple deletion attempts
@@ -126,10 +118,8 @@ export const useUserCandidateApplications = () => {
   };
 
   useEffect(() => {
-    if (user?.id) {
-      fetchData();
-    }
-  }, [fetchData, user?.id]);
+    fetchData();
+  }, [fetchData]);
 
   return {
     applications,

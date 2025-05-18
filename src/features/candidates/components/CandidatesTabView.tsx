@@ -35,6 +35,7 @@ const CandidatesTabView = ({
       <TabsContent value="candidates" className="py-4">
         <CandidatesList
           candidates={candidates}
+          loading={loading}
           isAdmin={isAdmin}
           onDeleteCandidate={handleDeleteCandidate}
           onOpenAddDialog={onOpenAddDialog}
@@ -45,6 +46,7 @@ const CandidatesTabView = ({
         <TabsContent value="applications" className="py-4">
           <CandidateApplicationsTab 
             electionId={electionId}
+            isAdmin={isAdmin}
           />
         </TabsContent>
       )}

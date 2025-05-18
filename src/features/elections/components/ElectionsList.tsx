@@ -1,59 +1,122 @@
 
-// Add the missing properties for upcoming, active, and completed elections
-const upcomingElection: Election = {
-  id: "1",
-  title: "Student Council Elections 2023",
-  description: "Annual elections for the Student Council positions",
-  startDate: "2023-05-15T08:00:00Z",
-  endDate: "2023-05-16T17:00:00Z",
-  status: "upcoming" as const,
-  createdBy: "admin-id",
-  createdAt: "2023-04-01T00:00:00Z",
-  updatedAt: "2023-04-01T00:00:00Z",
-  isPrivate: false,
-  colleges: [],
-  candidacyStartDate: "2023-04-15T08:00:00Z",
-  candidacyEndDate: "2023-04-30T17:00:00Z",
-  positions: ["President", "Vice President", "Secretary"],
-  allowFaculty: false,
-  bannerUrls: []
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search } from "lucide-react";
+import ElectionCard from "./ElectionCard";
+import { Election } from "@/types";
+
+// Sample data for elections
+const sampleElections: Election[] = [
+  {
+    id: "1",
+    title: "Student Body President",
+    description: "Vote for your student body president for the 2025-2026 academic year.",
+    startDate: "2025-09-01T00:00:00Z",
+    endDate: "2025-09-07T23:59:59Z",
+    status: "upcoming",
+    createdBy: "admin-1",
+    createdAt: "2025-08-01T00:00:00Z",
+    updatedAt: "2025-08-01T00:00:00Z",
+    isPrivate: false,
+    colleges: []
+  },
+  {
+    id: "2",
+    title: "Community Board Election",
+    description: "Select the members who will represent your community interests for the next term.",
+    startDate: "2025-05-01T00:00:00Z",
+    endDate: "2025-05-15T23:59:59Z",
+    status: "active",
+    createdBy: "admin-2",
+    createdAt: "2025-04-01T00:00:00Z",
+    updatedAt: "2025-04-01T00:00:00Z",
+    isPrivate: false,
+    colleges: []
+  },
+  {
+    id: "3",
+    title: "Club Leadership Vote",
+    description: "Choose the next president and vice president of the Environmental Club.",
+    startDate: "2025-02-15T00:00:00Z",
+    endDate: "2025-03-01T23:59:59Z",
+    status: "completed",
+    createdBy: "admin-3",
+    createdAt: "2025-01-15T00:00:00Z",
+    updatedAt: "2025-01-15T00:00:00Z",
+    isPrivate: true,
+    accessCode: "ECO2025",
+    colleges: []
+  }
+];
+
+/**
+ * Component to list and filter elections
+ */
+const ElectionsList = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  const filteredElections = sampleElections.filter((election) => {
+    // Apply search term filter
+    const matchesSearch = election.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         election.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Apply status filter if selected
+    const matchesStatus = statusFilter ? election.status === statusFilter : true;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row gap-4 items-end">
+        <div className="flex-1 space-y-2">
+          <Label htmlFor="search">Search Elections</Label>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="search"
+              placeholder="Search by title or description..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="w-full md:w-48 space-y-2">
+          <Label htmlFor="status-filter">Status</Label>
+          <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
+            <SelectTrigger id="status-filter">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="upcoming">Upcoming</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {filteredElections.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredElections.map((election) => (
+            <ElectionCard key={election.id} election={election} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-xl font-semibold">No elections found</p>
+          <p className="text-muted-foreground mt-2">
+            Try adjusting your search or filters
+          </p>
+        </div>
+      )}
+    </div>
+  );
 };
 
-const activeElection: Election = {
-  id: "2",
-  title: "Department Representatives Election",
-  description: "Election for department representatives across all colleges",
-  startDate: "2023-03-10T08:00:00Z",
-  endDate: "2023-03-20T17:00:00Z",
-  status: "active" as const,
-  createdBy: "admin-id",
-  createdAt: "2023-02-15T00:00:00Z",
-  updatedAt: "2023-02-15T00:00:00Z",
-  isPrivate: false,
-  colleges: [],
-  candidacyStartDate: "2023-02-15T08:00:00Z",
-  candidacyEndDate: "2023-02-28T17:00:00Z",
-  positions: ["Department Representative"],
-  allowFaculty: false,
-  bannerUrls: []
-};
-
-const completedElection: Election = {
-  id: "3",
-  title: "Faculty Senate Election",
-  description: "Election for Faculty Senate positions",
-  startDate: "2023-01-05T08:00:00Z",
-  endDate: "2023-01-10T17:00:00Z",
-  status: "completed" as const,
-  createdBy: "admin-id",
-  createdAt: "2022-12-20T00:00:00Z",
-  updatedAt: "2022-12-20T00:00:00Z",
-  isPrivate: true,
-  accessCode: "FACULTY2023",
-  colleges: [],
-  candidacyStartDate: "2022-12-01T08:00:00Z",
-  candidacyEndDate: "2022-12-15T17:00:00Z",
-  positions: ["Faculty Senate Chair", "Faculty Senate Secretary"],
-  allowFaculty: true,
-  bannerUrls: []
-};
+export default ElectionsList;

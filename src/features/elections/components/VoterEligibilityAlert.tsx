@@ -29,9 +29,6 @@ const VoterEligibilityAlert = ({ election, reason }: VoterEligibilityAlertProps)
           {election.eligibleYearLevels?.length ? (
             <span> and {election.eligibleYearLevels.join(', ')} year levels</span>
           ) : ""}
-          {election.allowFaculty === false && (
-            <span> (Faculty members are not eligible)</span>
-          )}
           .
         </p>
       </AlertDescription>

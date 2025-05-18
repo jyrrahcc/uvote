@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useElection } from "@/features/elections/hooks/useElection";
@@ -121,7 +122,7 @@ const ElectionDetailPage = () => {
       
       {/* Display banner carousel if available */}
       <ElectionBanner 
-        bannerUrls={election.bannerUrls} // Changed from banner_urls to bannerUrls
+        bannerUrls={election.banner_urls}
         title={election.title}
       />
       

@@ -9,38 +9,24 @@ import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/types/constants";
 
 interface CandidatesListProps {
   candidates: Candidate[];
-  positions?: string[];
-  onAddCandidate?: () => void;
-  onRemoveCandidate?: (index: number) => void;
-  onUpdateCandidate?: (index: number, field: keyof Candidate, value: string) => void;
-  onPreviewImage?: (url: string) => void;
-  isAdmin?: boolean; // Add this prop
-  onDeleteCandidate?: (id: string) => void; // Add this prop
-  onOpenAddDialog?: () => void; // Add this prop
+  positions: string[];
+  onAddCandidate: () => void;
+  onRemoveCandidate: (index: number) => void;
+  onUpdateCandidate: (index: number, field: keyof Candidate, value: string) => void;
+  onPreviewImage: (url: string) => void;
 }
 
 const CandidatesList = ({
   candidates,
-  positions = [],
+  positions,
   onAddCandidate,
   onRemoveCandidate,
   onUpdateCandidate,
-  onPreviewImage,
-  isAdmin,
-  onDeleteCandidate,
-  onOpenAddDialog
+  onPreviewImage
 }: CandidatesListProps) => {
   if (candidates.length === 0) {
-    return <EmptyCandidatesList onAddCandidate={onAddCandidate || onOpenAddDialog} />;
+    return <EmptyCandidatesList onAddCandidate={onAddCandidate} />;
   }
-
-  const handleRemove = (index: number) => {
-    if (onRemoveCandidate) {
-      onRemoveCandidate(index);
-    } else if (onDeleteCandidate && candidates[index]?.id) {
-      onDeleteCandidate(candidates[index].id);
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -50,7 +36,7 @@ const CandidatesList = ({
             candidate={candidate}
             index={index}
             onUpdate={onUpdateCandidate}
-            onRemove={handleRemove}
+            onRemove={onRemoveCandidate}
             positions={positions}
             departments={DLSU_DEPARTMENTS}
             yearLevels={YEAR_LEVELS}
@@ -60,13 +46,7 @@ const CandidatesList = ({
         </div>
       ))}
       
-      <Button 
-        type="button" 
-        variant="outline" 
-        size="sm" 
-        onClick={onAddCandidate || onOpenAddDialog} 
-        className="w-full"
-      >
+      <Button type="button" variant="outline" size="sm" onClick={onAddCandidate} className="w-full">
         <Plus className="mr-2 h-4 w-4" />
         Add Another Candidate
       </Button>
