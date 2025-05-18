@@ -4,7 +4,6 @@ export * from './applicationReadService';
 export * from './applicationStatusService';
 export * from './applicationSubmissionService';
 export * from './base/applicationBaseService';
+export * from './candidateService';
 
-// Re-export types with proper syntax for isolatedModules
-export type { CandidateApplication } from './base/applicationBaseService';
-export type { ApplicationStatusUpdateParams } from './applicationStatusService';
+// No need to re-export types that are already properly exported from their source files

@@ -61,3 +61,6 @@ export const processApplicationWithProfile = (application: any): CandidateApplic
   
   return mapDbCandidateApplicationToCandidateApplication(dbApp);
 };
+
+// Re-export the CandidateApplication type for index.ts to use
+export type { CandidateApplication } from "@/types";

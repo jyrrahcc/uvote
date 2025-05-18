@@ -2,16 +2,21 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
+ * Type definition for application status update parameters
+ */
+export interface ApplicationStatusUpdateParams {
+  status: "approved" | "rejected" | "disqualified" | "pending";
+  feedback?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+}
+
+/**
  * Update status and feedback for a candidate application (for admin use)
  */
 export const updateCandidateApplication = async (
   applicationId: string, 
-  updates: { 
-    status: "approved" | "rejected" | "disqualified" | "pending";
-    feedback?: string | null;
-    reviewed_by?: string | null;
-    reviewed_at?: string | null;
-  }
+  updates: ApplicationStatusUpdateParams
 ): Promise<void> => {
   try {
     // Remove any fields that aren't in the database schema
