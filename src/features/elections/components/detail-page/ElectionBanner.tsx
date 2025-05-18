@@ -1,5 +1,6 @@
 
 import React from "react";
+import ElectionBannerCarousel from "@/features/candidates/components/election-header/ElectionBannerCarousel";
 
 interface ElectionBannerProps {
   bannerUrls?: string[];
@@ -11,15 +12,7 @@ const ElectionBanner: React.FC<ElectionBannerProps> = ({ bannerUrls, title }) =>
     return null;
   }
 
-  return (
-    <div className="mb-6 overflow-hidden rounded-lg">
-      <img 
-        src={bannerUrls[0]} 
-        alt={title}
-        className="w-full h-48 md:h-64 object-cover"
-      />
-    </div>
-  );
+  return <ElectionBannerCarousel bannerUrls={bannerUrls} title={title} />;
 };
 
 export default ElectionBanner;

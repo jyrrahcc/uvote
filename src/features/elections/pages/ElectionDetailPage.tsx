@@ -113,7 +113,7 @@ const ElectionDetailPage = () => {
         />
       )}
       
-      {/* Election banner if available */}
+      {/* Election banner carousel if available */}
       <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
       
       {/* Election metadata */}

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useElection } from "@/features/elections/hooks/useElection";
@@ -13,6 +14,7 @@ import ElectionTitleSection from "@/features/elections/components/detail-page/El
 import ElectionStatCards from "@/features/admin/elections/components/detail/ElectionStatCards";
 import ElectionDetailTabs from "@/features/admin/elections/components/detail/ElectionDetailTabs";
 import ElectionDetailHeader from "@/features/admin/elections/components/detail/ElectionDetailHeader";
+import ElectionBanner from "@/features/elections/components/detail-page/ElectionBanner";
 
 const ElectionDetailPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
@@ -112,10 +114,16 @@ const ElectionDetailPage = () => {
         onResetVotes={handleResetVotes}
       />
       
-      {/* Rest of the components */}
+      {/* Election title and description */}
       <ElectionTitleSection 
         title={election.title}
         description={election.description || ""}
+      />
+      
+      {/* Display banner carousel if available */}
+      <ElectionBanner 
+        bannerUrls={election.banner_urls}
+        title={election.title}
       />
       
       <ElectionStatCards 

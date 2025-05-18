@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertCircle, Calendar, CheckCircle, Clock, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle, Clock, Users } from "lucide-react";
 import { Election } from "@/types";
 import { format } from "date-fns";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -11,6 +12,7 @@ import { useRole } from "@/features/auth/context/RoleContext";
 import CandidateApplicationForm from "../CandidateApplicationForm";
 import { toast } from "sonner";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import ElectionBannerCarousel from "./ElectionBannerCarousel";
 
 interface ElectionDetailsHeaderProps {
   election: Election | null;
@@ -33,7 +35,6 @@ const ElectionDetailsHeader = ({
   const { user } = useAuth();
   const { isAdmin, isVoter } = useRole();
   const [applicationFormOpen, setApplicationFormOpen] = useState(false);
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [eligibilityReason, setEligibilityReason] = useState<string | null>(null);
 
   // Check if candidacy period is active
@@ -102,73 +103,19 @@ const ElectionDetailsHeader = ({
     }
   };
 
-  const handleNextBanner = () => {
-    if (election?.banner_urls && election.banner_urls.length > 0) {
-      setCurrentBannerIndex((prev) => (prev + 1) % election.banner_urls.length);
-    }
-  };
-
-  const handlePreviousBanner = () => {
-    if (election?.banner_urls && election.banner_urls.length > 0) {
-      setCurrentBannerIndex((prev) => 
-        prev === 0 ? election.banner_urls.length - 1 : prev - 1
-      );
-    }
-  };
-
   if (!election || loading) return null;
   
   // Check if election has banners
   const hasBanners = election.banner_urls && election.banner_urls.length > 0;
-  // Get current banner
-  const currentBanner = hasBanners ? election.banner_urls[currentBannerIndex] : null;
   
   return (
     <div className="space-y-4">
       {/* Banners carousel */}
       {hasBanners && (
-        <div className="relative w-full h-[300px] overflow-hidden rounded-lg mb-6">
-          <img 
-            src={currentBanner || "/placeholder.svg"} 
-            alt={`${election.title} banner`}
-            className="w-full h-full object-cover"
-          />
-          
-          {election.banner_urls.length > 1 && (
-            <>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white/90"
-                onClick={handlePreviousBanner}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white/90"
-                onClick={handleNextBanner}
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-              
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                {election.banner_urls.map((_, index) => (
-                  <span 
-                    key={index} 
-                    className={`block w-2 h-2 rounded-full ${
-                      index === currentBannerIndex ? 'bg-white' : 'bg-white/50'
-                    }`}
-                    role="button"
-                    onClick={() => setCurrentBannerIndex(index)}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        <ElectionBannerCarousel 
+          bannerUrls={election.banner_urls}
+          title={election.title}
+        />
       )}
 
       <div className="flex flex-col md:flex-row md:items-center justify-between">
