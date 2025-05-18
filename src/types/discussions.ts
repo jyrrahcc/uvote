@@ -15,9 +15,9 @@ export interface Poll {
   topic_id?: string;
   ends_at?: string;
   total_votes?: number;
-  votes_count?: number; // Add this property
-  has_voted?: boolean; // Add this property
-  author?: any; // Add this property for author information
+  votes_count?: number; 
+  has_voted?: boolean; 
+  author?: any;
 }
 
 export interface PollOption {
@@ -40,6 +40,11 @@ export interface PollResults {
   options: PollOption[];
   totalVotes: number;
   userVote?: PollVote | null;
+  optionId?: string;
+  optionText?: string;
+  votes?: number;
+  percentage?: number;
+  voters?: any[];
 }
 
 export interface DbPoll {
@@ -92,7 +97,12 @@ export interface DiscussionComment {
   replies?: DiscussionComment[];
 }
 
+// Define Comment type as an alias to DiscussionComment for compatibility
+export type Comment = DiscussionComment;
+
 export interface Discussion {
+  id: string; // For compatibility with existing code expecting id on Discussion
+  title: string; // For compatibility with existing code expecting title on Discussion
   topic: DiscussionTopic;
   comments: DiscussionComment[];
 }
@@ -122,8 +132,8 @@ export const mapDbPollToPoll = (dbPoll: DbPoll, totalVotes = 0): Poll => {
     topic_id: dbPoll.topic_id,
     ends_at: dbPoll.ends_at,
     total_votes: totalVotes,
-    votes_count: totalVotes, // Add this property
-    has_voted: false // Default value for has_voted
+    votes_count: totalVotes,
+    has_voted: false
   };
 };
 
@@ -139,4 +149,19 @@ export const mapDbPollVoteToPollVote = (dbPollVote: DbPollVote): PollVote => {
     options: Array.isArray(options) ? options : [],
     created_at: dbPollVote.created_at
   };
+};
+
+// Helper function to convert DiscussionTopic to Discussion format
+export const topicToDiscussion = (topic: DiscussionTopic, comments: DiscussionComment[] = []): Discussion => {
+  return {
+    id: topic.id,
+    title: topic.title,
+    topic,
+    comments
+  };
+};
+
+// Helper function for mapping DB topics to Discussions
+export const mapDbTopicsToDiscussions = (topics: DiscussionTopic[]): Discussion[] => {
+  return topics.map(topic => topicToDiscussion(topic));
 };

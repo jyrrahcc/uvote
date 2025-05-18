@@ -1,67 +1,59 @@
-
-import { Calendar, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { DiscussionTopic } from "@/types/discussions";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MessageSquare, Pin, Lock, Calendar, User } from "lucide-react";
+import { DiscussionTopic } from "@/types/discussions";
 
-export interface DiscussionTopicCardProps {
+interface DiscussionTopicCardProps {
   topic: DiscussionTopic;
-  electionId: string;
-  onClick: () => void;  // Added onClick prop
+  onSelect: (topic: DiscussionTopic) => void;
 }
 
-const DiscussionTopicCard = ({ topic, electionId, onClick }: DiscussionTopicCardProps) => {
+const DiscussionTopicCard = ({ topic, onSelect }: DiscussionTopicCardProps) => {
   const formatDate = (dateString: string) => {
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
 
   return (
-    <Card 
-      className="cursor-pointer hover:border-green-300 transition-colors"
-      onClick={onClick}
+    <Card
+      className="cursor-pointer hover:shadow-md transition-shadow duration-200"
+      onClick={() => onSelect(topic)}
     >
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg">
-            {topic.title}
-          </CardTitle>
-          <div className="flex gap-1.5">
-            {topic.is_pinned && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                Pinned
-              </Badge>
-            )}
-            {topic.is_locked && (
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                Locked
-              </Badge>
-            )}
-          </div>
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          {topic.is_pinned && <Pin size={16} className="mr-2 text-green-600" />}
+          {topic.is_locked && <Lock size={16} className="mr-2 text-yellow-600" />}
+          {topic.title}
+        </CardTitle>
+        <CardDescription className="flex items-center">
+          <Calendar className="h-4 w-4 mr-1" />
+          <span className="mr-2">Posted {formatDate(topic.created_at)}</span>
+          <span className="mx-1">•</span>
+          <User className="h-4 w-4 mr-1" />
+          <span>{topic.author?.firstName} {topic.author?.lastName}</span>
+        </CardDescription>
       </CardHeader>
-      <CardContent className="pb-2">
-        {topic.content && (
-          <p className="text-muted-foreground line-clamp-2">
+      <CardContent>
+        {topic.content ? (
+          <p className="text-sm text-muted-foreground line-clamp-2">
             {topic.content}
           </p>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">No content provided</p>
         )}
       </CardContent>
-      <CardFooter className="pt-0 text-xs text-muted-foreground">
-        <div className="flex flex-wrap justify-between w-full">
-          <div className="flex items-center">
-            <Calendar size={14} className="mr-1" />
-            {formatDate(topic.created_at)}
-            <span className="mx-2">•</span>
-            <span>
-              By {topic.author?.firstName} {topic.author?.lastName}
-            </span>
-          </div>
-          <div className="flex items-center">
-            <MessageSquare size={14} className="mr-1" />
-            {topic.repliesCount || 0} {(topic.repliesCount === 1) ? 'reply' : 'replies'}
-          </div>
+      <CardFooter className="justify-between items-center">
+        <div className="flex items-center">
+          <MessageSquare className="mr-1 h-4 w-4 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">
+            {topic.replies_count || 0} {topic.replies_count === 1 ? "reply" : "replies"}
+          </span>
         </div>
+        {topic.is_pinned && (
+          <Badge variant="secondary">
+            Pinned
+          </Badge>
+        )}
       </CardFooter>
     </Card>
   );

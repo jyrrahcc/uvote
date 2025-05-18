@@ -13,7 +13,7 @@ import DiscussionList from "./components/DiscussionList";
 import TopicView from "./components/TopicView";
 import PollsList from "./components/PollsList";
 import PollView from "./components/PollView";
-import { Discussion, Poll } from "@/types/discussions";
+import { Discussion, DiscussionTopic, Poll, topicToDiscussion } from "@/types/discussions";
 import { toast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -175,9 +175,9 @@ const DiscussionsPage = ({ electionId }: DiscussionsPageProps) => {
     setViewingPoll(false);
   };
   
-  const handleSelectTopic = async (topic: Discussion) => {
-    console.log("🔄 Selecting topic:", topic.id);
-    await loadTopic(topic.id);
+  const handleSelectTopic = async (topicObj: DiscussionTopic) => {
+    console.log("🔄 Selecting topic:", topicObj.id);
+    await loadTopic(topicObj.id);
     setViewingTopic(true);
   };
   

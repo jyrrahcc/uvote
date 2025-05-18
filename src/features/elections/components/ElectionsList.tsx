@@ -12,10 +12,11 @@ const upcomingElection: Election = {
   updatedAt: "2023-04-01T00:00:00Z",
   isPrivate: false,
   colleges: [],
-  candidacyStartDate: "2023-04-15T08:00:00Z", // Add missing property
-  candidacyEndDate: "2023-04-30T17:00:00Z", // Add missing property
-  positions: ["President", "Vice President", "Secretary"], // Add missing property
-  allowFaculty: false // Add missing property
+  candidacyStartDate: "2023-04-15T08:00:00Z",
+  candidacyEndDate: "2023-04-30T17:00:00Z",
+  positions: ["President", "Vice President", "Secretary"],
+  allowFaculty: false,
+  bannerUrls: []
 };
 
 const activeElection: Election = {
@@ -30,10 +31,11 @@ const activeElection: Election = {
   updatedAt: "2023-02-15T00:00:00Z",
   isPrivate: false,
   colleges: [],
-  candidacyStartDate: "2023-02-15T08:00:00Z", // Add missing property
-  candidacyEndDate: "2023-02-28T17:00:00Z", // Add missing property
-  positions: ["Department Representative"], // Add missing property
-  allowFaculty: false // Add missing property
+  candidacyStartDate: "2023-02-15T08:00:00Z",
+  candidacyEndDate: "2023-02-28T17:00:00Z",
+  positions: ["Department Representative"],
+  allowFaculty: false,
+  bannerUrls: []
 };
 
 const completedElection: Election = {
@@ -49,8 +51,9 @@ const completedElection: Election = {
   isPrivate: true,
   accessCode: "FACULTY2023",
   colleges: [],
-  candidacyStartDate: "2022-12-01T08:00:00Z", // Add missing property
-  candidacyEndDate: "2022-12-15T17:00:00Z", // Add missing property
-  positions: ["Faculty Senate Chair", "Faculty Senate Secretary"], // Add missing property
-  allowFaculty: true // Add missing property
+  candidacyStartDate: "2022-12-01T08:00:00Z",
+  candidacyEndDate: "2022-12-15T17:00:00Z",
+  positions: ["Faculty Senate Chair", "Faculty Senate Secretary"],
+  allowFaculty: true,
+  bannerUrls: []
 };

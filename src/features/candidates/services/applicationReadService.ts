@@ -9,6 +9,23 @@ export const processApplicationWithProfile = async (dbApplication: any): Promise
   return mapDbApplicationToApplication(dbApplication);
 };
 
+export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('candidate_applications')
+      .select('*')
+      .eq('election_id', electionId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return data.map(mapDbApplicationToApplication);
+  } catch (error) {
+    console.error('Error fetching applications for election:', error);
+    throw error;
+  }
+};
+
 export const fetchUserApplications = async (userId: string): Promise<CandidateApplication[]> => {
   try {
     const { data, error } = await supabase

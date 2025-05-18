@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
@@ -19,6 +20,8 @@ interface CandidateApplicationFormProps {
   onApplicationSubmitted?: () => void;
   isUserEligible?: boolean;
   eligibilityReason?: string | null;
+  initialEligibility?: boolean;
+  initialEligibilityReason?: string | null;
 }
 
 const CandidateApplicationForm = ({ 
@@ -28,8 +31,10 @@ const CandidateApplicationForm = ({
   onCancel,
   onClose,
   onApplicationSubmitted,
-  isUserEligible,
-  eligibilityReason
+  isUserEligible = true,
+  eligibilityReason = null,
+  initialEligibility,
+  initialEligibilityReason
 }: CandidateApplicationFormProps) => {
   const { user } = useAuth();
   const { registerCandidate, loading } = useCandidateRegistration({
@@ -74,6 +79,10 @@ const CandidateApplicationForm = ({
       onClose();
     }
   };
+
+  // Use either the direct props or the initial props for eligibility
+  const finalIsEligible = isUserEligible ?? initialEligibility ?? true;
+  const finalEligibilityReason = eligibilityReason ?? initialEligibilityReason ?? null;
 
   return (
     <Form {...form}>
