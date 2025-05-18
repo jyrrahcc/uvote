@@ -4,4 +4,4 @@ export * from './candidateService';
 export * from './applicationReadService';
 export * from './applicationStatusService';
 export * from './applicationSubmissionService';
-export * from './base/applicationBaseService';
+// Don't re-export processApplicationWithProfile since it's already exported from applicationReadService

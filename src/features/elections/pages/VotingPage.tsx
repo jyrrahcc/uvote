@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
-import { Candidate, Election, mapDbElectionToElection } from "@/types";
+import { Candidate, Election, DbElection, mapDbElectionToElection } from "@/types";
 import { toast } from "sonner";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
@@ -61,8 +61,14 @@ const VotingPage = () => {
           return;
         }
         
+        // Validate that status is the expected enum type
+        const dbElection: DbElection = {
+          ...electionData,
+          status: (electionData.status as "upcoming" | "active" | "completed")
+        };
+        
         // Map the database election object to the app's Election type
-        const election = mapDbElectionToElection(electionData);
+        const election = mapDbElectionToElection(dbElection);
         setElection(election);
         
         // Check if user has already voted
@@ -157,7 +163,7 @@ const VotingPage = () => {
           isVoter={false} 
         />
         <ElectionTitleSection title={election.title} description={election.description} />
-        <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
+        <ElectionBanner bannerUrls={election.bannerUrls} title={election.title} />
         <VoterVerification isVoter={isVoter} showToast={false} />
       </div>
     );
@@ -183,7 +189,7 @@ const VotingPage = () => {
           isVoter={isVoter} 
         />
         <ElectionTitleSection title={election.title} description={election.description} />
-        <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
+        <ElectionBanner bannerUrls={election.bannerUrls} title={election.title} />
         <PrivateElectionAccess
           election={election}
           onVerify={handleAccessCodeValidation}
@@ -203,7 +209,7 @@ const VotingPage = () => {
       
       <ElectionTitleSection title={election.title} description={election.description} />
       
-      <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
+      <ElectionBanner bannerUrls={election.bannerUrls} title={election.title} />
       
       {candidates && candidates.length > 0 ? (
         <VotingForm 

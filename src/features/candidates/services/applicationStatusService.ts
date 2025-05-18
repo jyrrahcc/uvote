@@ -1,102 +1,53 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { CandidateApplication, CandidateApplicationUpdate } from '@/types';
 import { toast } from 'sonner';
 
 /**
- * Approve a candidate application
- * @param applicationId The ID of the application to approve
+ * Update the status of a candidate application
  */
-export const approveApplication = async (applicationId: string) => {
-  return updateCandidateApplication(applicationId, 'approved');
-};
-
-/**
- * Reject a candidate application
- * @param applicationId The ID of the application to reject
- * @param reason Optional reason for rejection
- */
-export const rejectApplication = async (applicationId: string, reason?: string) => {
-  return updateCandidateApplication(applicationId, 'rejected', reason);
-};
-
-/**
- * Disqualify a candidate application
- * @param applicationId The ID of the application to disqualify
- * @param reason Reason for disqualification
- */
-export const disqualifyApplication = async (applicationId: string, reason: string) => {
-  return updateCandidateApplication(applicationId, 'disqualified', reason);
-};
-
-/**
- * Update a candidate application
- * @param applicationId The ID of the application to update
- * @param status The new status for the application
- * @param reason Optional reason for rejection/disqualification
- */
-export const updateCandidateApplication = async (
-  applicationId: string, 
-  status: 'approved' | 'rejected' | 'disqualified' | 'pending', 
-  reason?: string
-) => {
+export const updateCandidateApplication = async (applicationId: string, update: CandidateApplicationUpdate): Promise<CandidateApplication> => {
   try {
-    const updateData: any = { 
-      status, 
-      updated_at: new Date().toISOString() 
-    };
-    
-    if (status === 'rejected') {
-      updateData.rejection_reason = reason || null;
-    } else if (status === 'disqualified') {
-      updateData.disqualification_reason = reason || null;
-    }
-    
+    // Update application status
     const { data, error } = await supabase
       .from('candidate_applications')
-      .update(updateData)
-      .eq('id', applicationId);
+      .update({
+        status: update.status,
+        feedback: update.feedback,
+        reviewed_by: update.reviewed_by,
+        reviewed_at: update.reviewed_at
+      })
+      .eq('id', applicationId)
+      .select('*, profiles:user_id(*)')
+      .single();
     
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
     
-    let actionText = '';
-    switch(status) {
-      case 'approved': actionText = 'approved'; break;
-      case 'rejected': actionText = 'rejected'; break;
-      case 'disqualified': actionText = 'disqualified'; break;
-      default: actionText = 'updated';
-    }
-    
-    toast.success(`Application ${actionText} successfully`);
-    return data;
+    // Return the updated application
+    return data as CandidateApplication;
   } catch (error) {
-    console.error(`Error updating application to ${status}:`, error);
-    toast.error(`Failed to update application status`);
+    console.error("Error updating application status:", error);
+    toast.error("Failed to update application status");
     throw error;
   }
 };
 
 /**
  * Delete a candidate application
- * @param applicationId The ID of the application to delete
  */
-export const deleteCandidateApplication = async (applicationId: string) => {
+export const deleteCandidateApplication = async (applicationId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('candidate_applications')
       .delete()
       .eq('id', applicationId);
     
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
     
-    toast.success('Application deleted successfully');
-    return data;
+    return true;
   } catch (error) {
-    console.error('Error deleting application:', error);
-    toast.error('Failed to delete application');
-    throw error;
+    console.error("Error deleting application:", error);
+    toast.error("Failed to delete application");
+    return false;
   }
 };

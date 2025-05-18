@@ -1,7 +1,7 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { CandidateApplication, Election, mapDbElectionToElection } from "@/types";
-import { checkUserEligibility } from "@/utils/eligibilityUtils";
+import { supabase } from '@/integrations/supabase/client';
+import { CandidateApplication, Election, DbElection, mapDbElectionToElection } from '@/types';
+import { checkUserEligibility } from '@/utils/eligibilityUtils';
 import { v4 as uuidv4 } from "uuid";
 import { processApplicationWithProfile } from "./base/applicationBaseService";
 
@@ -35,7 +35,13 @@ export const submitCandidateApplication = async (applicationData: Omit<Candidate
       
     if (electionError) throw electionError;
     
-    const election = mapDbElectionToElection(electionData);
+    // Validate that status is the expected enum type
+    const dbElection: DbElection = {
+      ...electionData,
+      status: (electionData.status as "upcoming" | "active" | "completed")
+    };
+    
+    const election = mapDbElectionToElection(dbElection);
     const eligibilityResult = await checkUserEligibility(applicationData.user_id, election);
     
     if (!eligibilityResult.isEligible) {

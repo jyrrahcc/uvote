@@ -143,3 +143,4 @@ export interface PositionWithCandidates {
   maxSelectableCandidates: number;
   candidates: any[]; // Candidates for this position
 }
+

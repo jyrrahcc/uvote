@@ -5,133 +5,72 @@
 export interface Candidate {
   id: string;
   name: string;
-  bio?: string;
   position: string;
-  image_url?: string;
-  election_id: string;
-  created_by?: string;
-  created_at?: string;
-  student_id?: string;
+  bio?: string;
+  imageUrl?: string;
+  electionId: string;
+  createdBy: string;
+  createdAt: string;
   department?: string;
-  year_level?: string;
+  yearLevel?: string;
+  studentId?: string;
 }
 
 /**
- * Candidate Application type definition
+ * CandidateApplication type definition
  */
 export interface CandidateApplication {
   id: string;
-  name: string;
-  bio?: string; 
-  position: string;
-  image_url?: string;
-  election_id: string;
   user_id: string;
-  created_at?: string;
-  updated_at?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'disqualified';
-  feedback?: string;
-  reviewed_by?: string;
-  reviewed_at?: string;
+  election_id: string;
+  name: string;
+  position: string;
+  bio?: string;
+  image_url?: string;
   student_id?: string;
   department?: string;
   year_level?: string;
-}
-
-/**
- * Database Candidate type for mapping
- */
-export interface DbCandidate {
-  id: string;
-  name: string;
-  bio?: string | null;
-  position: string;
-  image_url?: string | null;
-  election_id: string | null;
-  created_by?: string | null;
-  created_at?: string | null;
-  student_id?: string | null;
-  department?: string | null;
-  year_level?: string | null;
-}
-
-/**
- * Database Candidate Application type for mapping
- */
-export interface DbCandidateApplication {
-  id: string;
-  name: string;
-  bio?: string | null;
-  position: string;
-  image_url?: string | null;
-  election_id: string;
-  user_id: string;
-  created_at?: string | null;
-  updated_at?: string | null;
-  status: string;
+  status: "approved" | "rejected" | "disqualified" | "pending";
   feedback?: string | null;
+  created_at: string;
+  updated_at: string;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
-  student_id?: string | null;
-  department?: string | null;
-  year_level?: string | null;
-  // Optional field for profile information
   profiles?: {
-    student_id?: string | null;
-    department?: string | null;
-    year_level?: string | null;
-    first_name: string;
-    last_name: string;
-  } | null;
+    first_name?: string;
+    last_name?: string;
+    department?: string;
+    year_level?: string;
+    student_id?: string;
+  };
 }
 
 /**
- * Supabase to App Schema Transformation Functions for Candidate
+ * CandidateApplicationUpdate type definition
  */
-export const mapDbCandidateToCandidate = (dbCandidate: DbCandidate): Candidate => {
+export interface CandidateApplicationUpdate {
+  status: "approved" | "rejected" | "disqualified" | "pending";
+  feedback: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+}
+
+/**
+ * Map database candidate to application Candidate type
+ */
+export function mapDbCandidateToCandidate(dbCandidate: any): Candidate {
   return {
     id: dbCandidate.id,
     name: dbCandidate.name,
-    bio: dbCandidate.bio || undefined,
     position: dbCandidate.position,
-    image_url: dbCandidate.image_url || undefined,
-    election_id: dbCandidate.election_id || '',
-    created_by: dbCandidate.created_by || undefined,
-    created_at: dbCandidate.created_at || undefined,
-    student_id: dbCandidate.student_id || undefined,
-    department: dbCandidate.department || undefined,
-    year_level: dbCandidate.year_level || undefined
+    bio: dbCandidate.bio,
+    imageUrl: dbCandidate.image_url,
+    electionId: dbCandidate.election_id,
+    createdBy: dbCandidate.created_by,
+    createdAt: dbCandidate.created_at,
+    department: dbCandidate.department,
+    yearLevel: dbCandidate.year_level,
+    studentId: dbCandidate.student_id,
   };
-};
+}
 
-/**
- * Supabase to App Schema Transformation Functions for Candidate Application
- */
-export const mapDbCandidateApplicationToCandidateApplication = (
-  dbApplication: DbCandidateApplication
-): CandidateApplication => {
-  // Map the status value ensuring type safety
-  let status: 'pending' | 'approved' | 'rejected' | 'disqualified' = 'pending';
-  if (dbApplication.status === 'approved') status = 'approved';
-  else if (dbApplication.status === 'rejected') status = 'rejected';
-  else if (dbApplication.status === 'disqualified') status = 'disqualified';
-
-  return {
-    id: dbApplication.id,
-    name: dbApplication.name,
-    bio: dbApplication.bio || undefined,
-    position: dbApplication.position,
-    image_url: dbApplication.image_url || undefined,
-    election_id: dbApplication.election_id,
-    user_id: dbApplication.user_id,
-    created_at: dbApplication.created_at || undefined,
-    updated_at: dbApplication.updated_at || undefined,
-    status: status,
-    feedback: dbApplication.feedback || undefined,
-    reviewed_by: dbApplication.reviewed_by || undefined,
-    reviewed_at: dbApplication.reviewed_at || undefined,
-    student_id: dbApplication.student_id || dbApplication.profiles?.student_id || undefined,
-    department: dbApplication.department || dbApplication.profiles?.department || undefined,
-    year_level: dbApplication.year_level || dbApplication.profiles?.year_level || undefined
-  };
-};

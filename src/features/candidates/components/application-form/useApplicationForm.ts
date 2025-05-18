@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
-import { Election, mapDbElectionToElection } from "@/types";
+import { Election, DbElection, mapDbElectionToElection } from "@/types";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 // Department and year level constants
@@ -107,8 +107,14 @@ export const useApplicationForm = ({
         }
 
         if (electionData) {
+          // Validate that status is the expected enum type
+          const dbElection: DbElection = {
+            ...electionData,
+            status: (electionData.status as "upcoming" | "active" | "completed")
+          };
+          
           // Use the mapper function to convert the DB election to the application Election type
-          const mappedElection = mapDbElectionToElection(electionData);
+          const mappedElection = mapDbElectionToElection(dbElection);
           setElection(mappedElection);
           setAvailablePositions(mappedElection.positions || []);
           
@@ -177,7 +183,7 @@ export const useApplicationForm = ({
         position,
         bio: bio.trim(),
         image_url: imageUrl || null,
-        status: 'pending',
+        status: 'pending' as "pending",
         department,
         year_level: yearLevel
       };

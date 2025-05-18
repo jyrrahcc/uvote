@@ -100,4 +100,3 @@ export const fetchElectionResults = async (electionId: string): Promise<Election
     throw error;
   }
 };
-
