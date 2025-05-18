@@ -47,7 +47,7 @@ const ElectionDetailPage = () => {
   }
   
   if (error || !election) {
-    return <ElectionErrorState error={error} />;
+    return <ElectionErrorState error={error ? error.toString() : "Unknown error"} />;
   }
 
   // Calculate stats based on positionVotes

@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
@@ -79,7 +80,7 @@ const ElectionDetailPage = () => {
 
   // If error, display error state
   if (error || !election) {
-    return <ElectionErrorState error={error} />;
+    return <ElectionErrorState error={error ? error.toString() : "Unknown error"} />;
   }
 
   // Render election details

@@ -67,8 +67,6 @@ const ElectionFormTabs = ({
                 <ElectionVotersTab
                   ref={votersManagerRef}
                   electionId={editingElectionId}
-                  restrictVoting={form.watch("restrictVoting")}
-                  setRestrictVoting={(value) => form.setValue("restrictVoting", value)}
                 />
               </TabsContent>
               

@@ -20,7 +20,6 @@ export const electionFormSchema = z.object({
       if (val === undefined) return true;
       return true;
     }),
-  restrictVoting: z.boolean().default(false), // Kept for compatibility but not shown in UI
   positions: z.array(z.string()).default([]),
   banner_urls: z.array(z.string()).default([]),
 }).refine((data) => {

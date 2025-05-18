@@ -4,12 +4,10 @@ import EligibleVotersManager from "../../EligibleVotersManager";
 
 interface ElectionVotersTabProps {
   electionId: string | null;
-  restrictVoting: boolean;
-  setRestrictVoting: (value: boolean) => void;
 }
 
 const ElectionVotersTab: ForwardRefRenderFunction<any, ElectionVotersTabProps> = (
-  { electionId, restrictVoting, setRestrictVoting },
+  { electionId },
   ref
 ) => {
   // Use forwardRef to expose the EligibleVotersManager ref to parent
@@ -28,8 +26,6 @@ const ElectionVotersTab: ForwardRefRenderFunction<any, ElectionVotersTabProps> =
         ref={ref}
         electionId={electionId}
         isNewElection={!electionId}
-        restrictVoting={restrictVoting}
-        setRestrictVoting={setRestrictVoting}
       />
     </div>
   );
