@@ -1,25 +1,25 @@
 
 // Export types from candidates.ts
 export { 
-  CandidateApplication,
+  type CandidateApplication,
   mapDbApplicationToApplication, 
   mapApplicationToDbApplication,
-  DbCandidateApplication
+  type DbCandidateApplication
 } from './candidates';
 
 // Export types from users.ts
 export { 
-  DlsudProfile, 
+  type DlsudProfile, 
   mapDbProfileToProfile 
 } from './users';
 
 // Export types from discussions.ts
 export {
-  Poll,
-  PollOption,
-  PollVote,
-  DbPoll,
-  DbPollVote,
+  type Poll,
+  type PollOption,
+  type PollVote,
+  type DbPoll,
+  type DbPollVote,
   mapDbPollToPoll,
   mapDbPollVoteToPollVote
 } from './discussions';
