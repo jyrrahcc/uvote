@@ -86,12 +86,12 @@ export const calculateVotingStats = (election: Election, votes: any[]): VotingSt
   // Process department participation
   if (Object.keys(departmentVotes).length > 0) {
     // Calculate total eligible voters per department if available
-    if (election.departments && election.departments.length > 0) {
-      election.departments.forEach(dept => {
+    if (election.colleges && election.colleges.length > 0) {
+      election.colleges.forEach(dept => {
         if (!departmentVotes[dept]) {
-          departmentVotes[dept] = {count: 0, total: election.totalEligibleVoters / election.departments.length};
+          departmentVotes[dept] = {count: 0, total: election.totalEligibleVoters / election.colleges.length};
         } else {
-          departmentVotes[dept].total = election.totalEligibleVoters / election.departments.length;
+          departmentVotes[dept].total = election.totalEligibleVoters / election.colleges.length;
         }
       });
     }
