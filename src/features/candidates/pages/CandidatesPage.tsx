@@ -1,110 +1,92 @@
-
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useRole } from "@/features/auth/context/RoleContext";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { ElectionDetailsHeader } from "@/features/candidates/components/election-header/ElectionDetailsHeader";
+import { ApplicationForm } from "@/features/candidates/components/ApplicationForm";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { useCandidates } from "../hooks/useCandidates";
-import CandidatesPageHeader from "../components/CandidatesPageHeader";
-import CandidatesTabView from "../components/CandidatesTabView";
-import VoterEligibilityAlert from "@/features/elections/components/VoterEligibilityAlert";
-import ErrorState from "../components/ErrorState";
-import LoadingState from "../components/LoadingState";
+import { supabase } from "@/integrations/supabase/client";
+import { Election } from "@/types";
+import { checkUserEligibility } from "@/utils/eligibilityUtils";
 
 const CandidatesPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
-  const [activeTab, setActiveTab] = useState("candidates");
-  const { isAdmin } = useRole();
   const { user } = useAuth();
-  const navigate = useNavigate();
-
-  const {
-    candidates,
-    election,
-    loading,
-    error,
-    isDialogOpen,
-    setIsDialogOpen,
-    userHasRegistered,
-    userHasApplied,
-    isUserEligible,
-    eligibilityReason,
-    handleDeleteCandidate,
-    handleCandidateAdded,
-    handleApplicationSubmitted
-  } = useCandidates(electionId, user?.id);
+  const [election, setElection] = useState<Election | null>(null);
+  const [userEligibility, setUserEligibility] = useState<{ isEligible: boolean; reason: string | null }>({
+    isEligible: true,
+    reason: null,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    if (error) {
-      console.error("Error in CandidatesPage:", error);
-    }
-  }, [error]);
+    const fetchElectionAndEligibility = async () => {
+      if (!electionId || !user) return;
 
-  const isElectionActiveOrUpcoming = () => {
-    return election?.status === 'active' || election?.status === 'upcoming';
-  };
+      setIsLoading(true);
+      try {
+        // Fetch election details
+        const { data: electionData, error: electionError } = await supabase
+          .from('elections')
+          .select('*')
+          .eq('id', electionId)
+          .single();
 
-  if (loading) {
-    return <LoadingState />;
+        if (electionError) {
+          console.error("Error fetching election:", electionError);
+          return;
+        }
+
+        if (electionData) {
+          setElection(electionData);
+
+          // Check user eligibility
+          const eligibility = await checkUserEligibility(user.id, electionData);
+          setUserEligibility(eligibility);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchElectionAndEligibility();
+  }, [electionId, user]);
+
+  const isUserEligible = !election?.restrictVoting || userEligibility?.isEligible;
+
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
 
-  if (error || !election) {
-    return <ErrorState error={error} />;
-  }
-
-  // Show eligibility restriction message if not eligible and not admin
-  if (!isUserEligible && !isAdmin && election?.restrictVoting) {
-    return (
-      <div className="space-y-6">
-        <CandidatesPageHeader
-          election={election}
-          isAdmin={isAdmin}
-          isDialogOpen={false}
-          setIsDialogOpen={() => {}}
-          electionId={electionId || ''}
-          userId={user?.id}
-          userHasRegistered={false}
-          userHasApplied={false}
-          isUserEligible={false}
-          handleCandidateAdded={() => {}}
-          isElectionActiveOrUpcoming={isElectionActiveOrUpcoming}
-          handleApplicationSubmitted={() => {}}
-        />
-        
-        <VoterEligibilityAlert 
-          election={election}
-          reason={eligibilityReason}
-        />
-      </div>
-    );
+  if (!election) {
+    return <div>Election not found.</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <CandidatesPageHeader
-        election={election}
-        isAdmin={isAdmin}
-        isDialogOpen={isDialogOpen}
-        setIsDialogOpen={setIsDialogOpen}
-        electionId={electionId || ''}
-        userId={user?.id}
-        userHasRegistered={userHasRegistered}
-        userHasApplied={userHasApplied}
-        isUserEligible={isUserEligible}
-        handleCandidateAdded={handleCandidateAdded}
-        isElectionActiveOrUpcoming={isElectionActiveOrUpcoming}
-        handleApplicationSubmitted={handleApplicationSubmitted}
-      />
-      
-      <CandidatesTabView
-        isAdmin={isAdmin}
-        candidates={candidates}
-        loading={loading}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        electionId={electionId || ''}
-        handleDeleteCandidate={handleDeleteCandidate}
-        onOpenAddDialog={() => setIsDialogOpen(true)}
-      />
+    <div>
+      <ElectionDetailsHeader election={election} />
+
+      {!isUserEligible && (
+        <Alert className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            You are not eligible to apply for this election. Reason: {userEligibility.reason || "Unknown"}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isUserEligible && (
+        <ApplicationForm
+          electionId={electionId || ""}
+          userId={user?.id || ""}
+          onClose={() => setShowForm(false)}
+          initialEligibility={userEligibility.isEligible}
+          initialEligibilityReason={userEligibility.reason}
+        />
+      )}
     </div>
   );
 };

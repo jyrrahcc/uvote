@@ -1,364 +1,204 @@
+import React from 'react';
+import { format } from 'date-fns';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { CardContent, CardFooter } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { DlsudProfile } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, Clock, InfoIcon, LockIcon } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
-// Constants
-const DLSU_DEPARTMENTS = [
-  "College of Business Administration and Accountancy",
-  "College of Education",
-  "College of Engineering, Architecture and Technology",
-  "College of Humanities, Arts and Social Sciences",
-  "College of Science and Computer Studies",
-  "College of Criminal Justice Education",
-  "College of Tourism and Hospitality Management"
-];
-
-const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
-
-const FACULTY_POSITIONS = [
-  "Professor",
-  "Associate Professor",
-  "Assistant Professor",
-  "Instructor",
-  "Lecturer",
-  "Department Chair",
-  "Dean",
-  "Research Faculty"
-];
-
-interface ProfileFormProps {
-  profile: DlsudProfile | null;
+interface Profile {
+  id: string;
   firstName: string;
-  setFirstName: (value: string) => void;
   lastName: string;
-  setLastName: (value: string) => void;
-  studentId: string;
-  setStudentId: (value: string) => void;
-  department: string;
-  setDepartment: (value: string) => void;
-  yearLevel: string;
-  setYearLevel: (value: string) => void;
-  isVerified: boolean;
-  isPendingVerification: boolean;
-  setIsPendingVerification: (value: boolean) => void;
-  onSignOut: () => void;
+  email: string;
+  imageUrl?: string;
+  studentId?: string;
+  department?: string;
+  yearLevel?: string;
+  isFaculty?: boolean;
+  facultyPosition?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const ProfileForm = ({
-  profile,
-  firstName,
-  setFirstName,
-  lastName,
-  setLastName,
-  studentId,
-  setStudentId,
-  department,
-  setDepartment,
-  yearLevel,
-  setYearLevel,
-  isVerified,
-  isPendingVerification,
-  setIsPendingVerification,
-  onSignOut
-}: ProfileFormProps) => {
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFaculty, setIsFaculty] = useState(profile?.is_faculty || false);
-  const [facultyPosition, setFacultyPosition] = useState(profile?.faculty_position || "");
-  
-  const isProfileComplete = !!firstName && !!lastName && !!studentId && !!department && 
-    (isFaculty ? !!facultyPosition : !!yearLevel);
+interface ProfileFormProps {
+  profile: Profile | null;
+  onUpdateProfile: (data: Profile) => void;
+  loading: boolean;
+}
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Prevent updates if the profile is verified
-    if (isVerified) {
-      toast.info("Profile is verified and cannot be edited", {
-        description: "Contact an administrator if you need to update your information."
-      });
-      return;
-    }
+const formSchema = z.object({
+  firstName: z.string().min(2, {
+    message: "First name must be at least 2 characters.",
+  }),
+  lastName: z.string().min(2, {
+    message: "Last name must be at least 2 characters.",
+  }),
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+  studentId: z.string().optional(),
+  department: z.string().optional(),
+  yearLevel: z.string().optional(),
+  isFaculty: z.boolean().default(false).optional(),
+  facultyPosition: z.string().optional(),
+});
 
-    if (!profile) return;
+const ProfileForm = ({ profile, onUpdateProfile, loading }: ProfileFormProps) => {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      firstName: profile?.firstName || "",
+      lastName: profile?.lastName || "",
+      email: profile?.email || "",
+      studentId: profile?.studentId || "",
+      department: profile?.department || "",
+      yearLevel: profile?.yearLevel || "",
+      isFaculty: profile?.isFaculty || false,
+      facultyPosition: profile?.facultyPosition || '',
+    },
+    mode: "onChange",
+  })
 
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-          student_id: studentId,
-          department: department,
-          year_level: isFaculty ? null : yearLevel,
-          is_faculty: isFaculty,
-          faculty_position: isFaculty ? facultyPosition : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", profile.id);
+  const isFaculty = profile?.isFaculty || false;
+  const facultyPosition = profile?.facultyPosition || '';
 
-      if (error) throw error;
-      
-      // Check if profile is now complete but not verified
-      if (isProfileComplete && !isVerified) {
-        setIsPendingVerification(true);
-      }
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    onUpdateProfile({
+      ...profile,
+      ...values,
+    } as Profile);
+  }
 
-      toast.success("Profile updated successfully");
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile information");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSubmitForVerification = async () => {
-    if (!isProfileComplete) {
-      toast.warning("Please complete your profile before submitting for verification");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // We're not actually updating anything in the database here
-      // We're just using this as a flag to indicate that the user has submitted their profile for verification
-      setIsPendingVerification(true);
-      
-      toast.success("Your profile has been submitted for verification!", {
-        description: "An administrator will review and verify your profile shortly."
-      });
-    } catch (error) {
-      console.error("Error submitting for verification:", error);
-      toast.error("Failed to submit profile for verification");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
   return (
-    <form onSubmit={handleUpdateProfile}>
-      <CardContent className="space-y-4">
-        {isVerified && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
-            <div className="flex items-center space-x-2">
-              <LockIcon className="h-4 w-4 text-blue-500" />
-              <span className="text-blue-700 font-medium">Profile is verified and locked</span>
-            </div>
-            <p className="text-sm text-blue-600 mt-1">
-              Your profile has been verified and cannot be edited. Contact an administrator if you need to make changes.
-            </p>
-          </div>
-        )}
-        
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={profile?.email || ""}
-            disabled
-          />
-          <p className="text-xs text-muted-foreground">
-            Email cannot be changed
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="firstName">First Name</Label>
-          <Input
-            id="firstName"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            disabled={isVerified}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Last Name</Label>
-          <Input
-            id="lastName"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            disabled={isVerified}
-            required
-          />
-        </div>
-        
-        {/* Faculty checkbox */}
-        <div className="flex items-center space-x-2">
-          <Checkbox 
-            id="isFaculty" 
-            checked={isFaculty} 
-            onCheckedChange={(checked) => setIsFaculty(checked === true)}
-            disabled={isVerified}
-          />
-          <Label htmlFor="isFaculty" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-            I am a faculty member
-          </Label>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="studentId">{isFaculty ? "Faculty ID*" : "Student ID*"}</Label>
-          <Input
-            id="studentId"
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            placeholder={isFaculty ? "e.g., FAC-2023-001" : "e.g., 2018-00123-ST-0"}
-            disabled={isVerified}
-            required
-          />
-          <p className="text-xs text-muted-foreground">
-            Your DLSU-D {isFaculty ? "Faculty" : "Student"} ID Number (required for verification)
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="department">College/Department*</Label>
-          <Select
-            value={department}
-            onValueChange={setDepartment}
-            disabled={isVerified}
-            required
-          >
-            <SelectTrigger id="department">
-              <SelectValue placeholder="Select your college" />
-            </SelectTrigger>
-            <SelectContent>
-              {DLSU_DEPARTMENTS.map((dept) => (
-                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            Required for verification and college-specific elections
-          </p>
-        </div>
-        
-        {isFaculty ? (
-          <div className="space-y-2">
-            <Label htmlFor="facultyPosition">Faculty Position*</Label>
-            <Select
-              value={facultyPosition}
-              onValueChange={setFacultyPosition}
-              disabled={isVerified}
-              required
-            >
-              <SelectTrigger id="facultyPosition">
-                <SelectValue placeholder="Select your position" />
-              </SelectTrigger>
-              <SelectContent>
-                {FACULTY_POSITIONS.map((position) => (
-                  <SelectItem key={position} value={position}>{position}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Your current position at DLSU-D
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <Label htmlFor="yearLevel">Year Level*</Label>
-            <Select
-              value={yearLevel}
-              onValueChange={setYearLevel}
-              disabled={isVerified}
-              required={!isFaculty}
-            >
-              <SelectTrigger id="yearLevel">
-                <SelectValue placeholder="Select your year level" />
-              </SelectTrigger>
-              <SelectContent>
-                {YEAR_LEVELS.map((year) => (
-                  <SelectItem key={year} value={year}>{year}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Required for verification and year-specific elections
-            </p>
-          </div>
-        )}
-        
-        <div className="space-y-2">
-          <Label htmlFor="joined">Joined</Label>
-          <Input
-            id="joined"
-            value={profile?.created_at 
-              ? new Date(profile.created_at).toLocaleDateString() 
-              : ""
-            }
-            disabled
-          />
-        </div>
-        
-        <div className="pt-2 flex flex-col space-y-2">
-          <Label className="font-semibold">Verification Status</Label>
-          <div className={`px-3 py-2 rounded-md text-center ${
-            isVerified 
-              ? 'bg-green-100 text-green-800' 
-              : isPendingVerification 
-                ? 'bg-amber-100 text-amber-800'
-                : 'bg-gray-100 text-gray-800'
-          }`}>
-            {isVerified ? (
-              <div className="flex items-center justify-center space-x-2">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Verified</span>
-              </div>
-            ) : isPendingVerification ? (
-              <div className="flex items-center justify-center space-x-2">
-                <Clock className="h-4 w-4" />
-                <span>Pending Verification</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center space-x-2">
-                <InfoIcon className="h-4 w-4" />
-                <span>Not Submitted</span>
-              </div>
+    <div className="profile-form">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First name</FormLabel>
+                <FormControl>
+                  <Input placeholder="First name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <Button 
-          type="submit" 
-          className="w-full bg-[#008f50] hover:bg-[#007a45]" 
-          disabled={isSaving || isVerified}
-        >
-          {isSaving ? "Saving..." : "Save Changes"}
-        </Button>
-        
-        {isProfileComplete && !isVerified && !isPendingVerification && (
-          <Button 
-            type="button"
-            onClick={handleSubmitForVerification}
-            className="w-full bg-blue-600 hover:bg-blue-700" 
-            disabled={isSubmitting || !isProfileComplete}
-          >
-            {isSubmitting ? "Submitting..." : "Submit for Verification"}
-          </Button>
-        )}
-        
-        <Button 
-          type="button" 
-          variant="outline" 
-          className="w-full"
-          onClick={onSignOut}
-        >
-          Sign Out
-        </Button>
-      </CardFooter>
-    </form>
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Last name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input placeholder="Email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="studentId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Student ID</FormLabel>
+                <FormControl>
+                  <Input placeholder="Student ID" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department</FormLabel>
+                <FormControl>
+                  <Input placeholder="Department" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="yearLevel"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Year Level</FormLabel>
+                <FormControl>
+                  <Input placeholder="Year Level" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="isFaculty"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel>Is Faculty</FormLabel>
+                  <FormDescription>
+                    Enable this if you are a faculty member.
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          {isFaculty && (
+            <FormField
+              control={form.control}
+              name="facultyPosition"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Faculty Position</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Faculty Position" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          <Button type="submit" disabled={loading}>Update Profile</Button>
+        </form>
+      </Form>
+      <p className="text-xs text-muted-foreground mt-4">
+        Account created on {profile?.createdAt ? format(new Date(profile.createdAt), 'PPP') : ''}
+      </p>
+    </div>
   );
 };
 

@@ -21,6 +21,7 @@ export interface Election {
   bannerUrls?: string[];
   totalEligibleVoters?: number;
   allowFaculty: boolean;
+  restrictVoting?: boolean;
 }
 
 // Candidate type definition
@@ -68,7 +69,8 @@ export const mapDbElectionToElection = (dbElection: any): Election => ({
   positions: Array.isArray(dbElection.positions) ? dbElection.positions : [],
   bannerUrls: Array.isArray(dbElection.banner_urls) ? dbElection.banner_urls : [],
   totalEligibleVoters: dbElection.total_eligible_voters,
-  allowFaculty: dbElection.allow_faculty || false
+  allowFaculty: dbElection.allow_faculty || false,
+  restrictVoting: dbElection.restrict_voting || false
 });
 
 // Vote type definition
