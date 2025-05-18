@@ -146,7 +146,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         restrict_voting: false, // Always set to false as we're removing this feature
         status: status,
         positions: values.positions,
-        banner_urls: values.banner_urls,
+        banner_urls: values.bannerUrls,
         allow_faculty: values.allowFaculty
       };
       

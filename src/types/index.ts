@@ -128,4 +128,14 @@ export const mapDbCandidateToCandidate = (dbCandidate: any): Candidate => ({
 });
 
 // Export the CandidateApplication type from candidates.ts
-export { CandidateApplication, mapDbApplicationToApplication, mapApplicationToDbApplication } from './candidates';
+export { 
+  CandidateApplication, 
+  mapDbApplicationToApplication, 
+  mapApplicationToDbApplication 
+} from './candidates';
+
+// Export the DlsudProfile from users.ts
+export { 
+  DlsudProfile, 
+  mapDbProfileToProfile 
+} from './users';
