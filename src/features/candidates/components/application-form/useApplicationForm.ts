@@ -1,24 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Election, mapDbElectionToElection } from "@/types";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
-
-// Department and year level constants
-export const DLSU_DEPARTMENTS = [
-  "College of Science (COS)",
-  "College of Liberal Arts (CLA)",
-  "College of Engineering and Architecture (CEA)",
-  "College of Education (COE)",
-  "College of Business Administration (CBA)",
-  "College of Criminal Justice (CJUS)",
-  "College of Tourism and Hospitality Management (CTHM)",
-  "College of International Hospitality Management (CIHM)"
-];
-
-export const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "Graduate Student"];
+import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/types/constants";
 
 interface UseApplicationFormProps {
   electionId: string;
@@ -56,10 +42,8 @@ export const useApplicationForm = ({
   const [election, setElection] = useState<Election | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   
-  // Make these available in the component
-  const departments = DLSU_DEPARTMENTS;
-  const yearLevels = YEAR_LEVELS;
-
+  // These are now imported from constants.ts and don't need to be declared here
+  
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -225,8 +209,6 @@ export const useApplicationForm = ({
     setDepartment,
     yearLevel,
     setYearLevel,
-    departments,
-    yearLevels,
     submitting,
     imageUploading,
     setImageUploading,

@@ -49,8 +49,6 @@ const CandidateApplicationForm = ({
     setDepartment,
     yearLevel,
     setYearLevel,
-    departments,
-    yearLevels,
     submitting,
     imageUploading,
     setImageUploading,
@@ -115,8 +113,6 @@ const CandidateApplicationForm = ({
         setDepartment={setDepartment}
         yearLevel={yearLevel}
         setYearLevel={setYearLevel}
-        departments={departments}
-        yearLevels={yearLevels}
       />
       
       <BioTextarea
