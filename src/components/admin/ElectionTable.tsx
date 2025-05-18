@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,13 +112,18 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
     try {
       setCompletingId(electionId);
       
-      // Use the completeElection service function instead of direct Supabase call
+      // Use the completeElection service function
       await completeElection(electionId);
       
       toast.success("Election marked as completed", {
         description: "The election has been finalized before its scheduled end date"
       });
-      onElectionDeleted(); // Refresh the list
+      
+      // Force a refresh of the elections list to show updated status
+      setTimeout(() => {
+        onElectionDeleted(); // This will trigger a refresh of the list
+      }, 300);
+      
     } catch (error) {
       console.error("Error completing election:", error);
       toast.error("Failed to complete the election");

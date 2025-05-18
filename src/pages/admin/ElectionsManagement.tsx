@@ -20,13 +20,14 @@ const ElectionsManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingElectionId, setEditingElectionId] = useState<string | null>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
   
-  // Fetch elections on component mount
+  // Fetch elections when component mounts or refresh is triggered
   useEffect(() => {
     if (user) {
       fetchElections();
     }
-  }, [user]);
+  }, [user, refreshCounter]);
   
   /**
    * Fetch all elections from the database
@@ -94,7 +95,7 @@ const ElectionsManagement = () => {
    */
   const handleElectionAction = () => {
     console.log("Election action triggered, refreshing list...");
-    fetchElections();
+    setRefreshCounter(prev => prev + 1); // Force component to refresh
   };
 
   return (

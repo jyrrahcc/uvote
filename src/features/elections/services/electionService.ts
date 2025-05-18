@@ -101,11 +101,19 @@ export const completeElection = async (electionId: string): Promise<Election> =>
   try {
     console.log("Starting completion of election:", electionId);
     
+    // Add a small delay to ensure database transaction completes
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Update status to completed in database
     const { data, error } = await supabase
       .from('elections')
-      .update({ status: 'completed' })
+      .update({ 
+        status: 'completed',
+        // Force trigger the update by adding a small timestamp change
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', electionId)
-      .select()
+      .select('*')
       .single();
     
     if (error) {
@@ -118,6 +126,8 @@ export const completeElection = async (electionId: string): Promise<Election> =>
     }
     
     console.log("Election successfully marked as completed:", data);
+    
+    // Return the updated election data
     return mapDbElectionToElection(data as DbElection);
   } catch (error) {
     console.error("Error completing election:", error);
