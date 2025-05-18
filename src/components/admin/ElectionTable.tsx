@@ -223,22 +223,6 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
   };
 
   /**
-   * Export elections data to PDF
-   */
-  const exportToPDF = () => {
-    toast.info("Preparing PDF download", {
-      description: "Your PDF is being generated and will download shortly.",
-      duration: 3000,
-    });
-    
-    // In a real implementation, you would use a PDF library
-    // like jspdf or similar. For now we just show a success message.
-    setTimeout(() => {
-      toast.success("PDF downloaded successfully");
-    }, 1500);
-  };
-
-  /**
    * Filter and sort elections data based on search term, filters and sort config
    */
   const filterAndSortElections = (): Election[] => {
@@ -327,21 +311,9 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
             </SelectContent>
           </Select>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Download className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={exportToCSV}>
-                <Download className="h-4 w-4 mr-2" /> Export to CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToPDF}>
-                <Download className="h-4 w-4 mr-2" /> Export to PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="outline" size="icon" onClick={exportToCSV}>
+            <Download className="h-4 w-4" />
+          </Button>
         </div>
       </div>
       
