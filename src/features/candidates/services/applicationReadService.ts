@@ -1,131 +1,104 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { CandidateApplication } from "@/types";
-import { processApplicationWithProfile } from "./base/applicationBaseService";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 /**
- * Check if a user has already applied for a specific election
+ * Process application data with user profile
  */
-export const hasUserAppliedForElection = async (electionId: string, userId: string): Promise<boolean> => {
+export const processApplicationWithProfile = async (application: any) => {
   try {
-    const { data } = await supabase
-      .from('candidate_applications')
-      .select('id')
-      .eq('election_id', electionId)
-      .eq('user_id', userId);
-      
-    return data !== null && data.length > 0;
+    // Get user profile for this application
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', application.user_id)
+      .single();
+    
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+    }
+    
+    // Return application with profile data
+    return {
+      ...application,
+      profile: profileData || null
+    };
   } catch (error) {
-    console.error("Error checking if user has applied:", error);
-    return false;
+    console.error('Error processing application:', error);
+    return application;
   }
 };
 
 /**
- * Fetch applications for the current user
+ * Fetch candidate applications for a specific election
  */
-export const fetchUserApplications = async (userId?: string): Promise<CandidateApplication[]> => {
+export const fetchCandidateApplicationsForElection = async (electionId: string) => {
   try {
-    // If userId is provided, use it; otherwise, get the current user's ID from the session
-    let userIdToUse = userId;
-    
-    if (!userIdToUse) {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) throw sessionError;
-      if (!sessionData.session?.user?.id) {
-        throw new Error("User not authenticated");
-      }
-      
-      userIdToUse = sessionData.session.user.id;
-    }
-    
-    // Changed to use separate query approach rather than join with explicit hint
-    const { data: applications, error: applicationsError } = await supabase
+    const { data, error } = await supabase
       .from('candidate_applications')
       .select('*')
-      .eq('user_id', userIdToUse)
+      .eq('election_id', electionId)
       .order('created_at', { ascending: false });
-      
-    if (applicationsError) throw applicationsError;
     
-    // Fetch profiles separately
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name, department, year_level, student_id')
-      .in('id', applications.map(app => app.user_id));
-      
-    if (profilesError) throw profilesError;
+    if (error) {
+      throw error;
+    }
     
-    // Merge the profile data with applications
-    const enrichedApplications = applications.map(app => {
-      const profile = profiles.find(p => p.id === app.user_id);
-      
-      return {
-        ...app,
-        profiles: profile ? {
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          department: profile.department,
-          year_level: profile.year_level,
-          student_id: profile.student_id
-        } : null
-      };
-    });
+    // Process each application to include profile data
+    const applicationsWithProfiles = await Promise.all(
+      (data || []).map(processApplicationWithProfile)
+    );
     
-    return enrichedApplications.map(item => processApplicationWithProfile(item));
+    return applicationsWithProfiles;
   } catch (error) {
-    console.error("Error fetching user applications:", error);
+    console.error('Error fetching applications:', error);
+    toast.error('Failed to load candidate applications');
     throw error;
   }
 };
 
 /**
- * Fetch all applications for a specific election (for admin use)
+ * Fetch candidate applications for a specific user
  */
-export const fetchCandidateApplicationsForElection = async (electionId: string): Promise<CandidateApplication[]> => {
+export const fetchUserCandidateApplications = async (userId: string) => {
   try {
-    // Changed to use separate query approach rather than join with explicit hint
-    const { data: applications, error: applicationsError } = await supabase
+    const { data, error } = await supabase
       .from('candidate_applications')
-      .select('*')
-      .eq('election_id', electionId)
+      .select('*, elections(*)')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
-      
-    if (applicationsError) throw applicationsError;
     
-    // Empty array check to avoid unnecessary profile query
-    if (!applications || applications.length === 0) {
-      return [];
+    if (error) {
+      throw error;
     }
     
-    // Fetch profiles separately
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name, department, year_level, student_id')
-      .in('id', applications.map(app => app.user_id));
-      
-    if (profilesError) throw profilesError;
-    
-    // Merge the profile data with applications
-    const enrichedApplications = applications.map(app => {
-      const profile = profiles.find(p => p.id === app.user_id);
-      
-      return {
-        ...app,
-        profiles: profile ? {
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          department: profile.department,
-          year_level: profile.year_level,
-          student_id: profile.student_id
-        } : null
-      };
-    });
-    
-    return enrichedApplications.map(application => processApplicationWithProfile(application));
+    return data || [];
   } catch (error) {
-    console.error("Error fetching applications for election:", error);
+    console.error('Error fetching user applications:', error);
+    toast.error('Failed to load your applications');
+    throw error;
+  }
+};
+
+/**
+ * Fetch a single candidate application by ID
+ */
+export const fetchCandidateApplicationById = async (applicationId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('candidate_applications')
+      .select('*, elections(*)')
+      .eq('id', applicationId)
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching application:', error);
+    toast.error('Failed to load application details');
     throw error;
   }
 };

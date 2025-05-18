@@ -1,10 +1,9 @@
 
-import { Calendar, Users, Lock, ChevronRight, University, ImageIcon } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Calendar, ChevronRight, Lock, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Election } from "@/types";
 
 interface ElectionCardProps {
@@ -12,33 +11,36 @@ interface ElectionCardProps {
   isAccessVerified?: boolean;
 }
 
+/**
+ * Election card component
+ */
 const ElectionCard = ({ election, isAccessVerified = false }: ElectionCardProps) => {
+  // Helper functions for date formatting and status checks
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
-  
-  const getStatusBadge = () => {
+
+  // Generate status badge
+  const renderStatusBadge = () => {
     switch (election.status) {
-      case "active":
+      case 'active':
         return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>;
-      case "upcoming":
+      case 'upcoming':
         return <Badge variant="outline" className="text-blue-500 border-blue-500">Upcoming</Badge>;
-      case "completed":
-        return <Badge variant="secondary">Completed</Badge>;
+      case 'completed':
+        return <Badge variant="secondary" className="bg-gray-200">Completed</Badge>;
       default:
         return null;
     }
   };
 
+  // Determine if election is in candidacy period
   const isInCandidacyPeriod = () => {
-    if (!election.candidacyStartDate || !election.candidacyEndDate) {
-      return false;
-    }
+    if (!election.candidacyStartDate || !election.candidacyEndDate) return false;
     
     const now = new Date();
     const candidacyStart = new Date(election.candidacyStartDate);
@@ -47,111 +49,109 @@ const ElectionCard = ({ election, isAccessVerified = false }: ElectionCardProps)
     return now >= candidacyStart && now <= candidacyEnd;
   };
 
-  // Get first banner image if available
-  const hasBanner = election.bannerUrls && election.bannerUrls.length > 0;
-  const firstBanner = hasBanner ? election.bannerUrls[0] : null;
-  
+  // Determine the card action based on election status
+  const getCardAction = () => {
+    if (election.status === 'completed') {
+      return (
+        <Button asChild className="w-full bg-primary hover:bg-primary/90">
+          <Link to={`/elections/${election.id}/results`}>
+            View Results <ChevronRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      );
+    } 
+    
+    if (election.status === 'active') {
+      if (election.isPrivate && !isAccessVerified) {
+        return (
+          <Button asChild className="w-full bg-primary hover:bg-primary/90">
+            <Link to={`/elections/${election.id}`}>
+              Access Election <Lock className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        );
+      }
+      
+      return (
+        <Button asChild className="w-full bg-primary hover:bg-primary/90">
+          <Link to={`/elections/${election.id}/vote`}>
+            Vote Now <ChevronRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      );
+    }
+    
+    if (isInCandidacyPeriod()) {
+      return (
+        <Button asChild className="w-full bg-primary hover:bg-primary/90">
+          <Link to={`/elections/${election.id}/candidates`}>
+            Apply as Candidate <ChevronRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      );
+    }
+    
+    return (
+      <Button asChild className="w-full">
+        <Link to={`/elections/${election.id}`}>
+          View Details <ChevronRight className="ml-2 h-4 w-4" />
+        </Link>
+      </Button>
+    );
+  };
+
   return (
-    <Card className="h-full flex flex-col transition-all hover:shadow-md">
-      {/* Banner image */}
-      {firstBanner && (
-        <div className="w-full h-[160px] overflow-hidden">
+    <Card className="overflow-hidden transition-all hover:shadow-md">
+      {election.bannerUrls && election.bannerUrls.length > 0 ? (
+        <div className="relative w-full h-36">
           <img 
-            src={firstBanner} 
+            src={election.bannerUrls[0]} 
             alt={election.title}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.src = "/placeholder.svg";
-              e.currentTarget.className = "w-full h-full object-contain p-4";
-            }}
           />
+          <div className="absolute top-2 right-2">
+            {renderStatusBadge()}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-muted/40 w-full h-24 flex items-center justify-center">
+          <div className="absolute top-2 right-2">
+            {renderStatusBadge()}
+          </div>
+          <Users className="h-12 w-12 text-muted-foreground/50" />
         </div>
       )}
 
-      <CardHeader className={`pb-2 ${firstBanner ? 'pt-3' : 'pt-6'}`}>
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg">{election.title}</CardTitle>
-          <div className="flex flex-col items-end gap-2">
-            {getStatusBadge()}
-            {isInCandidacyPeriod() && (
-              <Badge className="bg-blue-500 hover:bg-blue-600 whitespace-nowrap">
-                Accepting Candidates
-              </Badge>
-            )}
-            {election.isPrivate && !isAccessVerified && (
-              <Badge variant="outline" className="flex items-center gap-1 border-amber-500 text-amber-600">
-                <Lock className="h-3 w-3" />
-                <span>Private</span>
-              </Badge>
-            )}
-          </div>
-        </div>
-        
-        <CardDescription className="flex items-center gap-1 text-muted-foreground">
-          <University className="h-3.5 w-3.5 mr-0.5" />
-          <span>
-            {election.colleges && election.colleges.length > 0
-              ? election.colleges.length > 1
-                ? `${election.colleges[0]} +${election.colleges.length - 1}`
-                : election.colleges[0]
-              : election.department || "University-wide"}
-          </span>
+      <CardHeader className="pb-2">
+        <CardTitle>{election.title}</CardTitle>
+        <CardDescription className="line-clamp-2">
+          {election.description}
         </CardDescription>
       </CardHeader>
-      
-      <CardContent className="flex-grow">
-        {election.description && (
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{election.description}</p>
+
+      <CardContent className="space-y-2 pb-2">
+        <div className="flex items-center text-sm">
+          <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">
+            {formatDate(election.startDate)} - {formatDate(election.endDate)}
+          </span>
+        </div>
+        
+        {election.department && (
+          <Badge variant="outline" className="mr-1">
+            {election.department}
+          </Badge>
         )}
         
-        <div className="space-y-3">
-          {election.candidacyStartDate && election.candidacyEndDate && (
-            <div className="flex items-start gap-2">
-              <Calendar className="h-4 w-4 text-blue-500 mt-0.5" />
-              <div>
-                <p className="text-xs font-medium text-blue-600">Candidacy Period</p>
-                <p className="text-sm">
-                  {formatDate(election.candidacyStartDate)} - {formatDate(election.candidacyEndDate)}
-                </p>
-              </div>
-            </div>
-          )}
-          
-          <div className="flex items-start gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-xs font-medium">Voting Period</p>
-              <p className="text-sm">
-                {formatDate(election.startDate)} - {formatDate(election.endDate)}
-              </p>
-            </div>
-          </div>
-          
-          {election.restrictVoting && (
-            <div className="flex items-start gap-2">
-              <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-xs font-medium">Voter Eligibility</p>
-                <p className="text-sm">Restricted to selected DLSU-D community members</p>
-              </div>
-            </div>
-          )}
-        </div>
+        {election.isPrivate && (
+          <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
+            <Lock className="mr-1 h-3 w-3" /> Private
+          </Badge>
+        )}
       </CardContent>
-      
-      <Separator />
-      
-      <CardFooter className="pt-4">
-        <Button 
-          variant="default" 
-          className="w-full"
-          asChild
-        >
-          <Link to={`/elections/details/${election.id}`}>
-            View Election Details
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Link>
-        </Button>
+
+      <CardFooter className="pt-2">
+        {getCardAction()}
       </CardFooter>
     </Card>
   );
