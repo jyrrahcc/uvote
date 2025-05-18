@@ -1,65 +1,90 @@
 
-import { supabase } from "@/integrations/supabase/client";
-
 /**
- * Helper function to format dates consistently across the application
+ * Format large numbers with K, M, B suffixes
  */
-export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-/**
- * Helper function to truncate text with ellipsis
- */
-export const truncateText = (text: string, maxLength: number): string => {
-  if (text.length <= maxLength) return text;
-  return `${text.substring(0, maxLength)}...`;
-};
-
-/**
- * Generate a random access code for elections
- */
-export const generateAccessCode = (length: number = 6): string => {
-  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing chars like 0, O, 1, I
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
+export const formatNumberWithSuffix = (num: number): string => {
+  if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
   }
-  return result;
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num.toString();
 };
 
 /**
- * Check if a column exists in a table - simplified approach
+ * Calculate percentage and format it
  */
-export const checkColumnExists = async (tableName: string, columnName: string): Promise<boolean> => {
-  try {
-    // Attempt to query the table with the column
-    // Use a direct query instead of an RPC function that doesn't exist
-    const { error } = await supabase
-      .from(tableName as any)
-      .select(columnName)
-      .limit(1);
-    
-    // If no error, the column exists
-    if (!error) return true;
-    
-    // If error message indicates column doesn't exist
-    if (error.message && error.message.includes(`column "${columnName}" does not exist`)) {
-      return false;
-    }
-    
-    // For other errors, log and assume column doesn't exist
-    console.error("Error checking column existence:", error);
-    return false;
-  } catch (error) {
-    console.error("Exception checking column existence:", error);
-    return false;
+export const calculatePercentage = (value: number, total: number): string => {
+  if (total === 0) return '0%';
+  return `${Math.round((value / total) * 100)}%`;
+};
+
+/**
+ * Format a date range as a string
+ */
+export const formatDateRange = (startDate: string, endDate: string): string => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+};
+
+/**
+ * Get status color for visual indicators
+ */
+export const getStatusColor = (status: string): string => {
+  switch (status.toLowerCase()) {
+    case 'active':
+      return 'bg-green-500';
+    case 'upcoming':
+      return 'bg-blue-500';
+    case 'completed':
+      return 'bg-gray-500';
+    case 'pending':
+      return 'bg-yellow-500';
+    case 'cancelled':
+      return 'bg-red-500';
+    default:
+      return 'bg-gray-500';
   }
+};
+
+/**
+ * Format a timestamp to a friendly string
+ */
+export const formatTimeAgo = (timestamp: string): string => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  let interval = seconds / 31536000;
+  if (interval > 1) {
+    return Math.floor(interval) + ' years ago';
+  }
+  
+  interval = seconds / 2592000;
+  if (interval > 1) {
+    return Math.floor(interval) + ' months ago';
+  }
+  
+  interval = seconds / 86400;
+  if (interval > 1) {
+    return Math.floor(interval) + ' days ago';
+  }
+  
+  interval = seconds / 3600;
+  if (interval > 1) {
+    return Math.floor(interval) + ' hours ago';
+  }
+  
+  interval = seconds / 60;
+  if (interval > 1) {
+    return Math.floor(interval) + ' minutes ago';
+  }
+  
+  return Math.floor(seconds) + ' seconds ago';
 };
