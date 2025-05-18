@@ -284,28 +284,6 @@ export function ElectionDetailsTab() {
           )}
         />
       )}
-      
-      
-      <FormField
-        control={form.control}
-        name="restrictVoting"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-start space-x-2 space-y-0 rounded-md border p-4">
-            <FormControl>
-              <Checkbox
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-            <div className="space-y-1 leading-none">
-              <FormLabel>Restrict Voting</FormLabel>
-              <p className="text-sm text-muted-foreground">
-                Only selected users from the selected colleges and year levels can vote in this election
-              </p>
-            </div>
-          </FormItem>
-        )}
-      />
     </div>
   );
 }

@@ -14,15 +14,11 @@ import { useEligibleVoters } from "../hooks/useEligibleVoters";
 interface EligibleVotersManagerProps {
   electionId: string | null;
   isNewElection: boolean;
-  restrictVoting: boolean;
-  setRestrictVoting: (value: boolean) => void;
 }
 
 const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
   electionId,
-  isNewElection,
-  restrictVoting,
-  setRestrictVoting
+  isNewElection
 }, ref) => {
   const {
     loading,
@@ -41,29 +37,12 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
     handleSelectByYear,
     handleClearSelection,
     handleSaveEligibleVoters
-  } = useEligibleVoters(electionId, isNewElection, restrictVoting);
+  } = useEligibleVoters(electionId, isNewElection);
   
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     getEligibleVotersForNewElection: () => selectedVoters
   }));
-  
-  // If voting is not restricted, don't show any eligible voters UI
-  if (!restrictVoting) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Eligible Voters</CardTitle>
-          <CardDescription>
-            Voting is currently open to all users. Enable "Restrict Voting" to limit who can vote in this election.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <EmptyVotersState setRestrictVoting={setRestrictVoting} />
-        </CardContent>
-      </Card>
-    );
-  }
   
   return (
     <Card>

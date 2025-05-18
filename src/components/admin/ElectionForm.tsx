@@ -40,7 +40,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       endDate: "",
       isPrivate: false,
       accessCode: "",
-      restrictVoting: false, // This will remain in the form values but won't be shown in UI
       positions: DEFAULT_POSITIONS,
       banner_urls: [],
     },
@@ -77,7 +76,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             endDate: data.end_date || "",
             isPrivate: data.is_private || false,
             accessCode: data.access_code || "",
-            restrictVoting: data.restrict_voting || false,
             positions: Array.isArray(data.positions) ? data.positions : DEFAULT_POSITIONS,
             banner_urls: Array.isArray(data.banner_urls) ? data.banner_urls : [],
           });
@@ -228,9 +226,6 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
           toast.error("Warning: There was an issue processing candidates");
         }
       }
-      
-      // Process voters if needed, but we're not focusing on this for now
-      // as we're removing the restrict voting feature
       
       toast.success(editingElectionId ? "Election updated successfully" : "Election created successfully");
       onSuccess();

@@ -1,165 +1,188 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/features/auth/context/AuthContext";
-import { VoterEntry } from "../components/voters/VoterTable";
 
-export function useEligibleVoters(
+export interface Voter {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  department?: string;
+  year_level?: string;
+}
+
+export const useEligibleVoters = (
   electionId: string | null,
-  isNewElection: boolean,
-  restrictVoting: boolean
-) {
-  const [voters, setVoters] = useState<VoterEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  isNewElection: boolean
+) => {
+  // State for voters
+  const [allVoters, setAllVoters] = useState<Voter[]>([]);
   const [selectedVoters, setSelectedVoters] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { user } = useAuth();
 
-  // Fetch existing eligible voters if editing an election
+  // State for filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
+  const [yearFilter, setYearFilter] = useState<string | null>(null);
+
+  // Fetch all potential voters (profiles)
   useEffect(() => {
-    if (electionId && !isNewElection && restrictVoting) {
-      fetchEligibleVoters();
-    }
-  }, [electionId, isNewElection, restrictVoting]);
-  
-  // Fetch users to select from
-  useEffect(() => {
-    if (restrictVoting) {
-      fetchUsers();
-    }
-  }, [restrictVoting]);
+    const fetchVoters = async () => {
+      try {
+        setLoading(true);
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch users from profiles table
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email, first_name, last_name, department, year_level, student_id');
-      
-      if (error) {
-        console.error("Error fetching profiles:", error);
-        throw error;
-      }
-      
-      if (!data) {
-        throw new Error("No data returned from profiles query");
-      }
-      
-      // Transform data to voter entries
-      const transformedData = data.map(user => ({
-        id: user.id,
-        email: user.email || "",
-        name: `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Unnamed User",
-        department: user.department,
-        year_level: user.year_level,
-        student_id: user.student_id,
-        isSelected: selectedVoters.includes(user.id)
-      }));
-      
-      setVoters(transformedData);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast.error("Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const fetchEligibleVoters = async () => {
-    try {
-      if (!electionId) return;
-      
-      setLoading(true);
-      
-      // Get IDs of eligible voters
-      const { data, error } = await supabase
-        .from('eligible_voters')
-        .select('user_id')
-        .eq('election_id', electionId);
-      
-      if (error) {
-        console.error("Error fetching eligible voters:", error);
-        throw error;
-      }
-      
-      // Set selected voters
-      if (data) {
-        const eligibleVoterIds = data.map(v => v.user_id);
-        setSelectedVoters(eligibleVoterIds);
-      }
-      
-    } catch (error) {
-      console.error("Error fetching eligible voters:", error);
-      toast.error("Failed to load eligible voters");
-    } finally {
-      setLoading(false);
-    }
-  };
+        // Load all profiles for potential voters
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, email, department, year_level");
 
-  const handleSelectVoter = (voterId: string, isSelected: boolean) => {
-    if (isSelected) {
-      setSelectedVoters(prev => [...prev, voterId]);
-    } else {
-      setSelectedVoters(prev => prev.filter(id => id !== voterId));
-    }
-    
-    // Update the isSelected property in the voters array for visual feedback
-    setVoters(prev => 
-      prev.map(voter => 
-        voter.id === voterId 
-          ? { ...voter, isSelected }
-          : voter
-      )
+        if (profilesError) throw profilesError;
+
+        setAllVoters(profilesData || []);
+
+        // If editing existing election, fetch eligible voters
+        if (electionId) {
+          const { data: eligibleData, error: eligibleError } = await supabase
+            .from("eligible_voters")
+            .select("user_id")
+            .eq("election_id", electionId);
+
+          if (eligibleError) throw eligibleError;
+
+          // Set selected voters based on eligible_voters table
+          setSelectedVoters(eligibleData.map((item) => item.user_id));
+        }
+      } catch (error) {
+        console.error("Error fetching voters:", error);
+        toast.error("Failed to load voters");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVoters();
+  }, [electionId]);
+
+  // Filter voters based on search term and filters
+  const filteredVoters = allVoters.filter((voter) => {
+    const matchesSearch =
+      searchTerm.trim() === "" ||
+      voter.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      voter.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      voter.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesDepartment =
+      !departmentFilter || voter.department === departmentFilter;
+
+    const matchesYear = !yearFilter || voter.year_level === yearFilter;
+
+    return matchesSearch && matchesDepartment && matchesYear;
+  });
+
+  // Handle selecting/deselecting a voter
+  const handleSelectVoter = (userId: string) => {
+    setSelectedVoters((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
     );
   };
-  
+
+  // Handle toggle all visible voters
+  const handleToggleAllVoters = () => {
+    const allVisible = filteredVoters.map((voter) => voter.id);
+
+    if (allVisible.every((id) => selectedVoters.includes(id))) {
+      // If all visible are selected, deselect them
+      setSelectedVoters((prev) =>
+        prev.filter((id) => !allVisible.includes(id))
+      );
+    } else {
+      // Otherwise, select all visible
+      const newSelection = [...selectedVoters];
+      allVisible.forEach((id) => {
+        if (!newSelection.includes(id)) {
+          newSelection.push(id);
+        }
+      });
+      setSelectedVoters(newSelection);
+    }
+  };
+
+  // Handle selecting by department
+  const handleSelectByDepartment = () => {
+    if (!departmentFilter) return;
+
+    const departmentVoterIds = allVoters
+      .filter((voter) => voter.department === departmentFilter)
+      .map((voter) => voter.id);
+
+    setSelectedVoters((prev) => {
+      const newSelection = [...prev];
+      departmentVoterIds.forEach((id) => {
+        if (!newSelection.includes(id)) {
+          newSelection.push(id);
+        }
+      });
+      return newSelection;
+    });
+  };
+
+  // Handle selecting by year
+  const handleSelectByYear = () => {
+    if (!yearFilter) return;
+
+    const yearVoterIds = allVoters
+      .filter((voter) => voter.year_level === yearFilter)
+      .map((voter) => voter.id);
+
+    setSelectedVoters((prev) => {
+      const newSelection = [...prev];
+      yearVoterIds.forEach((id) => {
+        if (!newSelection.includes(id)) {
+          newSelection.push(id);
+        }
+      });
+      return newSelection;
+    });
+  };
+
+  // Clear selection
+  const handleClearSelection = () => {
+    setSelectedVoters([]);
+  };
+
+  // Save eligible voters for existing election
   const handleSaveEligibleVoters = async () => {
-    if (!electionId || isNewElection || !user?.id) return;
-    
+    if (!electionId) return;
+
     try {
       setSaving(true);
-      
-      // Delete existing eligible voters
+
+      // First delete all existing eligible voters for this election
       const { error: deleteError } = await supabase
-        .from('eligible_voters')
+        .from("eligible_voters")
         .delete()
-        .eq('election_id', electionId);
-      
-      if (deleteError) {
-        console.error("Error deleting eligible voters:", deleteError);
-        throw deleteError;
-      }
-      
-      if (selectedVoters.length === 0) {
-        toast.success("Eligible voters cleared successfully");
-        setSaving(false);
-        return;
-      }
-      
-      // Create an array of eligible voter objects
-      const eligibleVoters = selectedVoters.map(voterId => ({
-        election_id: electionId,
-        user_id: voterId,
-        added_by: user.id
-      }));
-      
-      // Insert in batches to avoid request size limits
-      const batchSize = 100;
-      for (let i = 0; i < eligibleVoters.length; i += batchSize) {
-        const batch = eligibleVoters.slice(i, i + batchSize);
+        .eq("election_id", electionId);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new eligible voters
+      if (selectedVoters.length > 0) {
         const { error: insertError } = await supabase
-          .from('eligible_voters')
-          .insert(batch);
-        
-        if (insertError) {
-          console.error("Error inserting eligible voters batch:", insertError);
-          throw insertError;
-        }
+          .from("eligible_voters")
+          .insert(
+            selectedVoters.map((userId) => ({
+              election_id: electionId,
+              user_id: userId,
+              added_by: (await supabase.auth.getUser()).data.user?.id,
+            }))
+          );
+
+        if (insertError) throw insertError;
       }
-      
+
       toast.success("Eligible voters saved successfully");
     } catch (error) {
       console.error("Error saving eligible voters:", error);
@@ -169,148 +192,23 @@ export function useEligibleVoters(
     }
   };
 
-  const handleToggleAllVoters = (checked: boolean) => {
-    if (checked) {
-      // Get IDs of all filtered voters
-      const filteredIds = filteredVoters.map(voter => voter.id);
-      // Combine with existing selections that aren't in the current filter
-      const otherSelectedIds = selectedVoters.filter(id => !filteredVoters.some(v => v.id === id));
-      setSelectedVoters([...otherSelectedIds, ...filteredIds]);
-      
-      // Update the isSelected property for visual feedback
-      setVoters(prev => 
-        prev.map(voter => 
-          filteredVoters.some(v => v.id === voter.id)
-            ? { ...voter, isSelected: true }
-            : voter
-        )
-      );
-    } else {
-      // Remove all filtered voters from selection
-      const filteredIds = filteredVoters.map(voter => voter.id);
-      setSelectedVoters(selectedVoters.filter(id => !filteredIds.includes(id)));
-      
-      // Update the isSelected property for visual feedback
-      setVoters(prev => 
-        prev.map(voter => 
-          filteredVoters.some(v => v.id === voter.id)
-            ? { ...voter, isSelected: false }
-            : voter
-        )
-      );
-    }
-  };
-
-  // Select all users in a department
-  const handleSelectByDepartment = (department: string) => {
-    if (!department) return;
-    
-    const departmentUserIds = voters
-      .filter(voter => voter.department === department)
-      .map(voter => voter.id);
-    
-    // Add the IDs to selected voters if not already there
-    const newSelection = [...selectedVoters];
-    let addedCount = 0;
-    
-    departmentUserIds.forEach(id => {
-      if (!newSelection.includes(id)) {
-        newSelection.push(id);
-        addedCount++;
-      }
-    });
-    
-    setSelectedVoters(newSelection);
-    
-    // Update the isSelected property for visual feedback
-    setVoters(prev => 
-      prev.map(voter => 
-        voter.department === department
-          ? { ...voter, isSelected: true }
-          : voter
-      )
-    );
-    
-    toast.success(`Added ${addedCount} users from ${department}`);
-  };
-  
-  // Select all users in a year level
-  const handleSelectByYear = (year: string) => {
-    if (!year) return;
-    
-    const yearUserIds = voters
-      .filter(voter => voter.year_level === year)
-      .map(voter => voter.id);
-    
-    // Add the IDs to selected voters if not already there
-    const newSelection = [...selectedVoters];
-    let addedCount = 0;
-    
-    yearUserIds.forEach(id => {
-      if (!newSelection.includes(id)) {
-        newSelection.push(id);
-        addedCount++;
-      }
-    });
-    
-    setSelectedVoters(newSelection);
-    
-    // Update the isSelected property for visual feedback
-    setVoters(prev => 
-      prev.map(voter => 
-        voter.year_level === year
-          ? { ...voter, isSelected: true }
-          : voter
-      )
-    );
-    
-    toast.success(`Added ${addedCount} users from ${year}`);
-  };
-
-  const handleClearSelection = () => {
-    setSelectedVoters([]);
-    // Update all voters to not be selected
-    setVoters(prev => prev.map(voter => ({ ...voter, isSelected: false })));
-    toast.success("Selection cleared");
-  };
-
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
-  const [yearFilter, setYearFilter] = useState<string | null>(null);
-
-  // Filter voters based on filters and search term
-  const filteredVoters = voters.filter(voter => {
-    const searchTermLower = searchTerm.toLowerCase();
-    const matchesSearch = (
-      voter.name.toLowerCase().includes(searchTermLower) ||
-      voter.email.toLowerCase().includes(searchTermLower) ||
-      (voter.student_id && voter.student_id.toLowerCase().includes(searchTermLower))
-    );
-    
-    const matchesDepartment = !departmentFilter || voter.department === departmentFilter;
-    const matchesYear = !yearFilter || voter.year_level === yearFilter;
-    
-    return matchesSearch && matchesDepartment && matchesYear;
-  });
-
   return {
-    voters,
     loading,
     saving,
+    allVoters,
     selectedVoters,
+    filteredVoters,
     searchTerm,
     setSearchTerm,
     departmentFilter,
     setDepartmentFilter,
     yearFilter,
     setYearFilter,
-    filteredVoters,
     handleSelectVoter,
     handleToggleAllVoters,
     handleSelectByDepartment,
     handleSelectByYear,
     handleClearSelection,
-    handleSaveEligibleVoters
+    handleSaveEligibleVoters,
   };
-}
+};
