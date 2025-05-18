@@ -130,7 +130,7 @@ const ElectionDetailPage = () => {
         candidates={candidates || []}
         positionVotes={positionVotes}
         activeTab={activeTab}
-        setActiveTab={activeTab}
+        setActiveTab={setActiveTab}
         stats={stats}
         votes={[]} // This would need to be populated if needed for vote details
       />
