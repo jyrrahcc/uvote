@@ -1,79 +1,85 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 /**
- * Update status and feedback for a candidate application (for admin use)
+ * Approve a candidate application
+ * @param applicationId The ID of the application to approve
  */
-export const updateCandidateApplication = async (
-  applicationId: string, 
-  updates: { 
-    status: "approved" | "rejected" | "disqualified" | "pending";
-    feedback?: string | null;
-    reviewed_by?: string | null;
-    reviewed_at?: string | null;
-  }
-): Promise<void> => {
+export const approveApplication = async (applicationId: string) => {
   try {
-    // Remove any fields that aren't in the database schema
-    const validUpdates = {
-      status: updates.status,
-      feedback: updates.feedback,
-      reviewed_by: updates.reviewed_by,
-      reviewed_at: updates.reviewed_at || new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('candidate_applications')
-      .update(validUpdates)
+      .update({ status: 'approved', updated_at: new Date().toISOString() })
       .eq('id', applicationId);
     
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     
-    // The database trigger will handle adding or removing the candidate
+    toast.success('Application approved successfully');
+    return data;
   } catch (error) {
-    console.error("Error updating application:", error);
+    console.error('Error approving application:', error);
+    toast.error('Failed to approve application');
     throw error;
   }
 };
 
 /**
- * Delete a candidate application (for admin or user)
+ * Reject a candidate application
+ * @param applicationId The ID of the application to reject
+ * @param reason Optional reason for rejection
  */
-export const deleteCandidateApplication = async (applicationId: string): Promise<boolean> => {
+export const rejectApplication = async (applicationId: string, reason?: string) => {
   try {
-    // First, check if the application actually exists
-    const { data: applicationExists, error: checkError } = await supabase
+    const { data, error } = await supabase
       .from('candidate_applications')
-      .select('id, status')
-      .eq('id', applicationId)
-      .single();
-    
-    if (checkError) {
-      console.error("Error checking if application exists:", checkError);
-      return false;
-    }
-    
-    if (!applicationExists) {
-      console.error("Application not found with ID:", applicationId);
-      return false;
-    }
-    
-    // Delete the application
-    const { error } = await supabase
-      .from('candidate_applications')
-      .delete()
+      .update({ 
+        status: 'rejected', 
+        updated_at: new Date().toISOString(),
+        rejection_reason: reason || null
+      })
       .eq('id', applicationId);
     
     if (error) {
-      console.error("Database error when deleting application:", error);
-      return false;
+      throw error;
     }
     
-    console.log("Application deleted successfully:", applicationId);
-    return true;
+    toast.success('Application rejected');
+    return data;
   } catch (error) {
-    console.error("Error deleting application:", error);
-    return false;
+    console.error('Error rejecting application:', error);
+    toast.error('Failed to reject application');
+    throw error;
+  }
+};
+
+/**
+ * Disqualify a candidate application
+ * @param applicationId The ID of the application to disqualify
+ * @param reason Reason for disqualification
+ */
+export const disqualifyApplication = async (applicationId: string, reason: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('candidate_applications')
+      .update({ 
+        status: 'disqualified', 
+        updated_at: new Date().toISOString(),
+        disqualification_reason: reason
+      })
+      .eq('id', applicationId);
+    
+    if (error) {
+      throw error;
+    }
+    
+    toast.success('Candidate disqualified');
+    return data;
+  } catch (error) {
+    console.error('Error disqualifying candidate:', error);
+    toast.error('Failed to disqualify candidate');
+    throw error;
   }
 };

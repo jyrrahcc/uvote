@@ -20,7 +20,15 @@ const sampleElections: Election[] = [
     createdAt: "2025-08-01T00:00:00Z",
     updatedAt: "2025-08-01T00:00:00Z",
     isPrivate: false,
-    colleges: []
+    candidacyStartDate: "2025-08-15T00:00:00Z",
+    candidacyEndDate: "2025-08-30T23:59:59Z",
+    positions: [],
+    bannerUrls: [],
+    colleges: [],
+    eligibleYearLevels: [],
+    allowFaculty: false,
+    restrictVoting: false,
+    department: "All Departments"
   },
   {
     id: "2",
@@ -33,7 +41,15 @@ const sampleElections: Election[] = [
     createdAt: "2025-04-01T00:00:00Z",
     updatedAt: "2025-04-01T00:00:00Z",
     isPrivate: false,
-    colleges: []
+    candidacyStartDate: "2025-04-15T00:00:00Z",
+    candidacyEndDate: "2025-04-25T23:59:59Z",
+    positions: [],
+    bannerUrls: [],
+    colleges: [],
+    eligibleYearLevels: [],
+    allowFaculty: true,
+    restrictVoting: true,
+    department: "Community Affairs"
   },
   {
     id: "3",
@@ -47,7 +63,15 @@ const sampleElections: Election[] = [
     updatedAt: "2025-01-15T00:00:00Z",
     isPrivate: true,
     accessCode: "ECO2025",
-    colleges: []
+    candidacyStartDate: "2025-01-25T00:00:00Z",
+    candidacyEndDate: "2025-02-10T23:59:59Z",
+    positions: [],
+    bannerUrls: [],
+    colleges: [],
+    eligibleYearLevels: [],
+    allowFaculty: false,
+    restrictVoting: true,
+    department: "Environmental Sciences"
   }
 ];
 
@@ -61,7 +85,7 @@ const ElectionsList = () => {
   const filteredElections = sampleElections.filter((election) => {
     // Apply search term filter
     const matchesSearch = election.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         election.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (election.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
     // Apply status filter if selected
     const matchesStatus = statusFilter ? election.status === statusFilter : true;
@@ -92,7 +116,7 @@ const ElectionsList = () => {
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="">All Statuses</SelectItem>
               <SelectItem value="upcoming">Upcoming</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>

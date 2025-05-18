@@ -48,8 +48,8 @@ const ElectionCard = ({ election, isAccessVerified = false }: ElectionCardProps)
   };
 
   // Get first banner image if available
-  const hasBanner = election.banner_urls && election.banner_urls.length > 0;
-  const firstBanner = hasBanner ? election.banner_urls[0] : null;
+  const hasBanner = election.bannerUrls && election.bannerUrls.length > 0;
+  const firstBanner = hasBanner ? election.bannerUrls[0] : null;
   
   return (
     <Card className="h-full flex flex-col transition-all hover:shadow-md">
