@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Vote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
@@ -10,9 +9,9 @@ interface LogoProps {
 
 const Logo = ({ size = 'medium', className }: LogoProps) => {
   const sizeClass = 
-    size === 'small' ? 'h-6 w-6' :
-    size === 'large' ? 'h-10 w-10' : 
-    'h-8 w-8';
+    size === 'small' ? 'h-6' :
+    size === 'large' ? 'h-10' : 
+    'h-8';
 
   const textClass =
     size === 'small' ? 'text-lg' :
@@ -21,9 +20,13 @@ const Logo = ({ size = 'medium', className }: LogoProps) => {
 
   return (
     <div className={cn("flex items-center", className)}>
-      <Vote className={cn(sizeClass, "text-[#008f50]")} />
+      <img 
+        src="/lovable-uploads/a2e96022-2a31-42ae-b0d8-8c7551ada70e.png" 
+        alt="uVote Logo" 
+        className={cn(sizeClass, "mr-2")}
+      />
       {size !== 'small' && (
-        <span className={cn("font-bold ml-2", textClass)}>
+        <span className={cn("font-bold", textClass)}>
           uVote
         </span>
       )}
