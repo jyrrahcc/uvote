@@ -22,15 +22,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Pencil, Trash2, Eye, RefreshCcw, Check, Download, List, ArrowUp, ArrowDown } from "lucide-react";
+import { Pencil, Trash2, Eye, RefreshCcw, Check, Download, ArrowUp, ArrowDown } from "lucide-react";
 import { Election } from "@/types";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -44,6 +38,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { completeElection, resetElectionVotes } from "@/features/elections/services/electionService";
 
 interface ElectionTableProps {
   elections: Election[];
@@ -63,7 +58,7 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("all"); // Changed from empty string to "all"
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "", direction: "asc" });
   
   /**
@@ -96,32 +91,7 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
   const handleResetVotes = async (electionId: string) => {
     try {
       setResettingId(electionId);
-      
-      const { data: votes, error: votesError } = await supabase
-        .from('votes')
-        .select('id')
-        .eq('election_id', electionId);
-      
-      if (votesError) throw votesError;
-      
-      if (votes && votes.length > 0) {
-        const voteIds = votes.map(vote => vote.id);
-        
-        const { error: candidatesError } = await supabase
-          .from('vote_candidates')
-          .delete()
-          .in('vote_id', voteIds);
-        
-        if (candidatesError) throw candidatesError;
-        
-        // Then delete all votes for this election
-        const { error: deleteError } = await supabase
-          .from('votes')
-          .delete()
-          .eq('election_id', electionId);
-        
-        if (deleteError) throw deleteError;
-      }
+      await resetElectionVotes(electionId);
       
       toast.success("Election votes have been reset successfully", {
         description: "All voters can now vote again in this election"
@@ -142,12 +112,8 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
     try {
       setCompletingId(electionId);
       
-      const { error } = await supabase
-        .from('elections')
-        .update({ status: 'completed' })
-        .eq('id', electionId);
-      
-      if (error) throw error;
+      // Use the completeElection service function instead of direct Supabase call
+      await completeElection(electionId);
       
       toast.success("Election marked as completed", {
         description: "The election has been finalized before its scheduled end date"
@@ -291,7 +257,7 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem> {/* Changed from empty string to "all" */}
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="upcoming">Upcoming</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>

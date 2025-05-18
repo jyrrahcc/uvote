@@ -46,6 +46,7 @@ const ElectionsManagement = () => {
       
       // Transform the data to match our Election interface
       const transformedElections = data?.map(mapDbElectionToElection) || [];
+      console.log("Fetched elections:", transformedElections); // Add logging to check fetched data
       setElections(transformedElections);
     } catch (error) {
       console.error("Error in fetchElections function:", error);
@@ -85,6 +86,14 @@ const ElectionsManagement = () => {
   const handleFormSuccess = () => {
     setIsDialogOpen(false);
     setEditingElectionId(null);
+    fetchElections();
+  };
+  
+  /**
+   * Handle election actions that require a refresh
+   */
+  const handleElectionAction = () => {
+    console.log("Election action triggered, refreshing list...");
     fetchElections();
   };
 
@@ -135,7 +144,7 @@ const ElectionsManagement = () => {
         <ElectionTable 
           elections={elections} 
           onEditElection={handleEditElection}
-          onElectionDeleted={fetchElections}
+          onElectionDeleted={handleElectionAction}
         />
       ) : (
         <div className="text-center py-10 border rounded-md">

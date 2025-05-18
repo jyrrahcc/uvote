@@ -99,6 +99,8 @@ export const createElection = async (electionData: any, userId: string): Promise
  */
 export const completeElection = async (electionId: string): Promise<Election> => {
   try {
+    console.log("Starting completion of election:", electionId);
+    
     const { data, error } = await supabase
       .from('elections')
       .update({ status: 'completed' })
@@ -106,12 +108,16 @@ export const completeElection = async (electionId: string): Promise<Election> =>
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error completing election:", error);
+      throw error;
+    }
     
     if (!data) {
       throw new Error("No data returned after completing election");
     }
     
+    console.log("Election successfully marked as completed:", data);
     return mapDbElectionToElection(data as DbElection);
   } catch (error) {
     console.error("Error completing election:", error);
