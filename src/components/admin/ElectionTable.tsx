@@ -97,12 +97,31 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
     try {
       setResettingId(electionId);
       
-      const { error } = await supabase
+      const { data: votes, error: votesError } = await supabase
         .from('votes')
-        .delete()
+        .select('id')
         .eq('election_id', electionId);
       
-      if (error) throw error;
+      if (votesError) throw votesError;
+      
+      if (votes && votes.length > 0) {
+        const voteIds = votes.map(vote => vote.id);
+        
+        const { error: candidatesError } = await supabase
+          .from('vote_candidates')
+          .delete()
+          .in('vote_id', voteIds);
+        
+        if (candidatesError) throw candidatesError;
+        
+        // Then delete all votes for this election
+        const { error: deleteError } = await supabase
+          .from('votes')
+          .delete()
+          .eq('election_id', electionId);
+        
+        if (deleteError) throw deleteError;
+      }
       
       toast.success("Election votes have been reset successfully", {
         description: "All voters can now vote again in this election"

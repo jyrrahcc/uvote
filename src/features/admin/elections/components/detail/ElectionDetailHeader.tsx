@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,12 +42,36 @@ const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
 }) => {
   const defaultNavigate = useNavigate();
   const nav = navigate || defaultNavigate;
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCompletingElection, setIsCompletingElection] = useState(false);
+  const [isResettingVotes, setIsResettingVotes] = useState(false);
 
   const handleEditSuccess = () => {
     setIsEditDialogOpen(false);
     // Refresh the page to show updated election data
     window.location.reload();
+  };
+
+  const handleCompleteElection = async () => {
+    if (onCompleteElection) {
+      setIsCompletingElection(true);
+      try {
+        await onCompleteElection();
+      } finally {
+        setIsCompletingElection(false);
+      }
+    }
+  };
+
+  const handleResetVotes = async () => {
+    if (onResetVotes) {
+      setIsResettingVotes(true);
+      try {
+        await onResetVotes();
+      } finally {
+        setIsResettingVotes(false);
+      }
+    }
   };
 
   return (
@@ -114,9 +138,10 @@ const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction 
                   className="bg-green-600 text-white hover:bg-green-700"
-                  onClick={onCompleteElection}
+                  onClick={handleCompleteElection}
+                  disabled={isCompletingElection}
                 >
-                  Complete Election
+                  {isCompletingElection ? "Completing..." : "Complete Election"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -143,9 +168,10 @@ const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction 
                   className="bg-amber-600 text-white hover:bg-amber-700"
-                  onClick={onResetVotes}
+                  onClick={handleResetVotes}
+                  disabled={isResettingVotes}
                 >
-                  Reset Votes
+                  {isResettingVotes ? "Resetting..." : "Reset Votes"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

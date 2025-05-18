@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useElection } from "@/features/elections/hooks/useElection";
@@ -47,7 +46,7 @@ const ElectionDetailPage = () => {
   }
   
   if (error || !election) {
-    return <ElectionErrorState error={error ? error.toString() : "Unknown error"} />;
+    return <ElectionErrorState error={error instanceof Error ? error.message : String(error)} />;
   }
 
   // Calculate stats based on positionVotes
@@ -83,6 +82,7 @@ const ElectionDetailPage = () => {
       if (!electionId) return;
       
       await completeElection(electionId);
+      toast.success("Election has been marked as completed");
       refetch(); // Refresh election data after completion
     } catch (error) {
       console.error("Error completing election:", error);
@@ -112,6 +112,7 @@ const ElectionDetailPage = () => {
         onResetVotes={handleResetVotes}
       />
       
+      {/* Rest of the components */}
       <ElectionTitleSection 
         title={election.title}
         description={election.description || ""}
@@ -129,7 +130,7 @@ const ElectionDetailPage = () => {
         candidates={candidates || []}
         positionVotes={positionVotes}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={activeTab}
         stats={stats}
         votes={[]} // This would need to be populated if needed for vote details
       />

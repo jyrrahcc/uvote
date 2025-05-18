@@ -112,7 +112,6 @@ export const completeElection = async (electionId: string): Promise<Election> =>
       throw new Error("No data returned after completing election");
     }
     
-    toast.success("Election has been marked as completed");
     return mapDbElectionToElection(data as DbElection);
   } catch (error) {
     console.error("Error completing election:", error);
@@ -152,8 +151,6 @@ export const resetElectionVotes = async (electionId: string): Promise<void> => {
       
       if (deleteError) throw deleteError;
     }
-    
-    toast.success("All votes have been reset for this election");
   } catch (error) {
     console.error("Error resetting votes:", error);
     toast.error(`Failed to reset votes: ${error instanceof Error ? error.message : "Unknown error"}`);
