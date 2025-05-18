@@ -24,6 +24,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
   const [activeTab, setActiveTab] = useState("details");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const candidateManagerRef = useRef(null);
+  const votersManagerRef = useRef(null);
   
   // Initialize form
   const form = useForm<ElectionFormValues>({
@@ -39,6 +40,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       endDate: "",
       isPrivate: false,
       accessCode: "",
+      restrictVoting: false, // This will remain in the form values but won't be shown in UI
       positions: DEFAULT_POSITIONS,
       banner_urls: [],
     },
@@ -75,6 +77,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             endDate: data.end_date || "",
             isPrivate: data.is_private || false,
             accessCode: data.access_code || "",
+            restrictVoting: data.restrict_voting || false,
             positions: Array.isArray(data.positions) ? data.positions : DEFAULT_POSITIONS,
             banner_urls: Array.isArray(data.banner_urls) ? data.banner_urls : [],
           });
@@ -140,7 +143,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         created_by: user.id,
         is_private: values.isPrivate,
         access_code: values.isPrivate ? values.accessCode : null,
-        restrict_voting: false, // We're integrating voter eligibility directly with colleges and year levels
+        restrict_voting: false, // Always set to false as we're removing this feature
         status: status,
         positions: values.positions,
         banner_urls: values.banner_urls
@@ -184,8 +187,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         electionId = newElection[0].id;
       }
       
-      // Process candidates - THIS IS THE CRITICAL FIX
-      // Make sure we have a valid reference and method
+      // Process candidates
       if (candidateManagerRef.current && typeof candidateManagerRef.current.getCandidatesForNewElection === 'function') {
         try {
           // Get candidates from the child component
@@ -223,10 +225,12 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
           }
         } catch (error) {
           console.error("Error processing candidates:", error);
-          // Still continue with the election save even if there's an issue with candidates
           toast.error("Warning: There was an issue processing candidates");
         }
       }
+      
+      // Process voters if needed, but we're not focusing on this for now
+      // as we're removing the restrict voting feature
       
       toast.success(editingElectionId ? "Election updated successfully" : "Election created successfully");
       onSuccess();
@@ -248,6 +252,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       isSubmitting={isSubmitting}
       editingElectionId={editingElectionId}
       candidateManagerRef={candidateManagerRef}
+      votersManagerRef={votersManagerRef}
     />
   );
 };

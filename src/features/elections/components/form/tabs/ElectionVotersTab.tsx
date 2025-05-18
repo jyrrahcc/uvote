@@ -1,7 +1,5 @@
 
 import { forwardRef, useImperativeHandle, ForwardRefRenderFunction } from "react";
-import { FormField, FormItem, FormControl, FormLabel } from "@/components/ui/form";
-import { Checkbox } from "@/components/ui/checkbox";
 import EligibleVotersManager from "../../EligibleVotersManager";
 
 interface ElectionVotersTabProps {
@@ -26,21 +24,6 @@ const ElectionVotersTab: ForwardRefRenderFunction<any, ElectionVotersTabProps> =
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-        <Checkbox
-          checked={restrictVoting}
-          onCheckedChange={(checked) => setRestrictVoting(!!checked)}
-        />
-        <div className="space-y-1 leading-none">
-          <FormLabel>
-            Restrict Voting
-          </FormLabel>
-          <p className="text-sm text-muted-foreground">
-            Only selected users will be allowed to vote in this election
-          </p>
-        </div>
-      </div>
-      
       <EligibleVotersManager
         ref={ref}
         electionId={electionId}

@@ -4,6 +4,7 @@ import { FormProvider } from "react-hook-form";
 import { ElectionDetailsTab } from "./tabs/ElectionDetailsTab";
 import ElectionBannersTab from "./tabs/ElectionBannersTab";
 import ElectionCandidatesTab from "./tabs/ElectionCandidatesTab";
+import ElectionVotersTab from "./tabs/ElectionVotersTab";
 import { ElectionFormValues } from "../../types/electionFormTypes";
 import FormActions from "./FormActions";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,6 +18,7 @@ interface ElectionFormTabsProps {
   isSubmitting: boolean;
   editingElectionId: string | null;
   candidateManagerRef: React.RefObject<any>;
+  votersManagerRef: React.RefObject<any>;
 }
 
 const ElectionFormTabs = ({
@@ -27,16 +29,18 @@ const ElectionFormTabs = ({
   onCancel,
   isSubmitting,
   editingElectionId,
-  candidateManagerRef
+  candidateManagerRef,
+  votersManagerRef
 }: ElectionFormTabsProps) => {
   return (
     <div className="overflow-hidden max-h-[90vh]">
       <ScrollArea className="h-[calc(90vh-180px)] px-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="banners">Banners</TabsTrigger>
             <TabsTrigger value="candidates">Candidates</TabsTrigger>
+            <TabsTrigger value="voters">Voters</TabsTrigger>
           </TabsList>
           
           <FormProvider {...form}>
@@ -56,6 +60,15 @@ const ElectionFormTabs = ({
                   candidacyStartDate={form.watch("candidacyStartDate")}
                   candidacyEndDate={form.watch("candidacyEndDate")}
                   positions={form.watch("positions")}
+                />
+              </TabsContent>
+
+              <TabsContent value="voters">
+                <ElectionVotersTab
+                  ref={votersManagerRef}
+                  electionId={editingElectionId}
+                  restrictVoting={form.watch("restrictVoting")}
+                  setRestrictVoting={(value) => form.setValue("restrictVoting", value)}
                 />
               </TabsContent>
               

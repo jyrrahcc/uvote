@@ -4,6 +4,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useElection } from "@/features/elections/hooks/useElection";
 import { usePositionVotes } from "@/features/elections/hooks/usePositionVotes";
 import { formatDateToLocalString } from "@/utils/dateUtils";
+import { completeElection, resetElectionVotes } from "@/features/elections/services/electionService";
+import { toast } from "sonner";
 
 // Components
 import ElectionErrorState from "@/features/elections/components/detail-page/ElectionErrorState";
@@ -22,7 +24,8 @@ const ElectionDetailPage = () => {
     election, 
     candidates, 
     loading, 
-    error
+    error,
+    refetch
   } = useElection(electionId || "");
   
   const { positionVotes } = usePositionVotes(election, candidates, electionId);
@@ -47,25 +50,57 @@ const ElectionDetailPage = () => {
     return <ElectionErrorState error={error} />;
   }
 
-  // Calculate stats
-  const stats = {
-    totalVoters: election.totalEligibleVoters || 0,
-    totalVotes: 0, // Would need to calculate from positionVotes
-    participationRate: 0, // Would need to calculate
-    positionsCount: election.positions?.length || 0,
-    candidatesCount: candidates?.length || 0
+  // Calculate stats based on positionVotes
+  const calculateStats = () => {
+    // Calculate total votes and participation rate
+    let totalVotes = 0;
+    
+    Object.values(positionVotes).forEach(positionData => {
+      if (positionData && positionData.totalVotes) {
+        totalVotes += positionData.totalVotes;
+      }
+    });
+    
+    const totalEligibleVoters = election.totalEligibleVoters || 0;
+    const participationRate = totalEligibleVoters > 0 
+      ? Math.round((totalVotes / totalEligibleVoters) * 100) 
+      : 0;
+    
+    return {
+      totalVoters: totalEligibleVoters,
+      totalVotes: totalVotes,
+      participationRate: participationRate,
+      positionsCount: election.positions?.length || 0,
+      candidatesCount: candidates?.length || 0
+    };
   };
+  
+  const stats = calculateStats();
 
   // Handle completion of election
   const handleCompleteElection = async () => {
-    console.log("Election completed");
-    // Implementation would go here
+    try {
+      if (!electionId) return;
+      
+      await completeElection(electionId);
+      refetch(); // Refresh election data after completion
+    } catch (error) {
+      console.error("Error completing election:", error);
+      toast.error("Failed to complete the election");
+    }
   };
 
   // Handle reset of votes
   const handleResetVotes = async () => {
-    console.log("Votes reset");
-    // Implementation would go here
+    try {
+      if (!electionId) return;
+      
+      await resetElectionVotes(electionId);
+      refetch(); // Refresh election data after votes reset
+    } catch (error) {
+      console.error("Error resetting votes:", error);
+      toast.error("Failed to reset votes");
+    }
   };
 
   return (
@@ -96,6 +131,7 @@ const ElectionDetailPage = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         stats={stats}
+        votes={[]} // This would need to be populated if needed for vote details
       />
     </div>
   );

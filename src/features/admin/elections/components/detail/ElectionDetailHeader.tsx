@@ -22,6 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ElectionForm from "@/components/admin/ElectionForm";
 
 interface ElectionDetailHeaderProps {
   election: Election;
@@ -40,6 +42,13 @@ const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
 }) => {
   const defaultNavigate = useNavigate();
   const nav = navigate || defaultNavigate;
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+
+  const handleEditSuccess = () => {
+    setIsEditDialogOpen(false);
+    // Refresh the page to show updated election data
+    window.location.reload();
+  };
 
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -76,7 +85,7 @@ const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
         
         <Button 
           variant="outline"
-          onClick={() => nav(`/admin/elections/edit/${election.id}`)}
+          onClick={() => setIsEditDialogOpen(true)}
         >
           <Pencil className="mr-2 h-4 w-4" />
           Edit Election
@@ -143,6 +152,24 @@ const ElectionDetailHeader: React.FC<ElectionDetailHeaderProps> = ({
           </AlertDialog>
         )}
       </div>
+
+      {/* Edit Election Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] p-0">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle>Edit Election</DialogTitle>
+            <DialogDescription>
+              Modify the details for your election. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ElectionForm
+            editingElectionId={election.id}
+            onSuccess={handleEditSuccess}
+            onCancel={() => setIsEditDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

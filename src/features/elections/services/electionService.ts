@@ -93,3 +93,70 @@ export const createElection = async (electionData: any, userId: string): Promise
     throw error;
   }
 };
+
+/**
+ * Marks an election as completed regardless of its end date
+ */
+export const completeElection = async (electionId: string): Promise<Election> => {
+  try {
+    const { data, error } = await supabase
+      .from('elections')
+      .update({ status: 'completed' })
+      .eq('id', electionId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    if (!data) {
+      throw new Error("No data returned after completing election");
+    }
+    
+    toast.success("Election has been marked as completed");
+    return mapDbElectionToElection(data as DbElection);
+  } catch (error) {
+    console.error("Error completing election:", error);
+    toast.error(`Failed to complete election: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw error;
+  }
+};
+
+/**
+ * Resets votes for an election 
+ */
+export const resetElectionVotes = async (electionId: string): Promise<void> => {
+  try {
+    // First delete all vote_candidates associated with this election's votes
+    const { data: votes, error: votesError } = await supabase
+      .from('votes')
+      .select('id')
+      .eq('election_id', electionId);
+    
+    if (votesError) throw votesError;
+    
+    if (votes && votes.length > 0) {
+      const voteIds = votes.map(vote => vote.id);
+      
+      const { error: candidatesError } = await supabase
+        .from('vote_candidates')
+        .delete()
+        .in('vote_id', voteIds);
+      
+      if (candidatesError) throw candidatesError;
+      
+      // Then delete all votes for this election
+      const { error: deleteError } = await supabase
+        .from('votes')
+        .delete()
+        .eq('election_id', electionId);
+      
+      if (deleteError) throw deleteError;
+    }
+    
+    toast.success("All votes have been reset for this election");
+  } catch (error) {
+    console.error("Error resetting votes:", error);
+    toast.error(`Failed to reset votes: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw error;
+  }
+};
