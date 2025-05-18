@@ -61,7 +61,9 @@ const Profile = () => {
         
         // Important fix: Only consider it pending if not a voter already
         // This ensures that users with voter role don't see the "pending" status
-        setIsPendingVerification(!!data.student_id && !!data.department && !!data.year_level && !isVoter);
+        const isComplete = !!data.student_id && !!data.department && 
+          (data.is_faculty ? !!data.faculty_position : !!data.year_level);
+        setIsPendingVerification(isComplete && !isVoter);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -111,7 +113,9 @@ const Profile = () => {
           last_name: lastName,
           email: user.email,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          is_faculty: false,
+          faculty_position: null
         })
         .select()
         .single();
@@ -180,8 +184,8 @@ const Profile = () => {
               <CardTitle>Personal Information</CardTitle>
               <CardDescription>
                 {effectivelyVerified 
-                  ? "Your verified DLSU-D student details" 
-                  : "Update your DLSU-D student details"}
+                  ? "Your verified DLSU-D details" 
+                  : "Update your DLSU-D details"}
               </CardDescription>
             </CardHeader>
             

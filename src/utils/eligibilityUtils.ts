@@ -41,7 +41,7 @@ export async function checkUserEligibility(
     // Get user profile for college and year level checks
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('department, year_level')
+      .select('department, year_level, is_faculty, faculty_position')
       .eq('id', userId)
       .maybeSingle();
     
@@ -56,14 +56,44 @@ export async function checkUserEligibility(
     
     const userCollege = profile.department || '';
     const userYearLevel = profile.year_level || '';
+    const isFaculty = profile.is_faculty || false;
     
     console.log("Eligibility check:", {
       userCollege,
       userYearLevel,
+      isFaculty,
       electionColleges: election.colleges,
-      electionYearLevels: election.eligibleYearLevels
+      electionYearLevels: election.eligibleYearLevels,
+      allowFaculty: election.allowFaculty
     });
     
+    // If user is faculty, check if faculty are allowed
+    if (isFaculty) {
+      // If faculty are not allowed and this is faculty-specific check, return not eligible
+      if (election.allowFaculty === false) {
+        return { 
+          isEligible: false, 
+          reason: "This election is not open to faculty members." 
+        };
+      }
+      
+      // College eligibility check for faculty
+      const isCollegeEligible = !election.colleges?.length || 
+        election.colleges.includes(userCollege) || 
+        election.colleges.includes("University-wide");
+        
+      if (!isCollegeEligible) {
+        return {
+          isEligible: false,
+          reason: `This election is for ${election.colleges?.join(', ')} colleges, but your profile shows you're in ${userCollege}.`
+        };
+      }
+      
+      // Faculty are exempt from year level checks
+      return { isEligible: true, reason: null };
+    }
+    
+    // For students, continue with normal checks
     // College eligibility check - use colleges (formerly departments) 
     const isCollegeEligible = !election.colleges?.length || 
       election.colleges.includes(userCollege) || 

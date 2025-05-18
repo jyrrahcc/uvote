@@ -1,289 +1,313 @@
 
-import React from "react";
-import { useFormContext } from "react-hook-form";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useFormContext } from "react-hook-form";
+import { MultiSelector } from "@/components/ui/multi-selector";
+import DateTimeInput from "@/components/ui/date-time-input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  DLSU_DEPARTMENTS, 
-  YEAR_LEVELS 
-} from "@/features/elections/types/electionFormTypes";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
-export function ElectionDetailsTab() {
-  const form = useFormContext();
-  
+// Department/College choices
+const DEPARTMENT_OPTIONS = [
+  "University-wide",
+  "College of Business Administration and Accountancy",
+  "College of Education",
+  "College of Engineering, Architecture and Technology",
+  "College of Humanities, Arts and Social Sciences",
+  "College of Science and Computer Studies",
+  "College of Criminal Justice Education",
+  "College of Tourism and Hospitality Management"
+];
+
+// Year level choices
+const YEAR_LEVEL_OPTIONS = [
+  "All Year Levels",
+  "1st Year",
+  "2nd Year",
+  "3rd Year", 
+  "4th Year",
+  "5th Year"
+];
+
+export const ElectionDetailsTab = () => {
+  const { control, watch } = useFormContext();
+  const isPrivate = watch("isPrivate");
+
   return (
-    <div className="space-y-4 py-4">
+    <div className="space-y-6">
       <FormField
-        control={form.control}
+        control={control}
         name="title"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Election Title</FormLabel>
+            <FormLabel>Election Title*</FormLabel>
             <FormControl>
-              <Input placeholder="e.g. Student Council Election 2023" {...field} />
+              <Input placeholder="Example: Student Council Elections 2023" {...field} />
             </FormControl>
+            <FormDescription>
+              The official title of the election
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
-      
-      
+
       <FormField
-        control={form.control}
+        control={control}
         name="description"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Description</FormLabel>
             <FormControl>
-              <Textarea
-                placeholder="Enter a short description about the election..."
-                className="h-24"
+              <Textarea 
+                placeholder="Provide details about the election"
+                className="min-h-32 resize-none"
                 {...field}
               />
             </FormControl>
+            <FormDescription>
+              Additional information about this election (optional)
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
-      
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div className="grid md:grid-cols-2 gap-6">
         <FormField
-          control={form.control}
-          name="candidacyStartDate"
+          control={control}
+          name="colleges"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Candidacy Start Date</FormLabel>
-              <input
-                type="datetime-local"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                onChange={(e) => {
-                  const date = e.target.value ? new Date(e.target.value) : null;
-                  field.onChange(date?.toISOString());
-                }}
-                placeholder="Select candidacy start date"
-              />
+            <FormItem>
+              <FormLabel>College/Department</FormLabel>
+              <FormControl>
+                <MultiSelector 
+                  placeholder="Select departments or all"
+                  options={DEPARTMENT_OPTIONS.map(dept => ({
+                    value: dept,
+                    label: dept
+                  }))}
+                  value={field.value?.map(d => ({ value: d, label: d })) || []}
+                  onChange={(options) => {
+                    field.onChange(options.map(o => o.value));
+                  }}
+                />
+              </FormControl>
+              <FormDescription>
+                Which colleges are eligible for this election
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        
-        
+
         <FormField
-          control={form.control}
-          name="candidacyEndDate"
+          control={control}
+          name="eligibleYearLevels"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Candidacy End Date</FormLabel>
-              <input
-                type="datetime-local"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                onChange={(e) => {
-                  const date = e.target.value ? new Date(e.target.value) : null;
-                  field.onChange(date?.toISOString());
-                }}
-                placeholder="Select candidacy end date"
-              />
+            <FormItem>
+              <FormLabel>Eligible Year Levels</FormLabel>
+              <FormControl>
+                <MultiSelector 
+                  placeholder="Select year levels or all"
+                  options={YEAR_LEVEL_OPTIONS.map(yr => ({
+                    value: yr,
+                    label: yr
+                  }))}
+                  value={field.value?.map(y => ({ value: y, label: y })) || []}
+                  onChange={(options) => {
+                    field.onChange(options.map(o => o.value));
+                  }}
+                />
+              </FormControl>
+              <FormDescription>
+                Which year levels are eligible to vote
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
       </div>
       
-      
       <FormField
-        control={form.control}
-        name="colleges"
-        render={() => (
-          <FormItem>
-            <FormLabel>Colleges</FormLabel>
-            <ScrollArea className="h-40 rounded-md border">
-              <div className="p-4 space-y-2">
-                {DLSU_DEPARTMENTS.map((department) => (
-                  <FormField
-                    key={department}
-                    control={form.control}
-                    name="colleges"
-                    render={({ field }) => {
-                      return (
-                        <FormItem
-                          key={department}
-                          className="flex flex-row items-start space-x-3 space-y-0"
-                        >
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(department)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...field.value, department])
-                                  : field.onChange(
-                                      field.value?.filter(
-                                        (value: string) => value !== department
-                                      )
-                                    );
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            {department}
-                          </FormLabel>
-                        </FormItem>
-                      );
-                    }}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      
-      <FormField
-        control={form.control}
-        name="eligibleYearLevels"
-        render={() => (
-          <FormItem>
-            <FormLabel>Year Levels</FormLabel>
-            <ScrollArea className="h-40 rounded-md border">
-              <div className="p-4 space-y-2">
-                {YEAR_LEVELS.map((yearLevel) => (
-                  <FormField
-                    key={yearLevel}
-                    control={form.control}
-                    name="eligibleYearLevels"
-                    render={({ field }) => {
-                      return (
-                        <FormItem
-                          key={yearLevel}
-                          className="flex flex-row items-start space-x-3 space-y-0"
-                        >
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(yearLevel)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...field.value, yearLevel])
-                                  : field.onChange(
-                                      field.value?.filter(
-                                        (value: string) => value !== yearLevel
-                                      )
-                                    );
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            {yearLevel}
-                          </FormLabel>
-                        </FormItem>
-                      );
-                    }}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="startDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Election Start Date</FormLabel>
-              <input
-                type="datetime-local"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                onChange={(e) => {
-                  const date = e.target.value ? new Date(e.target.value) : null;
-                  field.onChange(date?.toISOString());
-                }}
-                placeholder="Select election start date"
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        
-        <FormField
-          control={form.control}
-          name="endDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Election End Date</FormLabel>
-              <input
-                type="datetime-local"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                onChange={(e) => {
-                  const date = e.target.value ? new Date(e.target.value) : null;
-                  field.onChange(date?.toISOString());
-                }}
-                placeholder="Select election end date"
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-      
-      
-      <FormField
-        control={form.control}
-        name="isPrivate"
+        control={control}
+        name="allowFaculty"
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-md border p-4">
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+            <div className="space-y-0.5">
+              <FormLabel>Allow Faculty Participation</FormLabel>
+              <FormDescription>
+                Enable faculty members to participate in this election
+              </FormDescription>
+            </div>
             <FormControl>
               <Checkbox
                 checked={field.value}
                 onCheckedChange={field.onChange}
               />
             </FormControl>
-            <div className="space-y-1 leading-none">
-              <FormLabel>Private Election</FormLabel>
-              <p className="text-sm text-muted-foreground">
-                Require an access code for users to view this election
-              </p>
-            </div>
           </FormItem>
         )}
       />
-      
-      
-      {form.watch("isPrivate") && (
+
+      <div className="grid md:grid-cols-2 gap-6">
         <FormField
-          control={form.control}
-          name="accessCode"
+          control={control}
+          name="candidacyStartDate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Access Code</FormLabel>
+              <FormLabel>Candidacy Start Date*</FormLabel>
               <FormControl>
-                <Input placeholder="Enter access code" {...field} />
+                <DateTimeInput
+                  value={field.value}
+                  onChange={field.onChange}
+                />
               </FormControl>
+              <FormDescription>
+                When candidates can start applying
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-      )}
+
+        <FormField
+          control={control}
+          name="candidacyEndDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Candidacy End Date*</FormLabel>
+              <FormControl>
+                <DateTimeInput
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormDescription>
+                Last day candidates can apply
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <FormField
+          control={control}
+          name="startDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Voting Start Date*</FormLabel>
+              <FormControl>
+                <DateTimeInput
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormDescription>
+                When voting opens
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="endDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Voting End Date*</FormLabel>
+              <FormControl>
+                <DateTimeInput
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormDescription>
+                When voting closes
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={control}
+        name="positions"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Positions*</FormLabel>
+            <FormControl>
+              <div className="flex gap-2 flex-wrap">
+                <Input 
+                  placeholder="Position 1, Position 2, Position 3..."
+                  value={field.value.join(", ")}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const positions = value.split(",").map((item) => item.trim()).filter(Boolean);
+                    field.onChange(positions);
+                  }}
+                />
+              </div>
+            </FormControl>
+            <FormDescription>
+              Enter positions separated by commas
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <FormField
+          control={control}
+          name="isPrivate"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Private Election</FormLabel>
+                <FormDescription>
+                  Require access code for voters
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {isPrivate && (
+          <FormField
+            control={control}
+            name="accessCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Access Code*</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="text" 
+                    placeholder="Enter secret code for voters"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Required if election is private
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+      </div>
     </div>
   );
-}
+};

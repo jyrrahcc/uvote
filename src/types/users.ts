@@ -11,6 +11,8 @@ export interface User {
   studentId?: string; // Added student ID field for DLSU-D context
   department?: string; // Added department field for DLSU-D context
   yearLevel?: string; // Added year level field for DLSU-D context
+  isFaculty?: boolean; // Added flag for faculty members
+  facultyPosition?: string; // Added position for faculty members
 }
 
 /**
@@ -24,7 +26,9 @@ export interface DlsudVoter {
   lastName: string;
   email: string;
   department: string;
-  yearLevel: string;
+  yearLevel?: string;
+  isFaculty?: boolean;
+  facultyPosition?: string;
 }
 
 /**
@@ -40,6 +44,8 @@ export interface DlsudProfile {
   student_id?: string;
   department?: string;
   year_level?: string;
+  is_faculty?: boolean;
+  faculty_position?: string;
   image_url?: string | null;
 }
 
@@ -54,7 +60,9 @@ export const mapDbVoterToVoter = (dbVoter: any): DlsudVoter => ({
   lastName: dbVoter.last_name,
   email: dbVoter.email,
   department: dbVoter.department,
-  yearLevel: dbVoter.year_level
+  yearLevel: dbVoter.year_level,
+  isFaculty: dbVoter.is_faculty,
+  facultyPosition: dbVoter.faculty_position
 });
 
 /**
@@ -70,5 +78,7 @@ export const mapDbProfileToProfile = (profile: any): DlsudProfile => ({
   student_id: profile.student_id || '',
   department: profile.department || '',
   year_level: profile.year_level || '',
+  is_faculty: profile.is_faculty || false,
+  faculty_position: profile.faculty_position || '',
   image_url: profile.image_url || undefined
 });

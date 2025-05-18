@@ -42,6 +42,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       accessCode: "",
       positions: DEFAULT_POSITIONS,
       banner_urls: [],
+      allowFaculty: false,
     },
   });
   
@@ -78,6 +79,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             accessCode: data.access_code || "",
             positions: Array.isArray(data.positions) ? data.positions : DEFAULT_POSITIONS,
             banner_urls: Array.isArray(data.banner_urls) ? data.banner_urls : [],
+            allowFaculty: data.allow_faculty || false,
           });
         }
       } catch (error) {
@@ -144,7 +146,8 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         restrict_voting: false, // Always set to false as we're removing this feature
         status: status,
         positions: values.positions,
-        banner_urls: values.banner_urls
+        banner_urls: values.banner_urls,
+        allow_faculty: values.allowFaculty
       };
       
       // Process election save (create or update)

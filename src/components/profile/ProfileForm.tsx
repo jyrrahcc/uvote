@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { DlsudProfile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, Clock, InfoIcon, LockIcon } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Constants
 const DLSU_DEPARTMENTS = [
@@ -22,6 +23,17 @@ const DLSU_DEPARTMENTS = [
 ];
 
 const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
+
+const FACULTY_POSITIONS = [
+  "Professor",
+  "Associate Professor",
+  "Assistant Professor",
+  "Instructor",
+  "Lecturer",
+  "Department Chair",
+  "Dean",
+  "Research Faculty"
+];
 
 interface ProfileFormProps {
   profile: DlsudProfile | null;
@@ -60,8 +72,11 @@ const ProfileForm = ({
 }: ProfileFormProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFaculty, setIsFaculty] = useState(profile?.is_faculty || false);
+  const [facultyPosition, setFacultyPosition] = useState(profile?.faculty_position || "");
   
-  const isProfileComplete = !!firstName && !!lastName && !!studentId && !!department && !!yearLevel;
+  const isProfileComplete = !!firstName && !!lastName && !!studentId && !!department && 
+    (isFaculty ? !!facultyPosition : !!yearLevel);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +100,9 @@ const ProfileForm = ({
           last_name: lastName,
           student_id: studentId,
           department: department,
-          year_level: yearLevel,
+          year_level: isFaculty ? null : yearLevel,
+          is_faculty: isFaculty,
+          faculty_position: isFaculty ? facultyPosition : null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", profile.id);
@@ -176,18 +193,32 @@ const ProfileForm = ({
             required
           />
         </div>
+        
+        {/* Faculty checkbox */}
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="isFaculty" 
+            checked={isFaculty} 
+            onCheckedChange={(checked) => setIsFaculty(checked === true)}
+            disabled={isVerified}
+          />
+          <Label htmlFor="isFaculty" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            I am a faculty member
+          </Label>
+        </div>
+        
         <div className="space-y-2">
-          <Label htmlFor="studentId">Student ID*</Label>
+          <Label htmlFor="studentId">{isFaculty ? "Faculty ID*" : "Student ID*"}</Label>
           <Input
             id="studentId"
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
-            placeholder="e.g., 2018-00123-ST-0"
+            placeholder={isFaculty ? "e.g., FAC-2023-001" : "e.g., 2018-00123-ST-0"}
             disabled={isVerified}
             required
           />
           <p className="text-xs text-muted-foreground">
-            Your DLSU-D Student ID Number (required for verification)
+            Your DLSU-D {isFaculty ? "Faculty" : "Student"} ID Number (required for verification)
           </p>
         </div>
         <div className="space-y-2">
@@ -211,27 +242,53 @@ const ProfileForm = ({
             Required for verification and college-specific elections
           </p>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="yearLevel">Year Level*</Label>
-          <Select
-            value={yearLevel}
-            onValueChange={setYearLevel}
-            disabled={isVerified}
-            required
-          >
-            <SelectTrigger id="yearLevel">
-              <SelectValue placeholder="Select your year level" />
-            </SelectTrigger>
-            <SelectContent>
-              {YEAR_LEVELS.map((year) => (
-                <SelectItem key={year} value={year}>{year}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            Required for verification and year-specific elections
-          </p>
-        </div>
+        
+        {isFaculty ? (
+          <div className="space-y-2">
+            <Label htmlFor="facultyPosition">Faculty Position*</Label>
+            <Select
+              value={facultyPosition}
+              onValueChange={setFacultyPosition}
+              disabled={isVerified}
+              required
+            >
+              <SelectTrigger id="facultyPosition">
+                <SelectValue placeholder="Select your position" />
+              </SelectTrigger>
+              <SelectContent>
+                {FACULTY_POSITIONS.map((position) => (
+                  <SelectItem key={position} value={position}>{position}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Your current position at DLSU-D
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="yearLevel">Year Level*</Label>
+            <Select
+              value={yearLevel}
+              onValueChange={setYearLevel}
+              disabled={isVerified}
+              required={!isFaculty}
+            >
+              <SelectTrigger id="yearLevel">
+                <SelectValue placeholder="Select your year level" />
+              </SelectTrigger>
+              <SelectContent>
+                {YEAR_LEVELS.map((year) => (
+                  <SelectItem key={year} value={year}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Required for verification and year-specific elections
+            </p>
+          </div>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="joined">Joined</Label>
           <Input
