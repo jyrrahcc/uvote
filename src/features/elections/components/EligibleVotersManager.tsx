@@ -44,6 +44,16 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
     getEligibleVotersForNewElection: () => selectedVoters
   }));
   
+  // Transform Voter objects to VoterEntry objects for the table
+  const voterEntries = filteredVoters.map(voter => ({
+    id: voter.id,
+    email: voter.email,
+    name: `${voter.first_name} ${voter.last_name}`,
+    department: voter.department,
+    year_level: voter.year_level,
+    isSelected: selectedVoters.includes(voter.id)
+  }));
+  
   return (
     <Card>
       <CardHeader>
@@ -75,7 +85,7 @@ const EligibleVotersManager = forwardRef<any, EligibleVotersManagerProps>(({
           <div className="border rounded-md">
             <VoterTable
               loading={loading}
-              filteredVoters={filteredVoters}
+              filteredVoters={voterEntries}
               selectedVoters={selectedVoters}
               handleToggleAllVoters={handleToggleAllVoters}
               handleSelectVoter={handleSelectVoter}

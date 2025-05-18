@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,6 +26,17 @@ export const useEligibleVoters = (
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Get current user ID once
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setCurrentUserId(data.user?.id || null);
+    };
+    
+    getCurrentUser();
+  }, []);
 
   // Fetch all potential voters (profiles)
   useEffect(() => {
@@ -170,15 +182,16 @@ export const useEligibleVoters = (
 
       // Insert new eligible voters
       if (selectedVoters.length > 0) {
+        // Prepare the data without using await in the map function
+        const eligibleVotersData = selectedVoters.map((userId) => ({
+          election_id: electionId,
+          user_id: userId,
+          added_by: currentUserId,
+        }));
+
         const { error: insertError } = await supabase
           .from("eligible_voters")
-          .insert(
-            selectedVoters.map((userId) => ({
-              election_id: electionId,
-              user_id: userId,
-              added_by: (await supabase.auth.getUser()).data.user?.id,
-            }))
-          );
+          .insert(eligibleVotersData);
 
         if (insertError) throw insertError;
       }
