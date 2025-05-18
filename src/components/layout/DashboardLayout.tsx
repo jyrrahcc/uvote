@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,6 @@ import {
   LogOut,
   LucideIcon,
   Settings,
-  University,
   User,
   Users,
   Vote
@@ -37,6 +35,7 @@ import {
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import MobileNav from "./MobileNav";
+import Logo from "./Logo";
 
 interface MenuItem {
   name: string;
@@ -145,8 +144,7 @@ const DashboardLayout = () => {
         <Sidebar className="border-r border-border bg-card hidden md:block">
           <SidebarHeader className="p-4">
             <div className="flex items-center gap-2">
-              <University className="h-6 w-6 text-[#008f50]" />
-              <span className={cn("font-bold text-xl", collapsed ? "hidden" : "block")}>uVote</span>
+              <Logo size={collapsed ? "small" : "medium"} />
               <span className={cn("text-xs text-muted-foreground ml-auto", collapsed ? "hidden" : "block")}>
                 {isAdmin && <Badge variant="outline" className="bg-[#008f50]/10 text-[#008f50]">Admin</Badge>}
               </span>
