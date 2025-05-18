@@ -1,26 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { CandidateApplication } from "@/types";
-
-// Define the database representation of a candidate application
-export interface DbCandidateApplication {
-  id: string;
-  user_id: string;
-  election_id: string;
-  position: string;
-  name: string;
-  bio: string | null;
-  image_url: string | null;
-  status: 'pending' | 'approved' | 'rejected' | 'disqualified';
-  created_at: string;
-  updated_at: string;
-  feedback: string | null;
-  reviewed_at: string | null;
-  reviewed_by: string | null;
-  student_id: string | null;
-  department: string | null;
-  year_level: string | null;
-}
+import { CandidateApplication, DbCandidateApplication } from "@/types";
 
 /**
  * Map database application data to CandidateApplication type

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -82,15 +83,15 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
   };
 
   const handleNextBanner = () => {
-    if (election?.bannerUrls && election.bannerUrls.length > 0) {
-      setCurrentBannerIndex((prev) => (prev + 1) % election.bannerUrls.length);
+    if (election?.banner_urls && election.banner_urls.length > 0) {
+      setCurrentBannerIndex((prev) => (prev + 1) % election.banner_urls.length);
     }
   };
 
   const handlePreviousBanner = () => {
-    if (election?.bannerUrls && election.bannerUrls.length > 0) {
+    if (election?.banner_urls && election.banner_urls.length > 0) {
       setCurrentBannerIndex((prev) => 
-        prev === 0 ? election.bannerUrls.length - 1 : prev - 1
+        prev === 0 ? election.banner_urls.length - 1 : prev - 1
       );
     }
   };
@@ -98,9 +99,9 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
   if (!election || loading) return null;
   
   // Check if election has banners
-  const hasBanners = election.bannerUrls && election.bannerUrls.length > 0;
+  const hasBanners = election.banner_urls && election.banner_urls.length > 0;
   // Get current banner
-  const currentBanner = hasBanners ? election.bannerUrls[currentBannerIndex] : null;
+  const currentBanner = hasBanners ? election.banner_urls[currentBannerIndex] : null;
   
   return (
     <div className="space-y-4">
@@ -113,7 +114,7 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
             className="w-full h-full object-cover"
           />
           
-          {election.bannerUrls.length > 1 && (
+          {election.banner_urls.length > 1 && (
             <>
               <Button 
                 variant="outline" 
@@ -134,7 +135,7 @@ const ElectionDetailsHeader = ({ election, loading }: ElectionDetailsHeaderProps
               </Button>
               
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                {election.bannerUrls.map((_, index) => (
+                {election.banner_urls.map((_, index) => (
                   <span 
                     key={index} 
                     className={`block w-2 h-2 rounded-full ${

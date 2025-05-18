@@ -1,96 +1,79 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { CandidateApplication, CandidateApplicationUpdate } from '@/types';
-import { toast } from 'sonner';
-import { processApplicationWithProfile } from './base/applicationBaseService';
+import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Update the status of a candidate application
+ * Update status and feedback for a candidate application (for admin use)
  */
-export const updateCandidateApplication = async (applicationId: string, update: CandidateApplicationUpdate): Promise<CandidateApplication> => {
+export const updateCandidateApplication = async (
+  applicationId: string, 
+  updates: { 
+    status: "approved" | "rejected" | "disqualified" | "pending";
+    feedback?: string | null;
+    reviewed_by?: string | null;
+    reviewed_at?: string | null;
+  }
+): Promise<void> => {
   try {
-    // Update application status
-    const { data, error } = await supabase
+    // Remove any fields that aren't in the database schema
+    const validUpdates = {
+      status: updates.status,
+      feedback: updates.feedback,
+      reviewed_by: updates.reviewed_by,
+      reviewed_at: updates.reviewed_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    const { error } = await supabase
       .from('candidate_applications')
-      .update({
-        status: update.status,
-        feedback: update.feedback,
-        reviewed_by: update.reviewed_by,
-        reviewed_at: update.reviewed_at
-      })
-      .eq('id', applicationId)
-      .select('*, profiles:user_id(*)')
-      .single();
+      .update(validUpdates)
+      .eq('id', applicationId);
     
     if (error) throw error;
     
-    // Return the updated application
-    return processApplicationWithProfile(data);
+    // The database trigger will handle adding or removing the candidate
   } catch (error) {
-    console.error("Error updating application status:", error);
-    toast.error("Failed to update application status");
+    console.error("Error updating application:", error);
     throw error;
   }
 };
 
 /**
- * Approve a candidate application
- */
-export const approveApplication = async (applicationId: string, feedback?: string, reviewerId?: string): Promise<CandidateApplication> => {
-  const update: CandidateApplicationUpdate = {
-    status: 'approved',
-    feedback: feedback || null,
-    reviewed_by: reviewerId || null,
-    reviewed_at: new Date().toISOString()
-  };
-  
-  return updateCandidateApplication(applicationId, update);
-};
-
-/**
- * Reject a candidate application
- */
-export const rejectApplication = async (applicationId: string, feedback?: string, reviewerId?: string): Promise<CandidateApplication> => {
-  const update: CandidateApplicationUpdate = {
-    status: 'rejected',
-    feedback: feedback || null,
-    reviewed_by: reviewerId || null,
-    reviewed_at: new Date().toISOString()
-  };
-  
-  return updateCandidateApplication(applicationId, update);
-};
-
-/**
- * Disqualify a candidate application
- */
-export const disqualifyApplication = async (applicationId: string, feedback?: string, reviewerId?: string): Promise<CandidateApplication> => {
-  const update: CandidateApplicationUpdate = {
-    status: 'disqualified',
-    feedback: feedback || null,
-    reviewed_by: reviewerId || null,
-    reviewed_at: new Date().toISOString()
-  };
-  
-  return updateCandidateApplication(applicationId, update);
-};
-
-/**
- * Delete a candidate application
+ * Delete a candidate application (for admin or user)
  */
 export const deleteCandidateApplication = async (applicationId: string): Promise<boolean> => {
   try {
+    // First, check if the application actually exists
+    const { data: applicationExists, error: checkError } = await supabase
+      .from('candidate_applications')
+      .select('id, status')
+      .eq('id', applicationId)
+      .single();
+    
+    if (checkError) {
+      console.error("Error checking if application exists:", checkError);
+      return false;
+    }
+    
+    if (!applicationExists) {
+      console.error("Application not found with ID:", applicationId);
+      return false;
+    }
+    
+    // Delete the application
     const { error } = await supabase
       .from('candidate_applications')
       .delete()
       .eq('id', applicationId);
     
-    if (error) throw error;
+    if (error) {
+      console.error("Database error when deleting application:", error);
+      return false;
+    }
     
+    console.log("Application deleted successfully:", applicationId);
     return true;
   } catch (error) {
     console.error("Error deleting application:", error);
-    toast.error("Failed to delete application");
     return false;
   }
 };

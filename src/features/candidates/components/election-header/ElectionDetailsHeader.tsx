@@ -106,14 +106,14 @@ const ElectionDetailsHeader = ({
   if (!election || loading) return null;
   
   // Check if election has banners
-  const hasBanners = election.bannerUrls && election.bannerUrls.length > 0;
+  const hasBanners = election.banner_urls && election.banner_urls.length > 0;
   
   return (
     <div className="space-y-4">
       {/* Banners carousel */}
       {hasBanners && (
         <ElectionBannerCarousel 
-          bannerUrls={election.bannerUrls}
+          bannerUrls={election.banner_urls}
           title={election.title}
         />
       )}

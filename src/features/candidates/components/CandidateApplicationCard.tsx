@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CandidateApplication, CandidateApplicationUpdate } from "@/types";
+import { CandidateApplication } from "@/types";
 import { updateCandidateApplication } from "../services/applicationStatusService";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { toast } from "sonner";
@@ -40,14 +41,12 @@ const CandidateApplicationCard = ({
 
     try {
       setSubmitting(true);
-      const update: CandidateApplicationUpdate = {
+      await updateCandidateApplication(application.id, {
         status,
         feedback: feedback || null,
         reviewed_by: user?.id || null,
         reviewed_at: new Date().toISOString()
-      };
-      
-      await updateCandidateApplication(application.id, update);
+      });
       toast.success(`Application ${status}`);
       onStatusChange();
     } catch (error) {

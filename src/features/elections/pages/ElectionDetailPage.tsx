@@ -114,7 +114,7 @@ const ElectionDetailPage = () => {
       )}
       
       {/* Election banner carousel if available */}
-      <ElectionBanner bannerUrls={election.bannerUrls} title={election.title} />
+      <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
       
       {/* Election metadata */}
       <ElectionMetadata election={election} formatDate={(date) => new Date(date).toLocaleDateString()} />

@@ -1,12 +1,6 @@
 
-// Re-export all candidate services
-export * from './candidateService';
+// Re-export all service functions for easy access
 export * from './applicationReadService';
 export * from './applicationStatusService';
 export * from './applicationSubmissionService';
-// Re-export the base service but exclude the duplicated processApplicationWithProfile
-export { 
-  DbCandidateApplication,
-  ExtendedApplicationData,
-  mapDbCandidateApplicationToCandidateApplication
-} from './base/applicationBaseService';
+export * from './base/applicationBaseService';

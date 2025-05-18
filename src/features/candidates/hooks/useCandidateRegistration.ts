@@ -6,7 +6,7 @@ import { CandidateFormData } from "../schemas/candidateFormSchema";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 import { supabase } from "@/integrations/supabase/client";
-import { DbElection, mapDbElectionToElection } from "@/types";
+import { mapDbElectionToElection } from "@/types";
 
 interface UseCandidateRegistrationProps {
   electionId: string;
@@ -48,14 +48,8 @@ export const useCandidateRegistration = ({
         
       if (electionError) throw electionError;
       
-      // Validate that status is the expected enum type
-      const dbElection: DbElection = {
-        ...electionData,
-        status: (electionData.status as "upcoming" | "active" | "completed")
-      };
-      
       // Transform the raw election data to the typed Election interface
-      const typedElection = mapDbElectionToElection(dbElection);
+      const typedElection = mapDbElectionToElection(electionData);
       
       // Check eligibility based on department and year level
       const eligibilityCheck = await checkUserEligibility(userId, typedElection);
