@@ -81,6 +81,11 @@ export const fetchUserCandidateApplications = async (userId: string) => {
 };
 
 /**
+ * Fetch user applications (alias for fetchUserCandidateApplications)
+ */
+export const fetchUserApplications = fetchUserCandidateApplications;
+
+/**
  * Fetch a single candidate application by ID
  */
 export const fetchCandidateApplicationById = async (applicationId: string) => {
@@ -100,5 +105,27 @@ export const fetchCandidateApplicationById = async (applicationId: string) => {
     console.error('Error fetching application:', error);
     toast.error('Failed to load application details');
     throw error;
+  }
+};
+
+/**
+ * Check if user has already applied for this election
+ */
+export const hasUserAppliedForElection = async (electionId: string, userId: string) => {
+  try {
+    const { data, error, count } = await supabase
+      .from('candidate_applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('election_id', electionId)
+      .eq('user_id', userId);
+
+    if (error) {
+      throw error;
+    }
+
+    return count !== null && count > 0;
+  } catch (error) {
+    console.error('Error checking application status:', error);
+    return false;
   }
 };

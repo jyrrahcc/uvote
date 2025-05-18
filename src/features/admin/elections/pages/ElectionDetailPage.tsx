@@ -122,7 +122,7 @@ const ElectionDetailPage = () => {
       
       {/* Display banner carousel if available */}
       <ElectionBanner 
-        bannerUrls={election.banner_urls}
+        bannerUrls={election.bannerUrls}
         title={election.title}
       />
       

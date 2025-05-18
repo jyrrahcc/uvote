@@ -1,5 +1,6 @@
 
-// Re-export all service functions for easy access
+// Re-export all candidate services
+export * from './candidateService';
 export * from './applicationReadService';
 export * from './applicationStatusService';
 export * from './applicationSubmissionService';

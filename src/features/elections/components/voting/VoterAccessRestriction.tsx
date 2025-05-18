@@ -28,7 +28,7 @@ const VoterAccessRestriction = ({ election, reason }: VoterAccessRestrictionProp
       
       <ElectionTitleSection title={election.title} description={election.description} />
       
-      <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
+      <ElectionBanner bannerUrls={election.bannerUrls} title={election.title} />
       
       <Card className="mt-8 border-red-200 bg-red-50/30">
         <CardHeader className="bg-red-50 border-b border-red-100">
