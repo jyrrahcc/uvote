@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Camera, User } from "lucide-react";
-import { DlsudProfile } from "@/types";
+import { DlsudProfile } from "@/types/users";
 
 interface ProfileImageUploadProps {
   profile: DlsudProfile | null;

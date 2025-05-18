@@ -24,8 +24,8 @@ export const electionFormSchema = z.object({
   isPrivate: z.boolean(),
   accessCode: z.string().optional(),
   positions: z.array(z.string()).min(1, "At least one position is required"),
-  banner_urls: z.array(z.string()).optional(),
-  allowFaculty: z.boolean().optional(),
+  bannerUrls: z.array(z.string()).optional(),
+  allowFaculty: z.boolean().default(false),
 });
 
 // Type definition inferred from the schema

@@ -41,7 +41,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
       isPrivate: false,
       accessCode: "",
       positions: DEFAULT_POSITIONS,
-      banner_urls: [],
+      bannerUrls: [],
       allowFaculty: false,
     },
   });
@@ -78,7 +78,7 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
             isPrivate: data.is_private || false,
             accessCode: data.access_code || "",
             positions: Array.isArray(data.positions) ? data.positions : DEFAULT_POSITIONS,
-            banner_urls: Array.isArray(data.banner_urls) ? data.banner_urls : [],
+            bannerUrls: Array.isArray(data.banner_urls) ? data.banner_urls : [],
             allowFaculty: data.allow_faculty || false,
           });
         }

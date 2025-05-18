@@ -1,3 +1,4 @@
+
 /**
  * Election type definition
  */
@@ -17,13 +18,14 @@ export interface Election {
   accessCode?: string | null;
   colleges: string[]; // Array of college names (renamed from departments)
   positions?: string[]; // Added positions array
-  banner_urls?: string[]; // Added banner_urls array to store election banner images
+  bannerUrls?: string[]; // Added banner_urls array to store election banner images (camelCase for consistency)
   eligibleYearLevels?: string[]; // Added eligibleYearLevels array
   
   // Adding the missing properties
   department?: string; // Legacy field for backward compatibility
   restrictVoting?: boolean; // Field to determine if voting is restricted to eligible voters
   totalEligibleVoters?: number; // Field to store the total number of eligible voters
+  allowFaculty?: boolean; // Field to determine if faculty members are allowed to participate
 }
 
 /**
@@ -93,6 +95,7 @@ export interface DbElection {
   total_eligible_voters?: number | null; // Added total_eligible_voters field
   banner_urls?: string[] | null; // Added banner_urls field
   eligible_year_levels?: string[] | null; // Added eligible_year_levels field
+  allow_faculty?: boolean | null; // Added allow_faculty field
 }
 
 /**
@@ -120,13 +123,14 @@ export const mapDbElectionToElection = (dbElection: DbElection): Election => {
     accessCode: dbElection.access_code || null,
     colleges: dbElection.departments || [], // Map departments to colleges in the UI
     positions: dbElection.positions || [],
-    banner_urls: dbElection.banner_urls || [],
+    bannerUrls: dbElection.banner_urls || [],
     eligibleYearLevels: dbElection.eligible_year_levels || [],
     
     // Add the missing properties
     department: dbElection.department || undefined,
     restrictVoting: dbElection.restrict_voting || false,
-    totalEligibleVoters: dbElection.total_eligible_voters || 0
+    totalEligibleVoters: dbElection.total_eligible_voters || 0,
+    allowFaculty: dbElection.allow_faculty || false
   };
 };
 
@@ -146,11 +150,12 @@ export const mapElectionToDbElection = (election: Election): DbElection => ({
   access_code: election.accessCode || null,
   departments: election.colleges || [], // Map colleges back to departments for DB
   positions: election.positions || [],
-  banner_urls: election.banner_urls || [],
+  banner_urls: election.bannerUrls || [],
   eligible_year_levels: election.eligibleYearLevels || [],
   
   // Add the missing properties in the DB mapping
   department: election.department || null,
   restrict_voting: election.restrictVoting || null,
-  total_eligible_voters: election.totalEligibleVoters || null
+  total_eligible_voters: election.totalEligibleVoters || null,
+  allow_faculty: election.allowFaculty || null
 });
