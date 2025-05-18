@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,19 +8,7 @@ import { toast } from "sonner";
 import { DlsudProfile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, Clock, InfoIcon, LockIcon } from "lucide-react";
-
-// Constants
-const DLSU_DEPARTMENTS = [
-  "College of Business Administration and Accountancy",
-  "College of Education",
-  "College of Engineering, Architecture and Technology",
-  "College of Humanities, Arts and Social Sciences",
-  "College of Science and Computer Studies",
-  "College of Criminal Justice Education",
-  "College of Tourism and Hospitality Management"
-];
-
-const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
+import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/types/constants";
 
 interface ProfileFormProps {
   profile: DlsudProfile | null;
