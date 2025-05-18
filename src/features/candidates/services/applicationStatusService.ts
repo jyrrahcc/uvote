@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CandidateApplication, CandidateApplicationUpdate } from '@/types';
 import { toast } from 'sonner';
+import { processApplicationWithProfile } from './base/applicationBaseService';
 
 /**
  * Update the status of a candidate application
@@ -24,12 +25,54 @@ export const updateCandidateApplication = async (applicationId: string, update: 
     if (error) throw error;
     
     // Return the updated application
-    return data as CandidateApplication;
+    return processApplicationWithProfile(data);
   } catch (error) {
     console.error("Error updating application status:", error);
     toast.error("Failed to update application status");
     throw error;
   }
+};
+
+/**
+ * Approve a candidate application
+ */
+export const approveApplication = async (applicationId: string, feedback?: string, reviewerId?: string): Promise<CandidateApplication> => {
+  const update: CandidateApplicationUpdate = {
+    status: 'approved',
+    feedback: feedback || null,
+    reviewed_by: reviewerId || null,
+    reviewed_at: new Date().toISOString()
+  };
+  
+  return updateCandidateApplication(applicationId, update);
+};
+
+/**
+ * Reject a candidate application
+ */
+export const rejectApplication = async (applicationId: string, feedback?: string, reviewerId?: string): Promise<CandidateApplication> => {
+  const update: CandidateApplicationUpdate = {
+    status: 'rejected',
+    feedback: feedback || null,
+    reviewed_by: reviewerId || null,
+    reviewed_at: new Date().toISOString()
+  };
+  
+  return updateCandidateApplication(applicationId, update);
+};
+
+/**
+ * Disqualify a candidate application
+ */
+export const disqualifyApplication = async (applicationId: string, feedback?: string, reviewerId?: string): Promise<CandidateApplication> => {
+  const update: CandidateApplicationUpdate = {
+    status: 'disqualified',
+    feedback: feedback || null,
+    reviewed_by: reviewerId || null,
+    reviewed_at: new Date().toISOString()
+  };
+  
+  return updateCandidateApplication(applicationId, update);
 };
 
 /**

@@ -84,3 +84,24 @@ export const fetchUserApplications = async (userId?: string): Promise<CandidateA
     throw error;
   }
 };
+
+/**
+ * Check if a user has applied for a specific election
+ */
+export const hasUserAppliedForElection = async (electionId: string, userId: string): Promise<boolean> => {
+  try {
+    const { data, error, count } = await supabase
+      .from('candidate_applications')
+      .select('id', { count: 'exact' })
+      .eq('election_id', electionId)
+      .eq('user_id', userId)
+      .limit(1);
+      
+    if (error) throw error;
+    
+    return (count !== null && count > 0);
+  } catch (error) {
+    console.error("Error checking user application status:", error);
+    return false;
+  }
+};

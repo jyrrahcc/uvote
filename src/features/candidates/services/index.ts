@@ -4,4 +4,9 @@ export * from './candidateService';
 export * from './applicationReadService';
 export * from './applicationStatusService';
 export * from './applicationSubmissionService';
-// Don't re-export processApplicationWithProfile since it's already exported from applicationReadService
+// Re-export the base service but exclude the duplicated processApplicationWithProfile
+export { 
+  DbCandidateApplication,
+  ExtendedApplicationData,
+  mapDbCandidateApplicationToCandidateApplication
+} from './base/applicationBaseService';
