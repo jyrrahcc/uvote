@@ -1,10 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
 import ElectionCard from "@/features/elections/components/ElectionCard";
 import { Election } from "@/types";
 import { ArrowRight, Check, Search, ShieldCheck, Vote, Award, TrendingUp, Clock, UserCheck } from "lucide-react";
+import Logo from "@/components/layout/Logo";
 
 // Sample featured elections
 const featuredElections: Election[] = [
@@ -50,6 +50,9 @@ const Index = () => {
         <div className="container relative mx-auto px-4 py-24 md:py-32">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="text-white animate-fade-in">
+              <div className="flex items-center mb-6">
+                <Logo size="large" className="inline-block" />
+              </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4">
                 Your Voice Matters <span className="text-secondary-foreground font-extrabold">Every Vote Counts</span>
               </h1>
@@ -80,7 +83,7 @@ const Index = () => {
                 <div className="absolute -inset-4 bg-white/20 rounded-full blur-xl"></div>
                 <div className="relative bg-white/10 backdrop-blur-sm border border-white/30 rounded-2xl p-6">
                   <div className="flex justify-center mb-4">
-                    <Vote className="h-16 w-16 text-white" />
+                    <Logo size="large" />
                   </div>
                   <div className="space-y-4">
                     <div className="h-8 bg-white/30 rounded-lg w-3/4 mx-auto"></div>
@@ -103,6 +106,7 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Keep the rest of the sections */}
       {/* Features section with more exciting design */}
       <section className="py-20 px-4 overflow-hidden">
         <div className="container mx-auto">

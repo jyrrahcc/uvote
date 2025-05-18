@@ -59,7 +59,7 @@ const Sidebar = () => {
       )}
     >
       <div className="flex items-center justify-center mb-8">
-        <Logo size={isSidebarOpen ? "medium" : "small"} />
+        <Logo size={isSidebarOpen ? "medium" : "small"} showText={isSidebarOpen} />
       </div>
 
       <div className="flex flex-col space-y-1">

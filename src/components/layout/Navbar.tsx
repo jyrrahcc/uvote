@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import Logo from "./Logo";
 
 /**
  * Enhanced main navigation bar component
@@ -69,9 +69,7 @@ const Navbar = () => {
         <div className="flex justify-between h-16 items-center">
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="flex items-center">
-              <Vote className="h-6 w-6 text-primary mr-1" />
-              <span className="text-primary font-bold text-xl">u</span>
-              <span className="text-2xl font-bold">Vote</span>
+              <Logo size="medium" />
             </Link>
           </div>
           

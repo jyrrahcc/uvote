@@ -5,9 +5,10 @@ import { cn } from '@/lib/utils';
 interface LogoProps {
   size?: 'small' | 'medium' | 'large';
   className?: string;
+  showText?: boolean;
 }
 
-const Logo = ({ size = 'medium', className }: LogoProps) => {
+const Logo = ({ size = 'medium', className, showText = true }: LogoProps) => {
   const sizeClass = 
     size === 'small' ? 'h-6' :
     size === 'large' ? 'h-10' : 
@@ -25,7 +26,7 @@ const Logo = ({ size = 'medium', className }: LogoProps) => {
         alt="uVote Logo" 
         className={cn(sizeClass, "mr-2")}
       />
-      {size !== 'small' && (
+      {showText && (
         <span className={cn("font-bold", textClass)}>
           uVote
         </span>
