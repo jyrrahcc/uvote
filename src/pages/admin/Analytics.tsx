@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
   Card,
@@ -27,6 +26,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatNumberWithSuffix, calculatePercentage } from "@/utils/admin/helperUtils";
 import { Separator } from "@/components/ui/separator";
 import { Election, mapDbElectionToElection } from "@/types";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const COLORS = [
   "#008f50", // Primary DLSU color
@@ -55,10 +56,12 @@ const Analytics = () => {
   const [candidatesData, setCandidatesData] = useState<any[]>([]);
   const [votersData, setVotersData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       
       try {
         // Fetch elections
@@ -100,31 +103,41 @@ const Analytics = () => {
         const typedElections: Election[] = electionsData ? electionsData.map(mapDbElectionToElection) : [];
         setElections(typedElections);
         
+        // Safety checks for arrays
+        const safeElectionsData = electionsData || [];
+        const safeVotesData = votesData || [];
+        const safeCandidatesData = candidatesData || [];
+        const safeVoteCandidatesData = voteCandidatesData || [];
+        const safeProfilesData = profilesData || [];
+        
         // Group data for analysis
         const activeElections = typedElections.filter(e => e.status === 'active');
         const completedElections = typedElections.filter(e => e.status === 'completed');
         
-        // Calculate stats
-        const totalVoters = votesData ? [...new Set(votesData.map(v => v.user_id))].length : 0;
-        const uniqueVoters = votesData ? [...new Set(votesData.map(v => v.user_id))] : [];
-        const uniqueCreators = electionsData ? [...new Set(electionsData.map(e => e.created_by).filter(Boolean))] : [];
+        // Calculate stats with safety checks
+        const uniqueVoters = safeVotesData.length > 0 
+          ? [...new Set(safeVotesData.map(v => v.user_id))] 
+          : [];
         
         setStats({
-          totalElections: electionsData ? electionsData.length : 0,
+          totalElections: safeElectionsData.length,
           totalVoters: uniqueVoters.length,
-          totalCandidates: candidatesData ? candidatesData.length : 0,
+          totalCandidates: safeCandidatesData.length,
           activeElections: activeElections.length,
           completedElections: completedElections.length,
-          totalVotes: voteCandidatesData ? voteCandidatesData.length : 0,
-          averageParticipation: totalVoters && profilesData ? 
-            Math.round((totalVoters / profilesData.length) * 100) : 0
+          totalVotes: safeVoteCandidatesData.length,
+          averageParticipation: uniqueVoters.length && safeProfilesData.length 
+            ? Math.round((uniqueVoters.length / safeProfilesData.length) * 100) 
+            : 0
         });
         
-        setVotesData(votesData || []);
-        setCandidatesData(candidatesData || []);
-        setVotersData(uniqueVoters.map(id => ({ user_id: id })) || []);
-      } catch (error) {
+        setVotesData(safeVotesData);
+        setCandidatesData(safeCandidatesData);
+        setVotersData(uniqueVoters.map(id => ({ user_id: id })));
+      } catch (error: any) {
         console.error("Error fetching analytics data:", error);
+        setError(error?.message || "Failed to load analytics data");
+        toast.error("Failed to load analytics data");
       } finally {
         setLoading(false);
       }
@@ -133,12 +146,12 @@ const Analytics = () => {
     fetchData();
   }, []);
 
-  // Chart data preparations
+  // Chart data preparations with safety checks
   const electionsByStatusData = [
     { name: "Active", value: stats.activeElections },
     { name: "Completed", value: stats.completedElections },
     { name: "Upcoming", value: stats.totalElections - stats.activeElections - stats.completedElections },
-  ];
+  ].filter(item => item.value > 0); // Filter out zero values
 
   const generateMonthlyData = () => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -154,7 +167,7 @@ const Analytics = () => {
       
       return {
         month,
-        elections: monthlyElections.length,
+        elections: monthElections.length,
       };
     });
     
@@ -163,18 +176,20 @@ const Analytics = () => {
   
   const monthlyData = generateMonthlyData();
   
-  // Generate participation rate data
+  // Generate participation rate data with safety checks
   const generateParticipationData = () => {
     return elections
       .filter(election => election.status === 'completed')
       .map(election => {
         const electionVotes = votesData.filter(vote => vote.election_id === election.id);
-        const participationRate = election.totalEligibleVoters 
+        const participationRate = election.totalEligibleVoters && election.totalEligibleVoters > 0
           ? (electionVotes.length / election.totalEligibleVoters) * 100 
           : 0;
           
         return {
-          name: election.title.substring(0, 20) + (election.title.length > 20 ? '...' : ''),
+          name: election.title 
+            ? (election.title.substring(0, 20) + (election.title.length > 20 ? '...' : ''))
+            : 'Unnamed Election',
           rate: Math.round(participationRate),
         };
       })
@@ -184,12 +199,12 @@ const Analytics = () => {
   
   const participationData = generateParticipationData();
   
-  // Generate position popularity data
+  // Generate position popularity data with safety checks
   const generatePositionData = () => {
     const positionCounts: Record<string, number> = {};
     
     candidatesData.forEach(candidate => {
-      if (candidate.position) {
+      if (candidate && candidate.position) {
         positionCounts[candidate.position] = (positionCounts[candidate.position] || 0) + 1;
       }
     });
@@ -201,6 +216,34 @@ const Analytics = () => {
   };
   
   const positionData = generatePositionData();
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-10 flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-lg font-medium text-muted-foreground">Loading analytics data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <h2 className="text-lg font-semibold mb-2">Error Loading Analytics</h2>
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 bg-red-100 hover:bg-red-200 text-red-800 py-2 px-4 rounded"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-10">
@@ -260,26 +303,32 @@ const Analytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={electionsByStatusData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {electionsByStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {electionsByStatusData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={electionsByStatusData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {electionsByStatusData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                      No election data available
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -290,29 +339,35 @@ const Analytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={monthlyData}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="elections"
-                        stroke="#008f50"
-                        activeDot={{ r: 8 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {monthlyData.some(item => item.elections > 0) ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={monthlyData}
+                        margin={{
+                          top: 5,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="elections"
+                          stroke="#008f50"
+                          activeDot={{ r: 8 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                      No monthly election data available
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -324,37 +379,45 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={participationData}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 60,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end"
-                      height={80} 
-                    />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar 
-                      dataKey="rate" 
-                      name="Participation Rate (%)" 
-                      fill="#008f50" 
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                {participationData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={participationData}
+                      margin={{
+                        top: 5,
+                        right: 30,
+                        left: 20,
+                        bottom: 60,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45} 
+                        textAnchor="end"
+                        height={80} 
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar 
+                        dataKey="rate" 
+                        name="Participation Rate (%)" 
+                        fill="#008f50" 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    No completed elections with participation data
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
+        
+        
         
         <TabsContent value="elections" className="space-y-4">
           <Card>
@@ -416,33 +479,41 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={monthlyData}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="elections"
-                      stroke="#008f50"
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {monthlyData.some(item => item.elections > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={monthlyData}
+                      margin={{
+                        top: 5,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="elections"
+                        stroke="#008f50"
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    No monthly election data available
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
+        
+        
         
         <TabsContent value="voters" className="space-y-4">
           <Card>
@@ -475,31 +546,39 @@ const Analytics = () => {
                 <div>
                   <h3 className="text-lg font-medium mb-2">Top Elections by Participation</h3>
                   <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={participationData}
-                        layout="vertical"
-                        margin={{
-                          top: 5,
-                          right: 30,
-                          left: 100,
-                          bottom: 5,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" domain={[0, 100]} />
-                        <YAxis type="category" dataKey="name" width={100} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="rate" name="Participation Rate (%)" fill="#008f50" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    {participationData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={participationData}
+                          layout="vertical"
+                          margin={{
+                            top: 5,
+                            right: 30,
+                            left: 100,
+                            bottom: 5,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" domain={[0, 100]} />
+                          <YAxis type="category" dataKey="name" width={100} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="rate" name="Participation Rate (%)" fill="#008f50" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground">
+                        No participation data available
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
+        
+        
         
         <TabsContent value="candidates" className="space-y-4">
           <Card>
@@ -511,33 +590,39 @@ const Analytics = () => {
                 <div>
                   <h3 className="text-lg font-medium mb-2">Most Popular Positions</h3>
                   <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={positionData}
-                        margin={{
-                          top: 5,
-                          right: 30,
-                          left: 20,
-                          bottom: 60,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="position" 
-                          angle={-45} 
-                          textAnchor="end" 
-                          height={80}
-                        />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar 
-                          dataKey="count" 
-                          name="Number of Candidates" 
-                          fill="#008f50" 
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    {positionData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={positionData}
+                          margin={{
+                            top: 5,
+                            right: 30,
+                            left: 20,
+                            bottom: 60,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="position" 
+                            angle={-45} 
+                            textAnchor="end" 
+                            height={80}
+                          />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar 
+                            dataKey="count" 
+                            name="Number of Candidates" 
+                            fill="#008f50" 
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground">
+                        No candidate position data available
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

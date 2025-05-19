@@ -54,19 +54,27 @@ const ElectionDetailTabs: React.FC<ElectionDetailTabsProps> = ({
   
   const currentTab = setActiveTab ? activeTab : internalActiveTab;
   
-  // Prepare data for charts
+  // Prepare data for charts with safety checks
   const preparePositionVotesData = () => {
+    if (!positionVotes || Object.keys(positionVotes).length === 0) {
+      return [];
+    }
+    
     return Object.entries(positionVotes).map(([position, data]) => ({
       name: position,
-      votes: data.totalVotes || 0
+      votes: data && typeof data === 'object' && 'totalVotes' in data ? data.totalVotes || 0 : 0
     })).sort((a, b) => b.votes - a.votes);
   };
   
   const prepareCandidatesPerPositionData = () => {
+    if (!candidates || candidates.length === 0) {
+      return [];
+    }
+    
     const positionCounts: Record<string, number> = {};
     
     candidates.forEach(candidate => {
-      if (candidate.position) {
+      if (candidate && candidate.position) {
         positionCounts[candidate.position] = (positionCounts[candidate.position] || 0) + 1;
       }
     });
@@ -126,16 +134,22 @@ const ElectionDetailTabs: React.FC<ElectionDetailTabsProps> = ({
               <CardDescription>Distribution of votes across all positions</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={positionVotesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="votes" fill="#0088FE" name="Votes" />
-                </BarChart>
-              </ResponsiveContainer>
+              {positionVotesData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={positionVotesData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="votes" fill="#0088FE" name="Votes" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  No position votes data available
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -146,16 +160,22 @@ const ElectionDetailTabs: React.FC<ElectionDetailTabsProps> = ({
               <CardDescription>Number of candidates running for each position</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={candidatesPerPositionData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="candidates" fill="#00C49F" name="Candidates" />
-                </BarChart>
-              </ResponsiveContainer>
+              {candidatesPerPositionData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={candidatesPerPositionData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="candidates" fill="#00C49F" name="Candidates" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  No candidate position data available
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -166,31 +186,37 @@ const ElectionDetailTabs: React.FC<ElectionDetailTabsProps> = ({
               <CardDescription>Percentage of eligible voters who have voted</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Voted', value: stats.totalVotes },
-                      { name: 'Not Voted', value: stats.totalVoters - stats.totalVotes }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {[
-                      { name: 'Voted', value: stats.totalVotes },
-                      { name: 'Not Voted', value: stats.totalVoters - stats.totalVotes }
-                    ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              {stats.totalVoters > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Voted', value: stats.totalVotes },
+                        { name: 'Not Voted', value: stats.totalVoters - stats.totalVotes }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {[
+                        { name: 'Voted', value: stats.totalVotes },
+                        { name: 'Not Voted', value: stats.totalVoters - stats.totalVotes }
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  No voter participation data available
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -201,24 +227,30 @@ const ElectionDetailTabs: React.FC<ElectionDetailTabsProps> = ({
               <CardDescription>Candidates to positions ratio</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {candidatesPerPositionData.map((item, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="font-medium">{item.name}</span>
-                      <Badge variant={item.candidates > 1 ? "default" : "outline"}>
-                        {item.candidates} {item.candidates === 1 ? "candidate" : "candidates"}
-                      </Badge>
+              {candidatesPerPositionData.length > 0 ? (
+                <div className="space-y-4">
+                  {candidatesPerPositionData.map((item, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{item.name}</span>
+                        <Badge variant={item.candidates > 1 ? "default" : "outline"}>
+                          {item.candidates} {item.candidates === 1 ? "candidate" : "candidates"}
+                        </Badge>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                        <div 
+                          className="bg-blue-600 h-2.5 rounded-full" 
+                          style={{ width: `${Math.min(100, item.candidates * 20)}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                      <div 
-                        className="bg-blue-600 h-2.5 rounded-full" 
-                        style={{ width: `${Math.min(100, item.candidates * 20)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                  No position competition data available
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
