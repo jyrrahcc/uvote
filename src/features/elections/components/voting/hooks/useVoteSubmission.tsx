@@ -78,7 +78,7 @@ export const useVoteSubmission = ({
       
       const voteId = voteData[0].id;
       
-      // Now create vote_candidate records for each position
+      // Now create vote_candidate records for each position (including abstentions)
       const voteCandidateRecords = positions.map(position => ({
         vote_id: voteId,
         candidate_id: data[position] === "abstain" ? null : data[position],
@@ -101,9 +101,8 @@ export const useVoteSubmission = ({
         description: "Thank you for participating in this election"
       });
       
-      // Use non-abstain vote if available, otherwise use the first vote
-      const firstNonAbstainVote = Object.values(data).find(value => value !== "abstain") || Object.values(data)[0];
-      onVoteSubmitted(firstNonAbstainVote);
+      // Mark voting as completed
+      onVoteSubmitted("vote-completed");
       return true;
       
     } catch (error: any) {

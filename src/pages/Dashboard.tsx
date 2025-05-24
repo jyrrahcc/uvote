@@ -4,6 +4,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import WelcomeHeader from "@/components/dashboard/WelcomeHeader";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import AdminControls from "@/components/dashboard/AdminControls";
+import ElectionAnnouncements from "@/components/dashboard/ElectionAnnouncements";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Calendar, Vote } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,9 @@ const Dashboard = () => {
       
       <div className="grid gap-6">
         <DashboardStats />
+        
+        {/* Election Announcements/Results Section */}
+        <ElectionAnnouncements />
         
         {!isAdmin && (
           <div className="grid md:grid-cols-2 gap-6 mt-2">

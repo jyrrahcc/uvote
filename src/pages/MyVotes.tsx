@@ -7,6 +7,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, ExternalLink } from "lucide-react";
+import VoteReceipt from "@/features/elections/components/voting/VoteReceipt";
 
 interface VoteCandidate {
   position: string;
@@ -28,6 +29,7 @@ interface MyVote {
 const MyVotes = () => {
   const [votes, setVotes] = useState<MyVote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showReceipt, setShowReceipt] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -122,60 +124,74 @@ const MyVotes = () => {
       ) : votes.length > 0 ? (
         <div className="space-y-4">
           {votes.map((vote) => (
-            <Card key={vote.id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{vote.election.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <p className="text-xs text-muted-foreground">
-                    Voted on {new Date(vote.timestamp).toLocaleString()}
-                  </p>
-                </div>
-                
-                {vote.candidates.length > 0 ? (
-                  <div className="space-y-4">
-                    {Object.entries(groupCandidatesByPosition(vote.candidates)).map(([position, candidates]) => (
-                      <div key={position} className="bg-muted/30 p-3 rounded-md">
-                        <h4 className="font-medium text-sm mb-2">{position}</h4>
-                        {candidates.map((candidate, idx) => (
-                          <div key={idx} className="flex items-center text-sm ml-2">
-                            <Check className="h-4 w-4 mr-1 text-green-600" />
-                            <span>{candidate.candidateId ? candidate.candidateName : 'Abstained'}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
+            <div key={vote.id}>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">{vote.election.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4">
+                    <p className="text-xs text-muted-foreground">
+                      Voted on {new Date(vote.timestamp).toLocaleString()}
+                    </p>
                   </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">No candidate data available</div>
-                )}
-                
-                <div className="flex gap-2 mt-4 justify-end">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    asChild
-                  >
-                    <Link to={`/elections/${vote.election.id}`}>
-                      View Election
-                    </Link>
-                  </Button>
                   
-                  {vote.election.status === 'completed' && (
+                  {vote.candidates.length > 0 ? (
+                    <div className="space-y-4">
+                      {Object.entries(groupCandidatesByPosition(vote.candidates)).map(([position, candidates]) => (
+                        <div key={position} className="bg-muted/30 p-3 rounded-md">
+                          <h4 className="font-medium text-sm mb-2">{position}</h4>
+                          {candidates.map((candidate, idx) => (
+                            <div key={idx} className="flex items-center text-sm ml-2">
+                              <Check className="h-4 w-4 mr-1 text-green-600" />
+                              <span>{candidate.candidateId ? candidate.candidateName : 'Abstained'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">No candidate data available</div>
+                  )}
+                  
+                  <div className="flex gap-2 mt-4 justify-end">
                     <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowReceipt(showReceipt === vote.id ? null : vote.id)}
+                    >
+                      {showReceipt === vote.id ? 'Hide Receipt' : 'Show Receipt'}
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
                       size="sm" 
                       asChild
                     >
-                      <Link to={`/elections/${vote.election.id}/results`}>
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Results
+                      <Link to={`/elections/${vote.election.id}`}>
+                        View Election
                       </Link>
                     </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    
+                    {vote.election.status === 'completed' && (
+                      <Button 
+                        size="sm" 
+                        asChild
+                      >
+                        <Link to={`/elections/${vote.election.id}/results`}>
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Results
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {showReceipt === vote.id && (
+                <VoteReceipt voteData={vote} />
+              )}
+            </div>
           ))}
         </div>
       ) : (
