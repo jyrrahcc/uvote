@@ -227,6 +227,10 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
         }
       }
       
+      // Clear saved form state on successful submission
+      const storageKey = editingElectionId ? `election-form-edit-${editingElectionId}` : 'election-form-new';
+      localStorage.removeItem(storageKey);
+      
       toast.success(editingElectionId ? "Election updated successfully" : "Election created successfully");
       onSuccess();
     } catch (error) {
@@ -237,13 +241,20 @@ const ElectionForm = ({ editingElectionId, onSuccess, onCancel }: ElectionFormPr
     }
   };
 
+  const handleCancel = () => {
+    // Clear saved form state when canceling
+    const storageKey = editingElectionId ? `election-form-edit-${editingElectionId}` : 'election-form-new';
+    localStorage.removeItem(storageKey);
+    onCancel();
+  };
+
   return (
     <ElectionFormTabs
       activeTab={activeTab}
       setActiveTab={setActiveTab}
       form={form}
       onSubmit={onSubmit}
-      onCancel={onCancel}
+      onCancel={handleCancel}
       isSubmitting={isSubmitting}
       editingElectionId={editingElectionId}
       candidateManagerRef={candidateManagerRef}

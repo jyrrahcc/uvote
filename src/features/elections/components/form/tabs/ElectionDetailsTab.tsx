@@ -1,28 +1,46 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Plus, X } from "lucide-react";
 import { 
   DLSU_DEPARTMENTS, 
-  YEAR_LEVELS 
+  YEAR_LEVELS,
+  DEFAULT_POSITIONS
 } from "@/features/elections/types/electionFormTypes";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ElectionDetailsTab() {
   const form = useFormContext();
+  const [newPosition, setNewPosition] = useState("");
+  
+  const addPosition = () => {
+    if (newPosition.trim()) {
+      const currentPositions = form.getValues("positions") || [];
+      form.setValue("positions", [...currentPositions, newPosition.trim()]);
+      setNewPosition("");
+    }
+  };
+
+  const removePosition = (indexToRemove: number) => {
+    const currentPositions = form.getValues("positions") || [];
+    form.setValue("positions", currentPositions.filter((_, index) => index !== indexToRemove));
+  };
+
+  const addDefaultPosition = (position: string) => {
+    const currentPositions = form.getValues("positions") || [];
+    if (!currentPositions.includes(position)) {
+      form.setValue("positions", [...currentPositions, position]);
+    }
+  };
   
   return (
-    <div className="space-y-4 py-4">
+    <div className="space-y-6 py-4">
       <FormField
         control={form.control}
         name="title"
@@ -36,7 +54,6 @@ export function ElectionDetailsTab() {
           </FormItem>
         )}
       />
-      
       
       <FormField
         control={form.control}
@@ -55,7 +72,69 @@ export function ElectionDetailsTab() {
           </FormItem>
         )}
       />
-      
+
+      {/* Election Positions Section */}
+      <FormField
+        control={form.control}
+        name="positions"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Election Positions</FormLabel>
+            <div className="space-y-3">
+              {/* Current Positions */}
+              <div className="flex flex-wrap gap-2">
+                {(field.value || []).map((position: string, index: number) => (
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                    {position}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0"
+                      onClick={() => removePosition(index)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+
+              {/* Add Custom Position */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter position name"
+                  value={newPosition}
+                  onChange={(e) => setNewPosition(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addPosition())}
+                />
+                <Button type="button" onClick={addPosition} size="sm">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Quick Add Default Positions */}
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Quick add common positions:</p>
+                <div className="flex flex-wrap gap-2">
+                  {DEFAULT_POSITIONS.map((position) => (
+                    <Button
+                      key={position}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addDefaultPosition(position)}
+                      disabled={(field.value || []).includes(position)}
+                    >
+                      {position}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
@@ -79,7 +158,6 @@ export function ElectionDetailsTab() {
           )}
         />
         
-        
         <FormField
           control={form.control}
           name="candidacyEndDate"
@@ -102,13 +180,12 @@ export function ElectionDetailsTab() {
         />
       </div>
       
-      
       <FormField
         control={form.control}
         name="colleges"
         render={() => (
           <FormItem>
-            <FormLabel>Colleges</FormLabel>
+            <FormLabel>Eligible Colleges/Departments</FormLabel>
             <ScrollArea className="h-40 rounded-md border">
               <div className="p-4 space-y-2">
                 {DLSU_DEPARTMENTS.map((department) => (
@@ -151,13 +228,12 @@ export function ElectionDetailsTab() {
         )}
       />
       
-      
       <FormField
         control={form.control}
         name="eligibleYearLevels"
         render={() => (
           <FormItem>
-            <FormLabel>Year Levels</FormLabel>
+            <FormLabel>Eligible Year Levels & Groups</FormLabel>
             <ScrollArea className="h-40 rounded-md border">
               <div className="p-4 space-y-2">
                 {YEAR_LEVELS.map((yearLevel) => (
@@ -200,7 +276,6 @@ export function ElectionDetailsTab() {
         )}
       />
       
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
@@ -222,7 +297,6 @@ export function ElectionDetailsTab() {
             </FormItem>
           )}
         />
-        
         
         <FormField
           control={form.control}
@@ -246,7 +320,6 @@ export function ElectionDetailsTab() {
         />
       </div>
       
-      
       <FormField
         control={form.control}
         name="isPrivate"
@@ -267,7 +340,6 @@ export function ElectionDetailsTab() {
           </FormItem>
         )}
       />
-      
       
       {form.watch("isPrivate") && (
         <FormField
