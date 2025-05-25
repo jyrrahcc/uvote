@@ -26,3 +26,4 @@ export const YEAR_LEVELS = [
 
 export const UNKNOWN_DEPARTMENT = "Unknown Department";
 export const UNKNOWN_YEAR = "Unknown Year";
+export const UNKNOWN_POSITION = "Unknown Position";
