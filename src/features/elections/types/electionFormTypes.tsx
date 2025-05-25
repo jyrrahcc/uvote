@@ -1,29 +1,8 @@
 
 import { z } from "zod";
 
-export const DLSU_DEPARTMENTS = [
-  "University-wide",
-  "College of Computer Studies",
-  "College of Engineering", 
-  "College of Business",
-  "College of Liberal Arts",
-  "College of Science",
-  "College of Education",
-  "College of Law",
-  "School of Economics"
-];
-
-export const YEAR_LEVELS = [
-  "1st Year",
-  "2nd Year", 
-  "3rd Year",
-  "4th Year",
-  "5th Year",
-  "Graduate",
-  "Alumni",
-  "Faculty",
-  "Staff"
-];
+// Import from the centralized constants
+export { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/types/constants";
 
 export const DEFAULT_POSITIONS = [
   "President",

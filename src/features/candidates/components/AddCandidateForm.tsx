@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,24 +45,39 @@ const formSchema = z.object({
 const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandidateFormProps) => {
   const [loading, setLoading] = useState(false);
   const [availablePositions, setAvailablePositions] = useState<string[]>([]);
+  const [eligibleDepartments, setEligibleDepartments] = useState<string[]>([]);
+  const [eligibleYearLevels, setEligibleYearLevels] = useState<string[]>([]);
 
   useEffect(() => {
-    // Fetch election details to get positions
+    // Fetch election details to get positions and eligibility criteria
     const fetchElectionDetails = async () => {
       try {
         const { data, error } = await supabase
           .from('elections')
-          .select('positions')
+          .select('positions, departments, eligible_year_levels')
           .eq('id', electionId)
           .single();
           
         if (error) {
-          console.error("Error fetching election positions:", error);
+          console.error("Error fetching election details:", error);
           return;
         }
         
-        if (data && Array.isArray(data.positions)) {
-          setAvailablePositions(data.positions);
+        if (data) {
+          // Set available positions
+          if (Array.isArray(data.positions)) {
+            setAvailablePositions(data.positions);
+          }
+          
+          // Set eligible departments/colleges
+          if (Array.isArray(data.departments)) {
+            setEligibleDepartments(data.departments);
+          }
+          
+          // Set eligible year levels
+          if (Array.isArray(data.eligible_year_levels)) {
+            setEligibleYearLevels(data.eligible_year_levels);
+          }
         }
       } catch (error) {
         console.error("Error:", error);
@@ -89,6 +103,17 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
+
+      // Validate eligibility
+      if (values.department && !eligibleDepartments.includes(values.department)) {
+        toast.error("Selected department is not eligible for this election");
+        return;
+      }
+      
+      if (values.year_level && !eligibleYearLevels.includes(values.year_level)) {
+        toast.error("Selected year level is not eligible for this election");
+        return;
+      }
 
       const newCandidate = {
         name: values.name,
@@ -196,7 +221,25 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
                   <FormItem>
                     <FormLabel>Department/College</FormLabel>
                     <FormControl>
-                      <Input placeholder="Candidate's department (optional)" {...field} />
+                      {eligibleDepartments.length > 0 ? (
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select eligible department" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {eligibleDepartments.map((dept) => (
+                              <SelectItem key={dept} value={dept}>
+                                {dept}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input placeholder="Candidate's department (optional)" {...field} />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -210,7 +253,25 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
                   <FormItem>
                     <FormLabel>Year Level</FormLabel>
                     <FormControl>
-                      <Input placeholder="Candidate's year level (optional)" {...field} />
+                      {eligibleYearLevels.length > 0 ? (
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select eligible year level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {eligibleYearLevels.map((year) => (
+                              <SelectItem key={year} value={year}>
+                                {year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input placeholder="Candidate's year level (optional)" {...field} />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -218,6 +279,7 @@ const AddCandidateForm = ({ electionId, onCandidateAdded, onCancel }: AddCandida
               />
             </div>
 
+            
             <FormField
               control={form.control}
               name="bio"

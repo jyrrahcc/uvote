@@ -1,5 +1,4 @@
 
-// College options
 export const DLSU_DEPARTMENTS = [
   "College of Business Administration and Accountancy",
   "College of Education",
@@ -8,25 +7,22 @@ export const DLSU_DEPARTMENTS = [
   "College of Science",
   "College of Information and Computer Studies",
   "College of Criminal Justice Education",
-  "College of Tourism and Hospitality Management"
+  "College of Tourism and Hospitality Management",
+  "University-wide"
 ];
 
-// Year level options
-export const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
-
-// Position options
-export const DEFAULT_POSITIONS = [
-  "President",
-  "Vice President",
-  "Secretary",
-  "Treasurer",
-  "Public Relations Officer",
-  "Senator",
-  "Governor",
-  "Department Representative"
+export const YEAR_LEVELS = [
+  "First Year",
+  "Second Year",
+  "Third Year",
+  "Fourth Year",
+  "Fifth Year",
+  "Graduate Student",
+  "Alumni",
+  "Faculty",
+  "Staff",
+  "All Year Levels"
 ];
 
-// Fallback values for empty fields
-export const UNKNOWN_POSITION = "unspecified-position";
-export const UNKNOWN_DEPARTMENT = "unspecified-college";
-export const UNKNOWN_YEAR = "unspecified-year";
+export const UNKNOWN_DEPARTMENT = "Unknown Department";
+export const UNKNOWN_YEAR = "Unknown Year";
