@@ -391,7 +391,7 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
                       </Tooltip>
                     </TooltipProvider>
                     
-                    {election.status !== "completed" && (
+                    {election.status === "active" && (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
