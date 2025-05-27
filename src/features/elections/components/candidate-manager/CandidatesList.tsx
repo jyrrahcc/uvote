@@ -1,15 +1,14 @@
 
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Users } from "lucide-react";
 import { Candidate } from "@/types";
 import CandidateItem from "./CandidateItem";
-import EmptyCandidatesList from "./EmptyCandidatesList";
-import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/types/constants";
 
 interface CandidatesListProps {
   candidates: Candidate[];
   positions: string[];
+  departments: string[];
+  yearLevels: string[];
   onAddCandidate: () => void;
   onRemoveCandidate: (index: number) => void;
   onUpdateCandidate: (index: number, field: keyof Candidate, value: string) => void;
@@ -19,37 +18,40 @@ interface CandidatesListProps {
 const CandidatesList = ({
   candidates,
   positions,
+  departments,
+  yearLevels,
   onAddCandidate,
   onRemoveCandidate,
   onUpdateCandidate,
   onPreviewImage
 }: CandidatesListProps) => {
   if (candidates.length === 0) {
-    return <EmptyCandidatesList onAddCandidate={onAddCandidate} />;
+    return (
+      <div className="text-center py-8 border rounded-md">
+        <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <p className="text-muted-foreground mb-4">No candidates added yet</p>
+        <Button onClick={onAddCandidate} variant="outline">
+          Add First Candidate
+        </Button>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
       {candidates.map((candidate, index) => (
-        <div key={candidate.id}>
-          <CandidateItem
-            candidate={candidate}
-            index={index}
-            onUpdate={onUpdateCandidate}
-            onRemove={onRemoveCandidate}
-            positions={positions}
-            departments={DLSU_DEPARTMENTS}
-            yearLevels={YEAR_LEVELS}
-            onPreviewImage={onPreviewImage}
-          />
-          {index < candidates.length - 1 && <Separator className="mt-4" />}
-        </div>
+        <CandidateItem
+          key={candidate.id || index}
+          candidate={candidate}
+          index={index}
+          onUpdate={onUpdateCandidate}
+          onRemove={onRemoveCandidate}
+          positions={positions}
+          departments={departments}
+          yearLevels={yearLevels}
+          onPreviewImage={onPreviewImage}
+        />
       ))}
-      
-      <Button type="button" variant="outline" size="sm" onClick={onAddCandidate} className="w-full">
-        <Plus className="mr-2 h-4 w-4" />
-        Add Another Candidate
-      </Button>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Candidate, mapDbCandidateToCandidate } from "@/types";
 import { DEFAULT_POSITIONS } from "./candidate-manager/constants";
+import { DLSU_DEPARTMENTS, YEAR_LEVELS } from "@/types/constants";
 import CandidatesList from "./candidate-manager/CandidatesList";
 import CandidateManagerHeader from "./candidate-manager/CandidateManagerHeader";
 import CandidacyMessage from "./candidate-manager/CandidacyMessage";
@@ -29,18 +30,63 @@ const CandidateManager = forwardRef<any, CandidateManagerProps>(({
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [availablePositions, setAvailablePositions] = useState<string[]>([]);
+  const [eligibleDepartments, setEligibleDepartments] = useState<string[]>([]);
+  const [eligibleYearLevels, setEligibleYearLevels] = useState<string[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  // Initialize positions
+  // Initialize positions and fetch election criteria
   useEffect(() => {
     if (positions && positions.length > 0) {
       setAvailablePositions(positions);
     } else {
-      // If no positions provided, use defaults
       setAvailablePositions(DEFAULT_POSITIONS);
     }
-  }, [positions]);
+
+    // Fetch election eligibility criteria if editing existing election
+    if (electionId && !isNewElection) {
+      fetchElectionCriteria();
+    } else {
+      // For new elections, use all departments and year levels initially
+      setEligibleDepartments(DLSU_DEPARTMENTS);
+      setEligibleYearLevels(YEAR_LEVELS);
+    }
+  }, [positions, electionId, isNewElection]);
+
+  const fetchElectionCriteria = async () => {
+    if (!electionId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('elections')
+        .select('departments, eligible_year_levels')
+        .eq('id', electionId)
+        .single();
+      
+      if (error) throw error;
+
+      if (data) {
+        // Set eligible departments/colleges
+        if (Array.isArray(data.departments) && data.departments.length > 0) {
+          setEligibleDepartments(data.departments);
+        } else {
+          setEligibleDepartments(DLSU_DEPARTMENTS);
+        }
+        
+        // Set eligible year levels
+        if (Array.isArray(data.eligible_year_levels) && data.eligible_year_levels.length > 0) {
+          setEligibleYearLevels(data.eligible_year_levels);
+        } else {
+          setEligibleYearLevels(YEAR_LEVELS);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching election criteria:", error);
+      // Fall back to all options if error
+      setEligibleDepartments(DLSU_DEPARTMENTS);
+      setEligibleYearLevels(YEAR_LEVELS);
+    }
+  };
 
   // Fetch candidates if editing an existing election
   useEffect(() => {
@@ -175,6 +221,8 @@ const CandidateManager = forwardRef<any, CandidateManagerProps>(({
       <CandidatesList
         candidates={candidates}
         positions={availablePositions}
+        departments={eligibleDepartments}
+        yearLevels={eligibleYearLevels}
         onAddCandidate={addCandidate}
         onRemoveCandidate={removeCandidate}
         onUpdateCandidate={updateCandidate}

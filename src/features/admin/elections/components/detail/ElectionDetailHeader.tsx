@@ -42,7 +42,7 @@ const ElectionDetailHeader = ({
   };
 
   const canCompleteElection = election.status === 'active';
-  const canResetVotes = election.status === 'active'; // Only allow reset for active elections
+  const canResetVotes = election.status === 'active'; // Only allow reset for active elections, not upcoming
 
   return (
     <div className="flex items-center justify-between mb-6">

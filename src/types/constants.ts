@@ -1,4 +1,5 @@
 
+
 export const DLSU_DEPARTMENTS = [
   "College of Business Administration and Accountancy",
   "College of Education",
