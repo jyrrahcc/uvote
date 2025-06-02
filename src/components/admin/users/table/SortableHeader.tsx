@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 interface SortableHeaderProps {
   column: string;
   label: string;
-  sortColumn: string;
+  currentSort: string;
   onSort: (column: string) => void;
 }
 
 const SortableHeader: React.FC<SortableHeaderProps> = ({
   column,
   label,
-  sortColumn,
+  currentSort,
   onSort
 }) => {
   return (
@@ -24,7 +24,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({
       <span>{label}</span>
       <ArrowUpDown className={cn(
         "h-3 w-3 transition-opacity",
-        sortColumn === column ? "opacity-100" : "opacity-40"
+        currentSort === column ? "opacity-100" : "opacity-40"
       )} />
     </div>
   );
