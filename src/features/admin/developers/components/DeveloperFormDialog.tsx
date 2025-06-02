@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Save, X } from "lucide-react";
+import { Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { UploadButton } from "@/components/ui/upload-button";
@@ -42,6 +42,7 @@ const DeveloperFormDialog = ({
       is_active: editingDeveloper.is_active,
     } : initialForm
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +51,8 @@ const DeveloperFormDialog = ({
       toast.error('Name and role are required');
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const developerData = {
@@ -85,20 +88,29 @@ const DeveloperFormDialog = ({
     } catch (error) {
       console.error('Error saving developer:', error);
       toast.error('Failed to save developer');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleImageUpload = (url: string) => {
     setForm({ ...form, image_url: url });
+    toast.success('Profile image uploaded successfully');
+  };
+
+  const handleImageUploadError = (error: string) => {
+    console.error('Image upload error:', error);
+    toast.error('Failed to upload image: ' + error);
   };
 
   const handleDialogClose = () => {
+    if (isSubmitting) return; // Prevent closing during submission
     onOpenChange(false);
     setForm(initialForm);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editingDeveloper ? 'Edit Developer' : 'Add Developer'}</DialogTitle>
@@ -112,6 +124,7 @@ const DeveloperFormDialog = ({
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
+                disabled={isSubmitting}
               />
             </div>
             <div>
@@ -122,6 +135,7 @@ const DeveloperFormDialog = ({
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
                 placeholder="e.g., Lead Developer, UI/UX Designer"
                 required
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -134,6 +148,7 @@ const DeveloperFormDialog = ({
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
               placeholder="Brief description about the developer..."
               rows={3}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -151,6 +166,7 @@ const DeveloperFormDialog = ({
                     variant="outline" 
                     size="sm"
                     onClick={() => setForm({ ...form, image_url: '' })}
+                    disabled={isSubmitting}
                   >
                     Remove Image
                   </Button>
@@ -160,6 +176,7 @@ const DeveloperFormDialog = ({
                 bucketName="developers"
                 folderPath="profile-images"
                 onUploadComplete={handleImageUpload}
+                onUploadError={handleImageUploadError}
                 accept="image/*"
                 maxSizeMB={2}
                 buttonText="Upload Profile Image"
@@ -177,6 +194,7 @@ const DeveloperFormDialog = ({
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="developer@example.com"
+                disabled={isSubmitting}
               />
             </div>
             <div>
@@ -187,6 +205,7 @@ const DeveloperFormDialog = ({
                 value={form.display_order}
                 onChange={(e) => setForm({ ...form, display_order: parseInt(e.target.value) || 0 })}
                 min="0"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -199,6 +218,7 @@ const DeveloperFormDialog = ({
                 value={form.github_url}
                 onChange={(e) => setForm({ ...form, github_url: e.target.value })}
                 placeholder="https://github.com/username"
+                disabled={isSubmitting}
               />
             </div>
             <div>
@@ -208,6 +228,7 @@ const DeveloperFormDialog = ({
                 value={form.linkedin_url}
                 onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
                 placeholder="https://linkedin.com/in/username"
+                disabled={isSubmitting}
               />
             </div>
             <div>
@@ -217,6 +238,7 @@ const DeveloperFormDialog = ({
                 value={form.twitter_url}
                 onChange={(e) => setForm({ ...form, twitter_url: e.target.value })}
                 placeholder="https://twitter.com/username"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -226,18 +248,24 @@ const DeveloperFormDialog = ({
               id="is_active"
               checked={form.is_active}
               onCheckedChange={(checked) => setForm({ ...form, is_active: checked })}
+              disabled={isSubmitting}
             />
             <Label htmlFor="is_active">Active (visible on About page)</Label>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleDialogClose}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleDialogClose}
+              disabled={isSubmitting}
+            >
               <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={isSubmitting}>
               <Save className="h-4 w-4 mr-2" />
-              {editingDeveloper ? 'Update' : 'Create'}
+              {isSubmitting ? 'Saving...' : (editingDeveloper ? 'Update' : 'Create')}
             </Button>
           </div>
         </form>
