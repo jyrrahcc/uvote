@@ -41,7 +41,7 @@ const ElectionMetadataGrid = ({ election, isCandidacyPeriodActive }: ElectionMet
       <div className="flex items-center">
         <Users className="h-5 w-5 mr-2 text-[#008f50]" />
         <div>
-          <p className="text-sm font-medium">Department</p>
+          <p className="text-sm font-medium">College</p>
           <p className="text-sm text-muted-foreground">
             {election.colleges && election.colleges.length > 0 
               ? election.colleges.join(', ') 

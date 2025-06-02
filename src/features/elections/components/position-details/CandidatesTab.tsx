@@ -101,7 +101,7 @@ const CandidatesTab = ({ election, candidates, isUserEligible = true }: Candidat
         <Alert className="mb-6 bg-amber-50 border-amber-200">
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-amber-700">
-            You are not eligible to apply as a candidate for this election. This election may be restricted to specific departments or year levels.
+            You are not eligible to apply as a candidate for this election. This election may be restricted to specific colleges or year levels.
           </AlertDescription>
         </Alert>
       )}
@@ -110,12 +110,36 @@ const CandidatesTab = ({ election, candidates, isUserEligible = true }: Candidat
         <div className="space-y-8">
           {positions.map(position => (
             <div key={position}>
-              <h3 className="text-lg font-medium mb-3">{position}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <PositionCandidatesList 
-                  position={position}
-                  candidates={candidatesByPosition[position] || []}
-                />
+              <h3 className="text-lg font-medium mb-4">{position}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {candidatesByPosition[position].map(candidate => (
+                  <Card key={candidate.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="aspect-video bg-muted flex items-center justify-center">
+                      {candidate.image_url ? (
+                        <img 
+                          src={candidate.image_url} 
+                          alt={candidate.name} 
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <div className="text-muted-foreground">No Image</div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h4 className="text-lg font-semibold mb-2">{candidate.name}</h4>
+                      {(candidate.department || candidate.year_level) && (
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {candidate.department && `${candidate.department}`}
+                          {candidate.year_level && candidate.department && ` • `}
+                          {candidate.year_level && `${candidate.year_level}`}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {candidate.bio || "No biography provided"}
+                      </p>
+                    </div>
+                  </Card>
+                ))}
               </div>
             </div>
           ))}
