@@ -14,7 +14,7 @@ import ElectionTitleSection from "@/features/elections/components/detail-page/El
 import ElectionStatCards from "@/features/admin/elections/components/detail/ElectionStatCards";
 import ElectionDetailTabs from "@/features/admin/elections/components/detail/ElectionDetailTabs";
 import ElectionDetailHeader from "@/features/admin/elections/components/detail/ElectionDetailHeader";
-import ElectionBanner from "@/features/elections/components/detail-page/ElectionBanner";
+import ElectionBannerCarousel from "@/features/elections/components/detail-page/ElectionBannerCarousel";
 
 const ElectionDetailPage = () => {
   const { electionId } = useParams<{ electionId: string }>();
@@ -121,9 +121,11 @@ const ElectionDetailPage = () => {
       />
       
       {/* Display banner carousel if available */}
-      <ElectionBanner 
-        bannerUrls={election.banner_urls}
+      <ElectionBannerCarousel 
+        bannerUrls={election.banner_urls || []}
         title={election.title}
+        autoAdvance={true}
+        interval={6000}
       />
       
       <ElectionStatCards 

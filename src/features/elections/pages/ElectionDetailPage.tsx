@@ -13,7 +13,7 @@ import ElectionErrorState from "../components/detail-page/ElectionErrorState";
 import ElectionHeader from "../components/position-details/ElectionHeader";
 import ElectionTitleSection from "../components/detail-page/ElectionTitleSection";
 import ElectionStatusAlert from "../components/ElectionStatusAlert";
-import ElectionBanner from "../components/detail-page/ElectionBanner";
+import ElectionBannerCarousel from "../components/detail-page/ElectionBannerCarousel";
 import ElectionMetadata from "../components/position-details/ElectionMetadata";
 import ElectionTabsView from "../components/detail-page/ElectionTabsView";
 import VoterEligibilityAlert from "../components/VoterEligibilityAlert";
@@ -114,7 +114,12 @@ const ElectionDetailPage = () => {
       )}
       
       {/* Election banner carousel if available */}
-      <ElectionBanner bannerUrls={election.banner_urls} title={election.title} />
+      <ElectionBannerCarousel 
+        bannerUrls={election.banner_urls || []} 
+        title={election.title}
+        autoAdvance={true}
+        interval={5000}
+      />
       
       {/* Election metadata */}
       <ElectionMetadata election={election} formatDate={(date) => new Date(date).toLocaleDateString()} />
