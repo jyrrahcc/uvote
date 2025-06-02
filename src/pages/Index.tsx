@@ -1,42 +1,9 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
-import ElectionCard from "@/features/elections/components/ElectionCard";
-import { Election } from "@/types";
 import { ArrowRight, Check, Search, ShieldCheck, Vote, Award, TrendingUp, Clock, UserCheck } from "lucide-react";
 import Logo from "@/components/layout/Logo";
-
-// Sample featured elections
-const featuredElections: Election[] = [
-  {
-    id: "2",
-    title: "Community Board Election",
-    description: "Select the members who will represent your community interests for the next term.",
-    startDate: "2025-05-01T00:00:00Z",
-    endDate: "2025-05-15T23:59:59Z",
-    status: "active",
-    createdBy: "admin-2",
-    createdAt: "2025-04-01T00:00:00Z",
-    updatedAt: "2025-04-01T00:00:00Z",
-    isPrivate: false,
-    accessCode: "",
-    colleges: []  // Added missing property
-  },
-  {
-    id: "1",
-    title: "Student Body President",
-    description: "Vote for your student body president for the 2025-2026 academic year.",
-    startDate: "2025-09-01T00:00:00Z",
-    endDate: "2025-09-07T23:59:59Z",
-    status: "upcoming",
-    createdBy: "admin-1",
-    createdAt: "2025-08-01T00:00:00Z",
-    updatedAt: "2025-08-01T00:00:00Z",
-    isPrivate: false,
-    accessCode: "",
-    colleges: []  // Added missing property
-  },
-];
 
 /**
  * Enhanced home page component for the main landing page
@@ -106,7 +73,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Keep the rest of the sections */}
       {/* Features section with more exciting design */}
       <section className="py-20 px-4 overflow-hidden">
         <div className="container mx-auto">
@@ -164,46 +130,10 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Active elections section with improved design */}
+      {/* How it works section */}
       <section className="py-20 px-4 bg-secondary/50 relative">
         <div className="absolute inset-0 bg-grid-primary/5 bg-[length:20px_20px]"></div>
         <div className="container relative mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl font-bold mb-2">Featured Elections</h2>
-              <p className="text-muted-foreground">Participate in these ongoing and upcoming elections</p>
-            </div>
-            <Button variant="outline" className="mt-4 md:mt-0 group" asChild>
-              <Link to="/elections" className="flex items-center">
-                View All Elections
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </Button>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredElections.map((election, index) => (
-              <div key={election.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                <ElectionCard election={election} />
-              </div>
-            ))}
-            <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-6 flex flex-col justify-center items-center text-center">
-              <Award className="h-16 w-16 text-primary/60 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Create Your Own Election</h3>
-              <p className="text-muted-foreground mb-6">
-                Start your democratic process with just a few clicks
-              </p>
-              <Button asChild>
-                <Link to="/register">Get Started</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How it works section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
