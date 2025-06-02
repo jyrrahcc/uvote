@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -432,44 +433,47 @@ const ElectionTable = ({ elections, onEditElection, onElectionDeleted }: Electio
                       </TooltipProvider>
                     )}
 
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="text-amber-600"
-                              >
-                                <RefreshCcw className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Reset Election Votes?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete all votes for the election "{election.title}". 
-                                  All voters will be able to vote again. This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  className="bg-amber-600 text-white hover:bg-amber-700"
-                                  onClick={() => handleResetVotes(election.id)}
+                    {/* Only show Reset Votes button for active and completed elections, not upcoming */}
+                    {(election.status === "active" || election.status === "completed") && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-amber-600"
                                 >
-                                  {resettingId === election.id ? "Resetting..." : "Reset Votes"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Reset Votes</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                                  <RefreshCcw className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Reset Election Votes?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete all votes for the election "{election.title}". 
+                                    All voters will be able to vote again. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    className="bg-amber-600 text-white hover:bg-amber-700"
+                                    onClick={() => handleResetVotes(election.id)}
+                                  >
+                                    {resettingId === election.id ? "Resetting..." : "Reset Votes"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Reset Votes</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     
                     <TooltipProvider>
                       <Tooltip>

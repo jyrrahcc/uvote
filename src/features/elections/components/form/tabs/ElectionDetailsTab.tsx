@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -14,6 +13,7 @@ import {
   DEFAULT_POSITIONS
 } from "@/features/elections/types/electionFormTypes";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 
 export function ElectionDetailsTab() {
   const form = useFormContext();
@@ -22,7 +22,19 @@ export function ElectionDetailsTab() {
   const addPosition = () => {
     if (newPosition.trim()) {
       const currentPositions = form.getValues("positions") || [];
-      form.setValue("positions", [...currentPositions, newPosition.trim()]);
+      const trimmedPosition = newPosition.trim();
+      
+      // Check for duplicate positions (case-insensitive)
+      const isDuplicate = currentPositions.some((position: string) => 
+        position.toLowerCase() === trimmedPosition.toLowerCase()
+      );
+      
+      if (isDuplicate) {
+        toast.error(`Position "${trimmedPosition}" already exists`);
+        return;
+      }
+      
+      form.setValue("positions", [...currentPositions, trimmedPosition]);
       setNewPosition("");
     }
   };
@@ -34,9 +46,18 @@ export function ElectionDetailsTab() {
 
   const addDefaultPosition = (position: string) => {
     const currentPositions = form.getValues("positions") || [];
-    if (!currentPositions.includes(position)) {
-      form.setValue("positions", [...currentPositions, position]);
+    
+    // Check for duplicate positions (case-insensitive)
+    const isDuplicate = currentPositions.some((existingPosition: string) => 
+      existingPosition.toLowerCase() === position.toLowerCase()
+    );
+    
+    if (isDuplicate) {
+      toast.error(`Position "${position}" already exists`);
+      return;
     }
+    
+    form.setValue("positions", [...currentPositions, position]);
   };
 
   const handleCollegeChange = (college: string, checked: boolean) => {
@@ -158,18 +179,25 @@ export function ElectionDetailsTab() {
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Quick add common positions:</p>
                 <div className="flex flex-wrap gap-2">
-                  {DEFAULT_POSITIONS.map((position) => (
-                    <Button
-                      key={position}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addDefaultPosition(position)}
-                      disabled={(field.value || []).includes(position)}
-                    >
-                      {position}
-                    </Button>
-                  ))}
+                  {DEFAULT_POSITIONS.map((position) => {
+                    const currentPositions = field.value || [];
+                    const isDisabled = currentPositions.some((existingPosition: string) => 
+                      existingPosition.toLowerCase() === position.toLowerCase()
+                    );
+                    
+                    return (
+                      <Button
+                        key={position}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addDefaultPosition(position)}
+                        disabled={isDisabled}
+                      >
+                        {position}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
