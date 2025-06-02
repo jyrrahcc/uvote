@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Election } from "@/types";
 import { Users, CalendarDays, ClipboardList, BarChart, LineChart, TrendingUp } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ElectionStatCardsProps {
   election: Election;
@@ -24,16 +25,63 @@ const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({
   positionVotes,
   formatDate = (date) => new Date(date).toLocaleDateString() 
 }) => {
-  // Calculate default stats if not provided
+  const [actualEligibleVoters, setActualEligibleVoters] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEligibleVotersCount = async () => {
+      try {
+        setLoading(true);
+        
+        // Build the query to count eligible voters based on election criteria
+        let query = supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true });
+
+        // Filter by departments/colleges if specified
+        if (election.colleges && election.colleges.length > 0 && !election.colleges.includes("University-wide")) {
+          query = query.in('department', election.colleges);
+        }
+
+        // Filter by year levels if specified
+        if (election.eligibleYearLevels && election.eligibleYearLevels.length > 0 && !election.eligibleYearLevels.includes("All Year Levels & Groups")) {
+          query = query.in('year_level', election.eligibleYearLevels);
+        }
+
+        const { count, error } = await query;
+
+        if (error) {
+          console.error('Error fetching eligible voters count:', error);
+          setActualEligibleVoters(stats?.totalVoters || 0); // Fallback to original stats
+        } else {
+          setActualEligibleVoters(count || 0);
+        }
+      } catch (error) {
+        console.error('Error in fetchEligibleVotersCount:', error);
+        setActualEligibleVoters(stats?.totalVoters || 0); // Fallback to original stats
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEligibleVotersCount();
+  }, [election, stats?.totalVoters]);
+
+  // Calculate default stats if not provided, using actual eligible voters
   const defaultStats = {
-    totalVoters: election.totalEligibleVoters || 0,
+    totalVoters: actualEligibleVoters,
     totalVotes: 0,
     participationRate: 0,
     positionsCount: election.positions?.length || 0,
     candidatesCount: 0
   };
 
-  const displayStats = stats || defaultStats;
+  // Use actual eligible voters for calculations
+  const displayStats = stats ? {
+    ...stats,
+    totalVoters: actualEligibleVoters,
+    participationRate: actualEligibleVoters > 0 ? Math.round((stats.totalVotes / actualEligibleVoters) * 100) : 0
+  } : defaultStats;
   
   // Calculate time remaining (or elapsed) for the election
   const calculateTimeRemaining = () => {
@@ -82,16 +130,16 @@ const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({
           </CardTitle>
           <div className="flex items-center justify-between">
             <div className="text-3xl font-bold">
-              {displayStats.participationRate}%
+              {loading ? "..." : `${displayStats.participationRate}%`}
             </div>
             <Users className="h-5 w-5 text-muted-foreground" />
           </div>
           <CardDescription>
-            {displayStats.totalVotes} out of {displayStats.totalVoters} eligible voters
+            {displayStats.totalVotes} out of {loading ? "..." : actualEligibleVoters} eligible voters
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
-          <Progress value={displayStats.participationRate} className="h-2" />
+          <Progress value={loading ? 0 : displayStats.participationRate} className="h-2" />
         </CardContent>
       </Card>
       
@@ -157,9 +205,9 @@ const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({
           </CardTitle>
           <div className="flex items-center justify-between">
             <div className="text-2xl font-bold">
-              {displayStats.totalVotes > 0 ? 
+              {loading ? "..." : (displayStats.totalVotes > 0 ? 
                 Math.min(100, Math.round((displayStats.totalVotes / 
-                  (displayStats.totalVoters * displayStats.positionsCount)) * 100)) : 0}%
+                  (actualEligibleVoters * displayStats.positionsCount)) * 100)) : 0)}%
             </div>
             <BarChart className="h-5 w-5 text-muted-foreground" />
           </div>
@@ -169,9 +217,9 @@ const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({
         </CardHeader>
         <CardContent className="pt-0">
           <Progress 
-            value={displayStats.totalVotes > 0 ? 
+            value={loading ? 0 : (displayStats.totalVotes > 0 ? 
               Math.min(100, Math.round((displayStats.totalVotes / 
-                (displayStats.totalVoters * displayStats.positionsCount)) * 100)) : 0} 
+                (actualEligibleVoters * displayStats.positionsCount)) * 100)) : 0)} 
             className="h-2" 
           />
         </CardContent>
