@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import { useRole } from "@/features/auth/context/RoleContext";
 import ElectionCard from "@/features/elections/components/ElectionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Election, mapDbElectionToElection } from "@/types";
+import { DLSU_DEPARTMENTS } from "@/types/constants";
 import { checkUserEligibility } from "@/utils/eligibilityUtils";
 import { Calendar, Search, University } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -29,7 +31,6 @@ const Elections = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [departments, setDepartments] = useState<string[]>([]);
   const { isAdmin } = useRole();
   const { user } = useAuth();
   
@@ -81,17 +82,6 @@ const Elections = () => {
         // Admins can see all elections
         setElections(transformedElections);
       }
-      
-      // Extract unique colleges for filtering
-      const uniqueDepartments = Array.from(
-        new Set(
-          transformedElections
-            .flatMap(e => e.colleges || [])
-            .filter(Boolean)
-        )
-      ) as string[];
-      
-      setDepartments(uniqueDepartments);
     } catch (error) {
       console.error("Error fetching elections:", error);
       setError("Failed to load elections. Please try again.");
@@ -198,8 +188,8 @@ const Elections = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Colleges</SelectItem>
-                {departments.map((dept) => (
-                  <SelectItem key={dept} value={dept || "unknown"}>{dept || "Unknown College"}</SelectItem>
+                {DLSU_DEPARTMENTS.map((dept) => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
