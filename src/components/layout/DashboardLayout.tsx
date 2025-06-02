@@ -27,7 +27,6 @@ import {
   List,
   LogOut,
   LucideIcon,
-  Settings,
   User,
   Users,
   Vote
@@ -53,12 +52,13 @@ const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
   
-  // Define menu items with required roles
+  // Define menu items with required roles - removed System Settings
   const menuItems: MenuItem[] = [
     { name: "Dashboard", path: "/dashboard", icon: Home, roles: ["admin", "voter", "any"] },
     { name: "Elections", path: "/elections", icon: Vote, roles: ["admin", "voter", "any"] },
     { name: "My Votes", path: "/my-votes", icon: FileText, roles: ["voter"] },
     { name: "My Applications", path: "/my-applications", icon: User, roles: ["voter"] },
+    // Admin only pages
     { 
       name: "Manage Elections", 
       path: "/admin/elections", 
@@ -77,13 +77,6 @@ const DashboardLayout = () => {
       name: "Analytics", 
       path: "/admin/analytics", 
       icon: BarChart, 
-      roles: ["admin"],
-      badge: "Admin"
-    },
-    { 
-      name: "System Settings", 
-      path: "/admin/settings", 
-      icon: Settings, 
       roles: ["admin"],
       badge: "Admin"
     },
