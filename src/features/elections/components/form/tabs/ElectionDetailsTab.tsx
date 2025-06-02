@@ -38,6 +38,48 @@ export function ElectionDetailsTab() {
       form.setValue("positions", [...currentPositions, position]);
     }
   };
+
+  const handleCollegeChange = (college: string, checked: boolean) => {
+    const currentColleges = form.getValues("colleges") || [];
+    
+    if (college === "University-wide") {
+      if (checked) {
+        // Select all colleges when University-wide is selected
+        form.setValue("colleges", [...DLSU_DEPARTMENTS]);
+      } else {
+        // Unselect University-wide only
+        form.setValue("colleges", currentColleges.filter(c => c !== "University-wide"));
+      }
+    } else {
+      if (checked) {
+        form.setValue("colleges", [...currentColleges, college]);
+      } else {
+        const newColleges = currentColleges.filter(c => c !== college);
+        form.setValue("colleges", newColleges);
+      }
+    }
+  };
+
+  const handleYearLevelChange = (yearLevel: string, checked: boolean) => {
+    const currentYearLevels = form.getValues("eligibleYearLevels") || [];
+    
+    if (yearLevel === "All Year Levels & Groups") {
+      if (checked) {
+        // Select all year levels when "All Year Levels & Groups" is selected
+        form.setValue("eligibleYearLevels", [...YEAR_LEVELS]);
+      } else {
+        // Unselect "All Year Levels & Groups" only
+        form.setValue("eligibleYearLevels", currentYearLevels.filter(y => y !== "All Year Levels & Groups"));
+      }
+    } else {
+      if (checked) {
+        form.setValue("eligibleYearLevels", [...currentYearLevels, yearLevel]);
+      } else {
+        const newYearLevels = currentYearLevels.filter(y => y !== yearLevel);
+        form.setValue("eligibleYearLevels", newYearLevels);
+      }
+    }
+  };
   
   return (
     <div className="space-y-6 py-4">
@@ -203,13 +245,7 @@ export function ElectionDetailsTab() {
                             <Checkbox
                               checked={field.value?.includes(department)}
                               onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...field.value, department])
-                                  : field.onChange(
-                                      field.value?.filter(
-                                        (value: string) => value !== department
-                                      )
-                                    );
+                                handleCollegeChange(department, !!checked);
                               }}
                             />
                           </FormControl>
@@ -251,13 +287,7 @@ export function ElectionDetailsTab() {
                             <Checkbox
                               checked={field.value?.includes(yearLevel)}
                               onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...field.value, yearLevel])
-                                  : field.onChange(
-                                      field.value?.filter(
-                                        (value: string) => value !== yearLevel
-                                      )
-                                    );
+                                handleYearLevelChange(yearLevel, !!checked);
                               }}
                             />
                           </FormControl>

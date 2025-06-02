@@ -1,5 +1,4 @@
 
-
 export const DLSU_DEPARTMENTS = [
   "College of Business Administration and Accountancy",
   "College of Education",
@@ -22,7 +21,7 @@ export const YEAR_LEVELS = [
   "Alumni",
   "Faculty",
   "Staff",
-  "All Year Levels"
+  "All Year Levels & Groups"
 ];
 
 export const UNKNOWN_DEPARTMENT = "Unknown Department";

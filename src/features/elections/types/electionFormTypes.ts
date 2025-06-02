@@ -21,7 +21,7 @@ export const electionFormSchema = z.object({
       return true;
     }),
   positions: z.array(z.string()).default([]),
-  banner_urls: z.array(z.string()).default([]),
+  banner_urls: z.array(z.string()).default([])
 }).refine((data) => {
   // Candidacy period should come before voting period
   const candidacyStart = new Date(data.candidacyStartDate);
@@ -75,7 +75,10 @@ export const YEAR_LEVELS = [
   "Fourth Year",
   "Fifth Year",
   "Graduate Student",
-  "All Year Levels"
+  "Alumni",
+  "Faculty",
+  "Staff",
+  "All Year Levels & Groups"
 ];
 
 // Default positions available for elections
