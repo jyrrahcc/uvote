@@ -1,34 +1,67 @@
 
-import React from "react";
-import { TableHead, TableRow, TableHeader } from "@/components/ui/table";
+import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import SortableHeader from "./SortableHeader";
+import { UserProfile } from "../types";
 
 interface UserListHeadersProps {
   sortColumn: string;
   onSort: (column: string) => void;
+  showSelection?: boolean;
+  users?: UserProfile[];
+  selectedUsers?: string[];
+  onSelectionChange?: (userIds: string[]) => void;
 }
 
-const UserListHeaders: React.FC<UserListHeadersProps> = ({
-  sortColumn,
-  onSort
-}) => {
+const UserListHeaders = ({ 
+  sortColumn, 
+  onSort, 
+  showSelection = false,
+  users = [],
+  selectedUsers = [],
+  onSelectionChange 
+}: UserListHeadersProps) => {
+  const isAllSelected = selectedUsers.length === users.length && users.length > 0;
+  const isPartiallySelected = selectedUsers.length > 0 && selectedUsers.length < users.length;
+
+  const handleSelectAll = () => {
+    if (!onSelectionChange) return;
+    
+    if (isAllSelected) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(users.map(u => u.id));
+    }
+  };
+
   return (
     <TableHeader>
       <TableRow>
-        <TableHead className="cursor-pointer">
-          <SortableHeader column="name" label="Name" sortColumn={sortColumn} onSort={onSort} />
-        </TableHead>
-        <TableHead className="cursor-pointer">
-          <SortableHeader column="email" label="Email" sortColumn={sortColumn} onSort={onSort} />
-        </TableHead>
-        <TableHead className="hidden md:table-cell cursor-pointer">
-          <SortableHeader column="department" label="Department" sortColumn={sortColumn} onSort={onSort} />
-        </TableHead>
-        <TableHead className="hidden lg:table-cell cursor-pointer">
-          <SortableHeader column="year_level" label="Year" sortColumn={sortColumn} onSort={onSort} />
-        </TableHead>
+        {showSelection && (
+          <TableHead className="w-12">
+            <Checkbox
+              checked={isAllSelected}
+              onCheckedChange={handleSelectAll}
+              className={isPartiallySelected ? "data-[state=checked]:bg-orange-500" : ""}
+            />
+          </TableHead>
+        )}
+        <SortableHeader
+          column="name"
+          currentSort={sortColumn}
+          onSort={onSort}
+          label="Name"
+        />
+        <SortableHeader
+          column="email"
+          currentSort={sortColumn}
+          onSort={onSort}
+          label="Email"
+        />
+        <TableHead className="hidden md:table-cell">Department</TableHead>
+        <TableHead className="hidden lg:table-cell">Year Level</TableHead>
         <TableHead>Roles</TableHead>
-        <TableHead>Verification</TableHead>
+        <TableHead>Status</TableHead>
         <TableHead className="text-right">Actions</TableHead>
       </TableRow>
     </TableHeader>

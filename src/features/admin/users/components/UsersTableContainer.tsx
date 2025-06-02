@@ -23,6 +23,9 @@ interface UsersTableContainerProps {
   onViewProfile: (user: UserProfile) => void;
   onVerify: (userId: string, isVerified: boolean) => Promise<void>;
   onRoleAction: (userId: string, role: string, action: 'add' | 'remove') => Promise<void>;
+  selectedUsers?: string[];
+  onSelectionChange?: (userIds: string[]) => void;
+  processingUserIds?: Set<string>;
 }
 
 export const UsersTableContainer: React.FC<UsersTableContainerProps> = ({
@@ -40,7 +43,10 @@ export const UsersTableContainer: React.FC<UsersTableContainerProps> = ({
   onSort,
   onViewProfile,
   onVerify,
-  onRoleAction
+  onRoleAction,
+  selectedUsers = [],
+  onSelectionChange,
+  processingUserIds = new Set()
 }) => {
   if (loading) {
     return (
@@ -66,6 +72,9 @@ export const UsersTableContainer: React.FC<UsersTableContainerProps> = ({
         onViewProfile={onViewProfile}
         onVerify={onVerify}
         onRoleAction={onRoleAction}
+        selectedUsers={selectedUsers}
+        onSelectionChange={onSelectionChange}
+        processingUserIds={processingUserIds}
       />
       
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">

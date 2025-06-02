@@ -14,6 +14,7 @@ import MobileNav from "./MobileNav";
 import DashboardSidebarHeader from "./dashboard/DashboardSidebarHeader";
 import DashboardSidebarMenu from "./dashboard/DashboardSidebarMenu";
 import DashboardUserProfile from "./dashboard/DashboardUserProfile";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 const DashboardLayout = () => {
   const { user } = useAuth();
@@ -32,36 +33,40 @@ const DashboardLayout = () => {
   }, [isAdmin, isVoter, userRole]);
 
   return (
-    <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen w-full bg-muted/10">
-        {/* Mobile Navigation - Only visible on small screens */}
-        <div className="fixed top-0 left-0 right-0 z-30">
-          <MobileNav />
-        </div>
-        
-        {/* Desktop Sidebar - Hidden on small screens */}
-        <Sidebar className="border-r border-border bg-card hidden md:block">
-          <DashboardSidebarHeader 
-            collapsed={collapsed} 
-            setCollapsed={setCollapsed} 
-          />
+    <ErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
+      <SidebarProvider defaultOpen>
+        <div className="flex min-h-screen w-full bg-muted/10">
+          {/* Mobile Navigation - Only visible on small screens */}
+          <div className="fixed top-0 left-0 right-0 z-30">
+            <MobileNav />
+          </div>
           
-          <SidebarContent className="px-3 py-2">
-            <DashboardSidebarMenu collapsed={collapsed} />
-          </SidebarContent>
+          {/* Desktop Sidebar - Hidden on small screens */}
+          <Sidebar className="border-r border-border bg-card hidden md:block">
+            <DashboardSidebarHeader 
+              collapsed={collapsed} 
+              setCollapsed={setCollapsed} 
+            />
+            
+            <SidebarContent className="px-3 py-2">
+              <DashboardSidebarMenu collapsed={collapsed} />
+            </SidebarContent>
+            
+            <SidebarFooter className="p-4">
+              <DashboardUserProfile collapsed={collapsed} />
+            </SidebarFooter>
+          </Sidebar>
           
-          <SidebarFooter className="p-4">
-            <DashboardUserProfile collapsed={collapsed} />
-          </SidebarFooter>
-        </Sidebar>
-        
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="p-6 flex-1 overflow-auto md:pt-6 pt-20">
-            <Outlet />
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="p-6 flex-1 overflow-auto md:pt-6 pt-20">
+              <ErrorBoundary>
+                <Outlet />
+              </ErrorBoundary>
+            </div>
           </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -15,6 +15,9 @@ interface UserListProps {
   onViewProfile: (user: UserProfile) => void;
   onVerify: (userId: string, isVerified: boolean) => Promise<void>;
   onRoleAction: (userId: string, role: string, action: 'add' | 'remove') => Promise<void>;
+  selectedUsers?: string[];
+  onSelectionChange?: (userIds: string[]) => void;
+  processingUserIds?: Set<string>;
 }
 
 const UserList = ({
@@ -26,14 +29,21 @@ const UserList = ({
   onSort,
   onViewProfile,
   onVerify,
-  onRoleAction
+  onRoleAction,
+  selectedUsers = [],
+  onSelectionChange,
+  processingUserIds = new Set()
 }: UserListProps) => {
   return (
     <div className="rounded-md border overflow-x-auto">
       <Table>
         <UserListHeaders 
           sortColumn={sortColumn} 
-          onSort={onSort} 
+          onSort={onSort}
+          showSelection={!!onSelectionChange}
+          users={users}
+          selectedUsers={selectedUsers}
+          onSelectionChange={onSelectionChange}
         />
         <TableBody>
           {users.length > 0 ? (
@@ -42,10 +52,13 @@ const UserList = ({
                 key={user.id}
                 user={user}
                 isCurrentUser={user.id === currentUserId}
-                isProcessing={isProcessing}
+                isProcessing={processingUserIds.has(user.id)}
                 onViewProfile={() => onViewProfile(user)}
                 onVerify={onVerify}
                 onRoleAction={onRoleAction}
+                isSelected={selectedUsers.includes(user.id)}
+                onSelectionChange={onSelectionChange}
+                showSelection={!!onSelectionChange}
               />
             ))
           ) : (
