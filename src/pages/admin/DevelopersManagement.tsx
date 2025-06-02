@@ -15,6 +15,7 @@ import { Plus, Edit, Trash2, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useRole } from "@/features/auth/context/RoleContext";
+import { UploadButton } from "@/components/ui/upload-button";
 
 interface Developer {
   id: string;
@@ -186,6 +187,10 @@ const DevelopersManagement = () => {
     setForm(initialForm);
   };
 
+  const handleImageUpload = (url: string) => {
+    setForm({ ...form, image_url: url });
+  };
+
   if (!isAdmin) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -252,13 +257,34 @@ const DevelopersManagement = () => {
               </div>
 
               <div>
-                <Label htmlFor="image_url">Profile Image URL</Label>
-                <Input
-                  id="image_url"
-                  value={form.image_url}
-                  onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <Label>Profile Image</Label>
+                <div className="space-y-4">
+                  {form.image_url && (
+                    <div className="flex items-center space-x-4">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={form.image_url} alt="Preview" />
+                        <AvatarFallback>Preview</AvatarFallback>
+                      </Avatar>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setForm({ ...form, image_url: '' })}
+                      >
+                        Remove Image
+                      </Button>
+                    </div>
+                  )}
+                  <UploadButton
+                    bucketName="developers"
+                    folderPath="profile-images"
+                    onUploadComplete={handleImageUpload}
+                    accept="image/*"
+                    maxSizeMB={2}
+                    buttonText="Upload Profile Image"
+                    variant="outline"
+                  />
+                </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
