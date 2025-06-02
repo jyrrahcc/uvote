@@ -1,10 +1,14 @@
 
-import React, { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import React from "react";
 import { Election } from "@/types";
-import { Users, CalendarDays, ClipboardList, BarChart, LineChart, TrendingUp } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { useEligibleVoters } from "./hooks/useEligibleVoters";
+import { calculateTimeRemaining } from "./utils/timeCalculations";
+import VoterParticipationCard from "./stats/VoterParticipationCard";
+import ElectionStatusCard from "./stats/ElectionStatusCard";
+import CandidatesPositionsCard from "./stats/CandidatesPositionsCard";
+import VoterEngagementCard from "./stats/VoterEngagementCard";
+import CandidacyPeriodCard from "./stats/CandidacyPeriodCard";
+import CompetitionLevelCard from "./stats/CompetitionLevelCard";
 
 interface ElectionStatCardsProps {
   election: Election;
@@ -25,47 +29,7 @@ const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({
   positionVotes,
   formatDate = (date) => new Date(date).toLocaleDateString() 
 }) => {
-  const [actualEligibleVoters, setActualEligibleVoters] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchEligibleVotersCount = async () => {
-      try {
-        setLoading(true);
-        
-        // Build the query to count eligible voters based on election criteria
-        let query = supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true });
-
-        // Filter by departments/colleges if specified
-        if (election.colleges && election.colleges.length > 0 && !election.colleges.includes("University-wide")) {
-          query = query.in('department', election.colleges);
-        }
-
-        // Filter by year levels if specified
-        if (election.eligibleYearLevels && election.eligibleYearLevels.length > 0 && !election.eligibleYearLevels.includes("All Year Levels & Groups")) {
-          query = query.in('year_level', election.eligibleYearLevels);
-        }
-
-        const { count, error } = await query;
-
-        if (error) {
-          console.error('Error fetching eligible voters count:', error);
-          setActualEligibleVoters(stats?.totalVoters || 0); // Fallback to original stats
-        } else {
-          setActualEligibleVoters(count || 0);
-        }
-      } catch (error) {
-        console.error('Error in fetchEligibleVotersCount:', error);
-        setActualEligibleVoters(stats?.totalVoters || 0); // Fallback to original stats
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEligibleVotersCount();
-  }, [election, stats?.totalVoters]);
+  const { actualEligibleVoters, loading } = useEligibleVoters(election, stats?.totalVoters);
 
   // Calculate default stats if not provided, using actual eligible voters
   const defaultStats = {
@@ -83,190 +47,44 @@ const ElectionStatCards: React.FC<ElectionStatCardsProps> = ({
     participationRate: actualEligibleVoters > 0 ? Math.round((stats.totalVotes / actualEligibleVoters) * 100) : 0
   } : defaultStats;
   
-  // Calculate time remaining (or elapsed) for the election
-  const calculateTimeRemaining = () => {
-    const now = new Date();
-    const endDate = new Date(election.endDate);
-    
-    if (election.status === 'completed') {
-      return { text: "Election completed", statusText: "Ended" };
-    }
-    
-    if (election.status === 'upcoming') {
-      const startDate = new Date(election.startDate);
-      const diffTime = startDate.getTime() - now.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      
-      return { 
-        text: `Starts in ${diffDays} days, ${diffHours} hours`,
-        statusText: "Starting soon",
-        daysRemaining: diffDays,
-        hoursRemaining: diffHours
-      };
-    }
-    
-    // If active
-    const diffTime = endDate.getTime() - now.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
-    return { 
-      text: `${diffDays} days, ${diffHours} hours remaining`,
-      statusText: "In progress",
-      daysRemaining: diffDays,
-      hoursRemaining: diffHours
-    };
-  };
-  
-  const timeInfo = calculateTimeRemaining();
+  const timeInfo = calculateTimeRemaining(election);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Voter Participation
-          </CardTitle>
-          <div className="flex items-center justify-between">
-            <div className="text-3xl font-bold">
-              {loading ? "..." : `${displayStats.participationRate}%`}
-            </div>
-            <Users className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <CardDescription>
-            {displayStats.totalVotes} out of {loading ? "..." : actualEligibleVoters} eligible voters
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <Progress value={loading ? 0 : displayStats.participationRate} className="h-2" />
-        </CardContent>
-      </Card>
+      <VoterParticipationCard
+        participationRate={displayStats.participationRate}
+        totalVotes={displayStats.totalVotes}
+        actualEligibleVoters={actualEligibleVoters}
+        loading={loading}
+      />
       
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Election Status
-          </CardTitle>
-          <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold capitalize">
-              {election.status}
-            </div>
-            <CalendarDays className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <CardDescription>
-            {timeInfo.text}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{formatDate(election.startDate)}</span>
-            <span>{formatDate(election.endDate)}</span>
-          </div>
-          <Progress 
-            value={election.status === 'upcoming' ? 0 : 
-                  election.status === 'completed' ? 100 : 
-                  50} 
-            className="h-2 mt-1" 
-          />
-        </CardContent>
-      </Card>
+      <ElectionStatusCard
+        election={election}
+        timeInfo={timeInfo}
+        formatDate={formatDate}
+      />
       
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Candidates & Positions
-          </CardTitle>
-          <div className="flex items-center justify-between">
-            <div className="text-3xl font-bold">
-              {displayStats.candidatesCount}
-            </div>
-            <ClipboardList className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <CardDescription>
-            Across {displayStats.positionsCount} {displayStats.positionsCount === 1 ? 'position' : 'positions'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="text-xs text-muted-foreground mb-1">Candidates per position:</div>
-          <Progress 
-            value={displayStats.positionsCount > 0 ? 
-              (displayStats.candidatesCount / displayStats.positionsCount) * 20 : 0} 
-            className="h-2" 
-          />
-        </CardContent>
-      </Card>
+      <CandidatesPositionsCard
+        candidatesCount={displayStats.candidatesCount}
+        positionsCount={displayStats.positionsCount}
+      />
       
-      {/* Additional analytics cards */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Voter Engagement
-          </CardTitle>
-          <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold">
-              {loading ? "..." : (displayStats.totalVotes > 0 ? 
-                Math.min(100, Math.round((displayStats.totalVotes / 
-                  (actualEligibleVoters * displayStats.positionsCount)) * 100)) : 0)}%
-            </div>
-            <BarChart className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <CardDescription>
-            {displayStats.totalVotes} position votes cast
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <Progress 
-            value={loading ? 0 : (displayStats.totalVotes > 0 ? 
-              Math.min(100, Math.round((displayStats.totalVotes / 
-                (actualEligibleVoters * displayStats.positionsCount)) * 100)) : 0)} 
-            className="h-2" 
-          />
-        </CardContent>
-      </Card>
+      <VoterEngagementCard
+        totalVotes={displayStats.totalVotes}
+        actualEligibleVoters={actualEligibleVoters}
+        positionsCount={displayStats.positionsCount}
+        loading={loading}
+      />
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Candidacy Period
-          </CardTitle>
-          <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold">
-              {election.candidacyEndDate && new Date() > new Date(election.candidacyEndDate) ? 
-                "Closed" : "Open"}
-            </div>
-            <LineChart className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <CardDescription>
-            {formatDate(election.candidacyStartDate || "")} - {formatDate(election.candidacyEndDate || "")}
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <CandidacyPeriodCard
+        election={election}
+        formatDate={formatDate}
+      />
       
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Competition Level
-          </CardTitle>
-          <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold">
-              {displayStats.candidatesCount > 0 && displayStats.positionsCount > 0 ? 
-                (displayStats.candidatesCount / displayStats.positionsCount).toFixed(1) : 0}
-            </div>
-            <TrendingUp className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <CardDescription>
-            Average candidates per position
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <Progress 
-            value={displayStats.candidatesCount > 0 && displayStats.positionsCount > 0 ? 
-              Math.min(100, (displayStats.candidatesCount / displayStats.positionsCount) * 25) : 0} 
-            className="h-2" 
-          />
-        </CardContent>
-      </Card>
+      <CompetitionLevelCard
+        candidatesCount={displayStats.candidatesCount}
+        positionsCount={displayStats.positionsCount}
+      />
     </div>
   );
 };
