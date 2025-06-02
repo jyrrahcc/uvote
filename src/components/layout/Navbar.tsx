@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -122,6 +123,24 @@ const Navbar = () => {
                               <div className="text-sm font-medium">How It Works</div>
                               <p className="text-xs text-muted-foreground">
                                 Learn about our platform
+                              </p>
+                            </div>
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                      <li>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            to="/about"
+                            className={cn(
+                              "flex items-center space-x-2 rounded-md p-2 hover:bg-accent",
+                              isActive('/about') && "bg-accent"
+                            )}
+                          >
+                            <div>
+                              <div className="text-sm font-medium">About Us</div>
+                              <p className="text-xs text-muted-foreground">
+                                Meet our team
                               </p>
                             </div>
                           </Link>
@@ -310,6 +329,17 @@ const Navbar = () => {
             onClick={() => setIsOpen(false)}
           >
             How It Works
+          </Link>
+          <Link 
+            to="/about" 
+            className={`block px-3 py-2 rounded-md text-base font-medium ${
+              isActive('/about') 
+                ? "bg-primary/10 text-primary" 
+                : "hover:bg-secondary hover:text-primary-foreground"
+            }`}
+            onClick={() => setIsOpen(false)}
+          >
+            About Us
           </Link>
           {user && (
             <Link 

@@ -7,7 +7,8 @@ import {
   LucideIcon,
   User,
   Users,
-  Vote
+  Vote,
+  Code
 } from "lucide-react";
 
 export interface MenuItem {
@@ -35,6 +36,13 @@ export const menuItems: MenuItem[] = [
     name: "Manage Users", 
     path: "/admin/users", 
     icon: Users, 
+    roles: ["admin"],
+    badge: "Admin"
+  },
+  { 
+    name: "Manage Developers", 
+    path: "/admin/developers", 
+    icon: Code, 
     roles: ["admin"],
     badge: "Admin"
   },

@@ -115,6 +115,57 @@ export type Database = {
           },
         ]
       }
+      developers: {
+        Row: {
+          bio: string | null
+          created_at: string
+          created_by: string | null
+          display_order: number | null
+          email: string | null
+          github_url: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          linkedin_url: string | null
+          name: string
+          role: string
+          twitter_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number | null
+          email?: string | null
+          github_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          linkedin_url?: string | null
+          name: string
+          role: string
+          twitter_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number | null
+          email?: string | null
+          github_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          linkedin_url?: string | null
+          name?: string
+          role?: string
+          twitter_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       discussion_comments: {
         Row: {
           content: string
