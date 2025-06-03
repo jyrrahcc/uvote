@@ -104,9 +104,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    const result = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    return result;
+    try {
+      const result = await supabase.auth.signInWithPassword({ email, password });
+      console.log("Sign in result:", result);
+      return result;
+    } catch (error) {
+      console.error("Sign in error:", error);
+      return { 
+        error: error as AuthError, 
+        data: null 
+      };
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signUp = async (
@@ -116,42 +126,78 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     lastName: string
   ) => {
     setLoading(true);
-    const result = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
+    try {
+      console.log("Signing up user with data:", { email, firstName, lastName });
+      
+      const result = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+          },
+          // Specify redirect URL to dashboard after email confirmation
+          emailRedirectTo: window.location.origin + '/dashboard', 
         },
-        // Specify redirect URL to avoid the user being redirected to landing page
-        emailRedirectTo: window.location.origin + '/dashboard', 
-      },
-    });
-    setLoading(false);
-    return result;
+      });
+      
+      console.log("Sign up result:", result);
+      
+      // Check for specific signup errors
+      if (result.error) {
+        console.error("Signup error details:", result.error);
+        
+        // Handle specific error cases
+        if (result.error.message.includes('already registered')) {
+          result.error.message = 'User already registered';
+        } else if (result.error.message.includes('invalid email')) {
+          result.error.message = 'Please enter a valid email address';
+        } else if (result.error.message.includes('weak password')) {
+          result.error.message = 'Password is too weak. Please choose a stronger password';
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Unexpected signup error:", error);
+      return { 
+        error: { 
+          message: "An unexpected error occurred during signup. Please try again.", 
+          name: "SignUpError" 
+        } as AuthError, 
+        data: null 
+      };
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signInWithGoogle = async () => {
-  setLoading(true);
-  try {
-    // Store that we're in an OAuth flow
-    sessionStorage.setItem('oauthInProgress', 'true');
-    
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/dashboard',
-      }
-    });
-  } catch (error) {
-    console.error("Google sign in error:", error);
-    toast.error("Failed to sign in with Google", {
-      description: error instanceof Error ? error.message : "Unknown error occurred",
-    });
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    try {
+      // Store that we're in an OAuth flow
+      sessionStorage.setItem('oauthInProgress', 'true');
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/dashboard',
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error("Google sign in error:", error);
+      sessionStorage.removeItem('oauthInProgress');
+      toast.error("Failed to sign in with Google", {
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const signInWithMicrosoft = async () => {
     setLoading(true);
@@ -159,7 +205,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Store that we're in an OAuth flow
       sessionStorage.setItem('oauthInProgress', 'true');
 
-      await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
         options: {
           redirectTo: window.location.origin + '/dashboard',
@@ -169,20 +215,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           },
         }
       });
+      
+      if (error) throw error;
     } catch (error) {
       console.error("Microsoft sign in error:", error);
+      sessionStorage.removeItem('oauthInProgress');
       toast.error("Failed to sign in with Microsoft", {
         description: error instanceof Error ? error.message : "Unknown error occurred",
       });
+      throw error;
+    } finally {
       setLoading(false);
     }
   };
 
   const signOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
-    navigate("/login");
-    setLoading(false);
+    try {
+      await supabase.auth.signOut();
+      navigate("/login");
+    } catch (error) {
+      console.error("Sign out error:", error);
+      toast.error("Error signing out", {
+        description: "Please try again or refresh the page",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
