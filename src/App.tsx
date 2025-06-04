@@ -72,10 +72,10 @@ function App() {
                 {/* Public routes accessible to everyone */}
                 <Route path="/" element={<Index />} />
                 <Route path="/elections" element={<Elections />} />
-                <Route path="/elections/:id" element={<ElectionDetailPage />} />
-                <Route path="/elections/:id/vote" element={<VotingPage />} />
-                <Route path="/elections/:id/results" element={<ResultsPage />} />
-                <Route path="/elections/:id/candidates" element={<CandidatesPage />} />
+                <Route path="/elections/:electionId" element={<ElectionDetailPage />} />
+                <Route path="/elections/:electionId/vote" element={<VotingPage />} />
+                <Route path="/elections/:electionId/results" element={<ResultsPage />} />
+                <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/faq" element={<FAQ />} />
                 <Route path="/security" element={<Security />} />
@@ -98,7 +98,7 @@ function App() {
                     {/* Admin-only routes */}
                     <Route element={<RoleProtectedRoute requiredRole="admin" />}>
                       <Route path="/admin/elections" element={<ElectionsManagement />} />
-                      <Route path="/admin/elections/:id" element={<ElectionDetail />} />
+                      <Route path="/admin/elections/:electionId" element={<ElectionDetail />} />
                       <Route path="/admin/users" element={<UsersManagement />} />
                       <Route path="/admin/analytics" element={<Analytics />} />
                       <Route path="/admin/settings" element={<SystemSettings />} />
