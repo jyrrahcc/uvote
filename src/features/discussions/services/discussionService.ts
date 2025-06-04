@@ -4,24 +4,72 @@ import { Discussion, DiscussionTopic, DiscussionComment } from "@/types/discussi
 import { getElectionIdCondition, isGlobalDiscussion } from "./globalDiscussionService";
 
 /**
- * Get all topics for an election or global discussions with proper authentication
+ * Get all topics for an election or global discussions with proper authentication and author information
  */
 export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
   try {
     if (isGlobalDiscussion(electionId)) {
-      // For global discussions, use the specific RPC function
-      const { data, error } = await supabase.rpc('get_topics_with_comment_counts_global');
+      // For global discussions, fetch topics with author information
+      const { data, error } = await supabase
+        .from('discussion_topics')
+        .select(`
+          *,
+          profiles!discussion_topics_created_by_fkey(
+            id,
+            first_name,
+            last_name,
+            image_url
+          ),
+          comments:discussion_comments(count)
+        `)
+        .is('election_id', null)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      
+      // Transform the data to match expected format
+      return (data || []).map(topic => ({
+        ...topic,
+        author: topic.profiles ? {
+          id: topic.profiles.id,
+          firstName: topic.profiles.first_name || '',
+          lastName: topic.profiles.last_name || '',
+          imageUrl: topic.profiles.image_url || undefined
+        } : undefined,
+        repliesCount: topic.comments[0]?.count || 0
+      }));
     } else {
-      // For election-specific discussions
-      const { data, error } = await supabase.rpc('get_topics_with_comment_counts', {
-        election_id_param: electionId
-      });
+      // For election-specific discussions, we'll need to fetch with joins
+      const { data, error } = await supabase
+        .from('discussion_topics')
+        .select(`
+          *,
+          profiles!discussion_topics_created_by_fkey(
+            id,
+            first_name,
+            last_name,
+            image_url
+          ),
+          comments:discussion_comments(count)
+        `)
+        .eq('election_id', electionId)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      
+      // Transform the data to match expected format
+      return (data || []).map(topic => ({
+        ...topic,
+        author: topic.profiles ? {
+          id: topic.profiles.id,
+          firstName: topic.profiles.first_name || '',
+          lastName: topic.profiles.last_name || '',
+          imageUrl: topic.profiles.image_url || undefined
+        } : undefined,
+        repliesCount: topic.comments[0]?.count || 0
+      }));
     }
   } catch (error) {
     console.error("Error getting topics:", error);

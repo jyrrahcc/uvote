@@ -1,5 +1,5 @@
 
-import { Calendar, MessageSquare } from "lucide-react";
+import { Calendar, MessageSquare, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { DiscussionTopic } from "@/types/discussions";
@@ -8,12 +8,23 @@ import { Badge } from "@/components/ui/badge";
 export interface DiscussionTopicCardProps {
   topic: DiscussionTopic;
   electionId: string;
-  onClick: () => void;  // Added onClick prop
+  onClick: () => void;
 }
 
 const DiscussionTopicCard = ({ topic, electionId, onClick }: DiscussionTopicCardProps) => {
   const formatDate = (dateString: string) => {
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+  };
+
+  const getAuthorDisplay = () => {
+    if (topic.author && topic.author.firstName && topic.author.lastName) {
+      return `${topic.author.firstName} ${topic.author.lastName}`;
+    } else if (topic.author && topic.author.firstName) {
+      return topic.author.firstName;
+    } else if (topic.author && topic.author.lastName) {
+      return topic.author.lastName;
+    }
+    return "Anonymous User";
   };
 
   return (
@@ -53,8 +64,9 @@ const DiscussionTopicCard = ({ topic, electionId, onClick }: DiscussionTopicCard
             <Calendar size={14} className="mr-1" />
             {formatDate(topic.created_at)}
             <span className="mx-2">•</span>
+            <User size={14} className="mr-1" />
             <span>
-              By {topic.author?.firstName} {topic.author?.lastName}
+              By {getAuthorDisplay()}
             </span>
           </div>
           <div className="flex items-center">

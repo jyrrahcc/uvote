@@ -4,18 +4,22 @@ import { Discussion, DiscussionComment } from "@/types/discussions";
 import { isGlobalDiscussion } from "./globalDiscussionService";
 
 /**
- * Helper function to get discussion topics with comment counts
+ * Helper function to get discussion topics with comment counts and author information
  */
 export const getTopicsWithCommentCounts = async (electionId: string): Promise<Discussion[]> => {
   try {
-    let query;
-    
     if (isGlobalDiscussion(electionId)) {
       // For global discussions (null election_id)
       const { data, error } = await supabase
         .from('discussion_topics')
         .select(`
           *,
+          profiles!discussion_topics_created_by_fkey(
+            id,
+            first_name,
+            last_name,
+            image_url
+          ),
           comments:discussion_comments(count)
         `)
         .is('election_id', null)
@@ -27,16 +31,45 @@ export const getTopicsWithCommentCounts = async (electionId: string): Promise<Di
       // Process the data to match expected format
       return (data || []).map(topic => ({
         ...topic,
+        author: topic.profiles ? {
+          id: topic.profiles.id,
+          firstName: topic.profiles.first_name || '',
+          lastName: topic.profiles.last_name || '',
+          imageUrl: topic.profiles.image_url || undefined
+        } : undefined,
         repliesCount: topic.comments[0]?.count || 0
       }));
     } else {
       // For election-specific discussions
-      const { data, error } = await supabase.rpc('get_topics_with_comment_counts', {
-        election_id_param: electionId
-      });
+      const { data, error } = await supabase
+        .from('discussion_topics')
+        .select(`
+          *,
+          profiles!discussion_topics_created_by_fkey(
+            id,
+            first_name,
+            last_name,
+            image_url
+          ),
+          comments:discussion_comments(count)
+        `)
+        .eq('election_id', electionId)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      
+      // Process the data to match expected format
+      return (data || []).map(topic => ({
+        ...topic,
+        author: topic.profiles ? {
+          id: topic.profiles.id,
+          firstName: topic.profiles.first_name || '',
+          lastName: topic.profiles.last_name || '',
+          imageUrl: topic.profiles.image_url || undefined
+        } : undefined,
+        repliesCount: topic.comments[0]?.count || 0
+      }));
     }
   } catch (error) {
     console.error("Error getting topics with comment counts:", error);
