@@ -73,6 +73,7 @@ function App() {
                 <Route path="/" element={<Index />} />
                 <Route path="/elections" element={<Elections />} />
                 <Route path="/elections/:electionId" element={<ElectionDetailPage />} />
+                <Route path="/elections/details/:electionId" element={<ElectionDetailPage />} />
                 <Route path="/elections/:electionId/vote" element={<VotingPage />} />
                 <Route path="/elections/:electionId/results" element={<ResultsPage />} />
                 <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
