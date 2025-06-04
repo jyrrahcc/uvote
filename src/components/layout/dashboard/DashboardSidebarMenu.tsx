@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import {
   SidebarGroup,
@@ -10,35 +9,25 @@ import {
 } from "@/components/ui/sidebar";
 import { useRole } from "@/features/auth/context/RoleContext";
 import { cn } from "@/lib/utils";
-import { Home, User, Vote } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { menuItems, MenuItem } from "./menuItems";
+import { menuItems } from "./menuItems";
 
 interface DashboardSidebarMenuProps {
   collapsed: boolean;
 }
 
 const DashboardSidebarMenu = ({ collapsed }: DashboardSidebarMenuProps) => {
-  const { isAdmin, isVoter } = useRole();
+  const { isAdmin } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
   
   // Filter menu items based on user roles
   const filteredMenuItems = menuItems.filter(item => {
-    if (isAdmin && item.roles.includes("admin")) return true;
-    if (isVoter && item.roles.includes("voter")) return true;
-    if (item.roles.includes("any")) return true;
-    return false;
+    // If item has isAdmin flag and user is not admin, exclude it
+    if (item.isAdmin && !isAdmin) return false;
+    // Otherwise include the item
+    return true;
   });
-
-  // Fallback navigation items if role-based filtering returns empty
-  const fallbackItems: MenuItem[] = [
-    { name: "Dashboard", path: "/dashboard", icon: Home, roles: ["any"] },
-    { name: "Elections", path: "/elections", icon: Vote, roles: ["any"] },
-    { name: "Profile", path: "/profile", icon: User, roles: ["any"] },
-  ];
-
-  const itemsToRender = filteredMenuItems.length > 0 ? filteredMenuItems : fallbackItems;
 
   return (
     <SidebarGroup>
@@ -47,26 +36,21 @@ const DashboardSidebarMenu = ({ collapsed }: DashboardSidebarMenuProps) => {
       </SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          {itemsToRender.map((item) => (
-            <SidebarMenuItem key={item.name}>
+          {filteredMenuItems.map((item) => (
+            <SidebarMenuItem key={item.label}>
               <SidebarMenuButton 
                 className={cn(
                   "flex w-full justify-between",
-                  location.pathname === item.path && "bg-[#008f50]/10 text-[#008f50] font-medium"
+                  location.pathname === item.to && "bg-[#008f50]/10 text-[#008f50] font-medium"
                 )}
                 asChild 
-                onClick={() => navigate(item.path)}
+                onClick={() => navigate(item.to)}
               >
                 <button className="w-full">
                   <div className="flex items-center">
                     <item.icon className="h-4 w-4 mr-2" />
-                    <span className={cn(collapsed ? "hidden" : "block")}>{item.name}</span>
+                    <span className={cn(collapsed ? "hidden" : "block")}>{item.label}</span>
                   </div>
-                  {item.badge && !collapsed && (
-                    <Badge variant="outline" className="ml-auto text-xs bg-[#008f50]/5 text-[#008f50]/80">
-                      {item.badge}
-                    </Badge>
-                  )}
                 </button>
               </SidebarMenuButton>
             </SidebarMenuItem>
