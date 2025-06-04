@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Discussion, DiscussionTopic, DiscussionComment } from "@/types/discussions";
 import { getElectionIdCondition, isGlobalDiscussion } from "./globalDiscussionService";
@@ -7,97 +8,70 @@ import { getElectionIdCondition, isGlobalDiscussion } from "./globalDiscussionSe
  */
 export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
   try {
-    if (isGlobalDiscussion(electionId)) {
-      // For global discussions, fetch topics with author information
-      const { data: topics, error: topicsError } = await supabase
-        .from('discussion_topics')
-        .select(`
-          *,
-          comments:discussion_comments(count)
-        `)
-        .is('election_id', null)
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false });
-      
-      if (topicsError) throw topicsError;
-      
-      // Get unique user IDs
-      const userIds = topics?.map(topic => topic.created_by).filter(Boolean) || [];
-      
-      // Fetch profiles separately
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, image_url')
-        .in('id', userIds);
-      
-      if (profilesError) throw profilesError;
-      
-      // Create a map of profiles by user ID
-      const profilesMap = (profiles || []).reduce((acc, profile) => {
-        acc[profile.id] = profile;
-        return acc;
-      }, {} as Record<string, any>);
-      
-      // Transform the data to match expected format
-      return (topics || []).map(topic => {
-        const profile = profilesMap[topic.created_by];
-        return {
-          ...topic,
-          author: profile ? {
-            id: profile.id,
-            firstName: profile.first_name || '',
-            lastName: profile.last_name || '',
-            imageUrl: profile.image_url || undefined
-          } : undefined,
-          repliesCount: topic.comments[0]?.count || 0
-        };
-      });
-    } else {
-      // For election-specific discussions, we'll need to fetch with joins
-      const { data: topics, error: topicsError } = await supabase
-        .from('discussion_topics')
-        .select(`
-          *,
-          comments:discussion_comments(count)
-        `)
-        .eq('election_id', electionId)
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false });
-      
-      if (topicsError) throw topicsError;
-      
-      // Get unique user IDs
-      const userIds = topics?.map(topic => topic.created_by).filter(Boolean) || [];
-      
-      // Fetch profiles separately
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, image_url')
-        .in('id', userIds);
-      
-      if (profilesError) throw profilesError;
-      
-      // Create a map of profiles by user ID
-      const profilesMap = (profiles || []).reduce((acc, profile) => {
-        acc[profile.id] = profile;
-        return acc;
-      }, {} as Record<string, any>);
-      
-      // Transform the data to match expected format
-      return (topics || []).map(topic => {
-        const profile = profilesMap[topic.created_by];
-        return {
-          ...topic,
-          author: profile ? {
-            id: profile.id,
-            firstName: profile.first_name || '',
-            lastName: profile.last_name || '',
-            imageUrl: profile.image_url || undefined
-          } : undefined,
-          repliesCount: topic.comments[0]?.count || 0
-        };
-      });
+    const condition = isGlobalDiscussion(electionId) ? null : electionId;
+    
+    // Fetch topics with comment counts
+    const { data: topics, error: topicsError } = await supabase
+      .from('discussion_topics')
+      .select(`
+        *,
+        comments:discussion_comments(count)
+      `)
+      .eq('election_id', condition)
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false });
+    
+    if (topicsError) {
+      console.error("Error fetching topics:", topicsError);
+      throw topicsError;
     }
+    
+    if (!topics || topics.length === 0) {
+      return [];
+    }
+    
+    // Get unique user IDs
+    const userIds = topics.map(topic => topic.created_by).filter(Boolean);
+    
+    if (userIds.length === 0) {
+      return topics.map(topic => ({
+        ...topic,
+        author: undefined,
+        repliesCount: topic.comments[0]?.count || 0
+      }));
+    }
+    
+    // Fetch profiles separately
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, image_url')
+      .in('id', userIds);
+    
+    if (profilesError) {
+      console.error("Error fetching profiles:", profilesError);
+      // Continue without author information rather than throwing
+    }
+    
+    // Create a map of profiles by user ID
+    const profilesMap = (profiles || []).reduce((acc, profile) => {
+      acc[profile.id] = profile;
+      return acc;
+    }, {} as Record<string, any>);
+    
+    // Transform the data to match expected format
+    return topics.map(topic => {
+      const profile = profilesMap[topic.created_by];
+      return {
+        ...topic,
+        author: profile ? {
+          id: profile.id,
+          firstName: profile.first_name || '',
+          lastName: profile.last_name || '',
+          imageUrl: profile.image_url || undefined
+        } : undefined,
+        repliesCount: topic.comments[0]?.count || 0
+      };
+    });
   } catch (error) {
     console.error("Error getting topics:", error);
     throw error;
@@ -115,7 +89,10 @@ export const getTopic = async (topicId: string): Promise<DiscussionTopic | null>
       .eq('id', topicId)
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching topic:", error);
+      throw error;
+    }
     
     return data;
   } catch (error) {
@@ -130,7 +107,9 @@ export const getTopic = async (topicId: string): Promise<DiscussionTopic | null>
 export const createTopic = async (electionId: string, title: string, content: string): Promise<DiscussionTopic | null> => {
   try {
     const { data: session } = await supabase.auth.getSession();
-    if (!session.session) throw new Error("Not authenticated");
+    if (!session.session) {
+      throw new Error("Authentication required to create discussions");
+    }
     
     // Validate input data
     if (!title.trim()) {
@@ -150,7 +129,10 @@ export const createTopic = async (electionId: string, title: string, content: st
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating topic:", error);
+      throw error;
+    }
     
     return data;
   } catch (error) {
@@ -167,7 +149,7 @@ export const updateTopic = async (topicId: string, updates: Partial<DiscussionTo
     // Get current user session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
-      throw new Error("User must be authenticated to update topics");
+      throw new Error("Authentication required to update topics");
     }
 
     const userId = sessionData.session.user.id;
@@ -187,7 +169,10 @@ export const updateTopic = async (topicId: string, updates: Partial<DiscussionTo
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error updating topic:", error);
+      throw error;
+    }
     
     return data;
   } catch (error) {
@@ -204,7 +189,7 @@ export const deleteTopic = async (topicId: string): Promise<boolean> => {
     // Get current user session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
-      throw new Error("User must be authenticated to delete topics");
+      throw new Error("Authentication required to delete topics");
     }
 
     // Use the database function to safely delete topic with comments
@@ -212,7 +197,10 @@ export const deleteTopic = async (topicId: string): Promise<boolean> => {
       topic_id_param: topicId
     });
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error deleting topic:", error);
+      throw error;
+    }
     
     return true;
   } catch (error) {
@@ -232,7 +220,10 @@ export const getComments = async (topicId: string): Promise<DiscussionComment[]>
       .eq('topic_id', topicId)
       .order('created_at', { ascending: true });
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching comments:", error);
+      throw error;
+    }
     
     return data || [];
   } catch (error) {
@@ -247,7 +238,9 @@ export const getComments = async (topicId: string): Promise<DiscussionComment[]>
 export const createComment = async (topicId: string, content: string, parentId?: string | null): Promise<DiscussionComment | null> => {
   try {
     const { data: session } = await supabase.auth.getSession();
-    if (!session.session) throw new Error("Not authenticated");
+    if (!session.session) {
+      throw new Error("Authentication required to create comments");
+    }
     
     // Validate input
     if (!content.trim()) {
@@ -265,7 +258,10 @@ export const createComment = async (topicId: string, content: string, parentId?:
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating comment:", error);
+      throw error;
+    }
     
     return data;
   } catch (error) {
@@ -282,7 +278,7 @@ export const updateComment = async (commentId: string, content: string): Promise
     // Get current user session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
-      throw new Error("User must be authenticated to update comments");
+      throw new Error("Authentication required to update comments");
     }
 
     const userId = sessionData.session.user.id;
@@ -300,7 +296,10 @@ export const updateComment = async (commentId: string, content: string): Promise
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error updating comment:", error);
+      throw error;
+    }
     
     return data;
   } catch (error) {
@@ -317,7 +316,7 @@ export const deleteComment = async (commentId: string): Promise<boolean> => {
     // Get current user session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
-      throw new Error("User must be authenticated to delete comments");
+      throw new Error("Authentication required to delete comments");
     }
 
     const userId = sessionData.session.user.id;
@@ -328,7 +327,10 @@ export const deleteComment = async (commentId: string): Promise<boolean> => {
       .eq('id', commentId)
       .eq('user_id', userId); // Ensure user can only delete their own comments
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error deleting comment:", error);
+      throw error;
+    }
     
     return true;
   } catch (error) {

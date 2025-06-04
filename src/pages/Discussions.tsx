@@ -31,11 +31,12 @@ const Discussions = () => {
   const isAuthenticated = !!session;
   const [newTopicDialogOpen, setNewTopicDialogOpen] = useState(false);
   const [newPollDialogOpen, setNewPollDialogOpen] = useState(false);
-  const [globalElectionId, setGlobalElectionId] = useState<string>("global");
+  const globalElectionId = "global"; // Use "global" as the identifier for global discussions
   
   const { 
     topics, 
     loading: topicsLoading, 
+    error: topicsError,
     addTopic, 
     removeTopic 
   } = useDiscussions(globalElectionId);
@@ -43,6 +44,7 @@ const Discussions = () => {
   const { 
     polls, 
     loading: pollsLoading, 
+    error: pollsError,
     addPoll, 
     removePoll 
   } = usePolls(globalElectionId);
@@ -135,6 +137,20 @@ const Discussions = () => {
       setNewPollDialogOpen(true);
     }
   };
+
+  // Show error state if there's a critical error
+  if (topicsError || pollsError) {
+    return (
+      <div className="container mx-auto py-6">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            There was an error loading the discussions. Please try refreshing the page.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6">

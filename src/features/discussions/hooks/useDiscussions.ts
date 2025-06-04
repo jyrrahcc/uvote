@@ -16,7 +16,6 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-// Only adjusting the loadTopics callback to provide better logging
 export const useDiscussions = (electionId: string) => {
   const { user } = useAuth();
   const [topics, setTopics] = useState<DiscussionTopic[]>([]);
@@ -44,11 +43,14 @@ export const useDiscussions = (electionId: string) => {
     } catch (error: any) {
       console.error("Error loading topics:", error);
       setError("Failed to load topics");
-      toast({
-        title: "Error",
-        description: "Failed to load discussion topics",
-        variant: "destructive"
-      });
+      // Don't show toast for global discussions page as it has its own error handling
+      if (electionId !== "global") {
+        toast({
+          title: "Error",
+          description: "Failed to load discussion topics",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -60,16 +62,15 @@ export const useDiscussions = (electionId: string) => {
     
     loadTopics();
     
-    // Set up realtime subscription
+    // Set up realtime subscription for table changes
     const channel = supabase
       .channel('discussion-changes')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'discussion_topics',
-        filter: `election_id=eq.${electionId}`
-      }, () => {
-        console.log("Detected change in topics, reloading...");
+        table: 'discussion_topics'
+      }, (payload) => {
+        console.log("Detected change in topics, reloading...", payload);
         loadTopics();
       })
       .subscribe();
