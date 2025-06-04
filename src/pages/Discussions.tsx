@@ -27,7 +27,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 
 const Discussions = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, session } = useAuth();
+  const isAuthenticated = !!session;
   const [newTopicDialogOpen, setNewTopicDialogOpen] = useState(false);
   const [newPollDialogOpen, setNewPollDialogOpen] = useState(false);
   const [globalElectionId, setGlobalElectionId] = useState<string>("global");

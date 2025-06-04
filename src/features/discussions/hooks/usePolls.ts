@@ -158,8 +158,7 @@ export const usePolls = (electionId: string) => {
         topic_id: topicId || undefined,
         multiple_choice: multipleChoice || false,
         ends_at: endsAt || undefined,
-        election_id: electionId,
-        created_by: user.id
+        election_id: electionId
       });
       
       if (poll) {
