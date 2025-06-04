@@ -10,12 +10,12 @@ export const getTopicsWithCommentCounts = async (electionId: string): Promise<Di
   try {
     const condition = isGlobalDiscussion(electionId) ? null : electionId;
     
-    // Fetch topics with comment counts
+    // Fetch topics with comment counts using specific foreign key relationship
     const { data: topics, error: topicsError } = await supabase
       .from('discussion_topics')
       .select(`
         *,
-        comments:discussion_comments(count)
+        comments:discussion_comments!discussion_comments_topic_id_fkey(count)
       `)
       .eq('election_id', condition)
       .order('is_pinned', { ascending: false })
