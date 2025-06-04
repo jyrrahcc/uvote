@@ -71,12 +71,6 @@ function App() {
 
                 {/* Public routes accessible to everyone */}
                 <Route path="/" element={<Index />} />
-                <Route path="/elections" element={<Elections />} />
-                <Route path="/elections/:electionId" element={<ElectionDetailPage />} />
-                <Route path="/elections/details/:electionId" element={<ElectionDetailPage />} />
-                <Route path="/elections/:electionId/vote" element={<VotingPage />} />
-                <Route path="/elections/:electionId/results" element={<ResultsPage />} />
-                <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/faq" element={<FAQ />} />
                 <Route path="/security" element={<Security />} />
@@ -85,6 +79,14 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/about" element={<About />} />
+
+                {/* Public elections routes - accessible without authentication */}
+                <Route path="/elections" element={<Elections />} />
+                <Route path="/elections/:electionId" element={<ElectionDetailPage />} />
+                <Route path="/elections/details/:electionId" element={<ElectionDetailPage />} />
+                <Route path="/elections/:electionId/vote" element={<VotingPage />} />
+                <Route path="/elections/:electionId/results" element={<ResultsPage />} />
+                <Route path="/elections/:electionId/candidates" element={<CandidatesPage />} />
 
                 {/* Protected routes with dashboard layout */}
                 <Route element={<ProtectedRoute />}>
@@ -95,6 +97,14 @@ function App() {
                     <Route path="/candidates" element={<Candidates />} />
                     <Route path="/my-applications" element={<MyApplicationsPage />} />
                     <Route path="/discussions" element={<Discussions />} />
+
+                    {/* Protected elections routes - same pages but with sidebar for authenticated users */}
+                    <Route path="/dashboard/elections" element={<Elections />} />
+                    <Route path="/dashboard/elections/:electionId" element={<ElectionDetailPage />} />
+                    <Route path="/dashboard/elections/details/:electionId" element={<ElectionDetailPage />} />
+                    <Route path="/dashboard/elections/:electionId/vote" element={<VotingPage />} />
+                    <Route path="/dashboard/elections/:electionId/results" element={<ResultsPage />} />
+                    <Route path="/dashboard/elections/:electionId/candidates" element={<CandidatesPage />} />
 
                     {/* Admin-only routes */}
                     <Route element={<RoleProtectedRoute requiredRole="admin" />}>
