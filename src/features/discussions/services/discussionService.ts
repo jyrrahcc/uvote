@@ -4,12 +4,10 @@ import { Discussion, DiscussionTopic, DiscussionComment } from "@/types/discussi
 import { getElectionIdCondition, isGlobalDiscussion } from "./globalDiscussionService";
 
 /**
- * Get all topics for an election or global discussions
+ * Get all topics for an election or global discussions with proper authentication
  */
 export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> => {
   try {
-    let query;
-    
     if (isGlobalDiscussion(electionId)) {
       // For global discussions, use the specific RPC function
       const { data, error } = await supabase.rpc('get_topics_with_comment_counts_global');
@@ -32,7 +30,7 @@ export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> 
 };
 
 /**
- * Get a specific topic by ID
+ * Get a specific topic by ID with proper authorization check
  */
 export const getTopic = async (topicId: string): Promise<DiscussionTopic | null> => {
   try {
@@ -52,21 +50,28 @@ export const getTopic = async (topicId: string): Promise<DiscussionTopic | null>
 };
 
 /**
- * Create a new discussion topic
+ * Create a new discussion topic with proper authentication
  */
 export const createTopic = async (electionId: string, title: string, content: string): Promise<DiscussionTopic | null> => {
   try {
     const { data: session } = await supabase.auth.getSession();
     if (!session.session) throw new Error("Not authenticated");
     
+    // Validate input data
+    if (!title.trim()) {
+      throw new Error("Discussion title is required");
+    }
+
+    const insertData = {
+      title: title.trim(),
+      content: content?.trim() || null,
+      created_by: session.session.user.id,
+      ...getElectionIdCondition(electionId)
+    };
+    
     const { data, error } = await supabase
       .from('discussion_topics')
-      .insert({
-        title,
-        content,
-        ...getElectionIdCondition(electionId),
-        created_by: session.session.user.id
-      })
+      .insert(insertData)
       .select()
       .single();
       
@@ -80,14 +85,30 @@ export const createTopic = async (electionId: string, title: string, content: st
 };
 
 /**
- * Update an existing discussion topic
+ * Update an existing discussion topic with proper authorization
  */
 export const updateTopic = async (topicId: string, updates: Partial<DiscussionTopic>): Promise<DiscussionTopic | null> => {
   try {
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to update topics");
+    }
+
+    const userId = sessionData.session.user.id;
+
+    // Prepare update data
+    const updateData: any = {};
+    if (updates.title !== undefined) updateData.title = updates.title.trim();
+    if (updates.content !== undefined) updateData.content = updates.content?.trim() || null;
+    if (updates.is_pinned !== undefined) updateData.is_pinned = updates.is_pinned;
+    if (updates.is_locked !== undefined) updateData.is_locked = updates.is_locked;
+    
     const { data, error } = await supabase
       .from('discussion_topics')
-      .update(updates)
+      .update(updateData)
       .eq('id', topicId)
+      .eq('created_by', userId) // Ensure user can only update their own topics
       .select()
       .single();
       
@@ -101,14 +122,20 @@ export const updateTopic = async (topicId: string, updates: Partial<DiscussionTo
 };
 
 /**
- * Delete a discussion topic
+ * Delete a discussion topic with proper authorization
  */
 export const deleteTopic = async (topicId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('discussion_topics')
-      .delete()
-      .eq('id', topicId);
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to delete topics");
+    }
+
+    // Use the database function to safely delete topic with comments
+    const { error } = await supabase.rpc('delete_topic_with_comments', {
+      topic_id_param: topicId
+    });
       
     if (error) throw error;
     
@@ -120,7 +147,7 @@ export const deleteTopic = async (topicId: string): Promise<boolean> => {
 };
 
 /**
- * Get all comments for a topic
+ * Get all comments for a topic with proper filtering
  */
 export const getComments = async (topicId: string): Promise<DiscussionComment[]> => {
   try {
@@ -140,18 +167,23 @@ export const getComments = async (topicId: string): Promise<DiscussionComment[]>
 };
 
 /**
- * Create a new comment
+ * Create a new comment with proper authentication
  */
 export const createComment = async (topicId: string, content: string, parentId?: string | null): Promise<DiscussionComment | null> => {
   try {
     const { data: session } = await supabase.auth.getSession();
     if (!session.session) throw new Error("Not authenticated");
     
+    // Validate input
+    if (!content.trim()) {
+      throw new Error("Comment content is required");
+    }
+    
     const { data, error } = await supabase
       .from('discussion_comments')
       .insert({
         topic_id: topicId,
-        content,
+        content: content.trim(),
         user_id: session.session.user.id,
         parent_id: parentId || null
       })
@@ -168,14 +200,28 @@ export const createComment = async (topicId: string, content: string, parentId?:
 };
 
 /**
- * Update an existing comment
+ * Update an existing comment with proper authorization
  */
 export const updateComment = async (commentId: string, content: string): Promise<DiscussionComment | null> => {
   try {
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to update comments");
+    }
+
+    const userId = sessionData.session.user.id;
+
+    // Validate input
+    if (!content.trim()) {
+      throw new Error("Comment content is required");
+    }
+    
     const { data, error } = await supabase
       .from('discussion_comments')
-      .update({ content })
+      .update({ content: content.trim() })
       .eq('id', commentId)
+      .eq('user_id', userId) // Ensure user can only update their own comments
       .select()
       .single();
       
@@ -189,14 +235,23 @@ export const updateComment = async (commentId: string, content: string): Promise
 };
 
 /**
- * Delete a comment
+ * Delete a comment with proper authorization
  */
 export const deleteComment = async (commentId: string): Promise<boolean> => {
   try {
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to delete comments");
+    }
+
+    const userId = sessionData.session.user.id;
+
     const { error } = await supabase
       .from('discussion_comments')
       .delete()
-      .eq('id', commentId);
+      .eq('id', commentId)
+      .eq('user_id', userId); // Ensure user can only delete their own comments
       
     if (error) throw error;
     

@@ -1,30 +1,42 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Poll, PollResults, PollOption } from "@/types/discussions";
 import { v4 as uuidv4 } from "uuid";
 import { getElectionIdCondition, isGlobalDiscussion } from "./globalDiscussionService";
 
 /**
- * Get all polls for an election or global polls
+ * Get all polls for an election or global polls with proper filtering
  */
 export const getPolls = async (electionId: string): Promise<Poll[]> => {
   try {
-    const { data: pollsData, error } = await supabase
-      .from('polls')
-      .select('*');
+    let query = supabase.from('polls').select('*');
+    
+    if (isGlobalDiscussion(electionId)) {
+      // Filter for global polls (null election_id)
+      query = query.is('election_id', null);
+    } else {
+      // Filter for election specific polls
+      query = query.eq('election_id', electionId);
+    }
+    
+    const { data: pollsData, error } = await query.order('created_at', { ascending: false });
     
     if (error) throw error;
     
-    const polls = isGlobalDiscussion(electionId)
-      ? // Filter for global polls (null election_id)
-        (pollsData || []).filter(poll => poll.election_id === null)
-      : // Filter for election specific polls
-        (pollsData || []).filter(poll => poll.election_id === electionId);
-    
     // Transform the data to ensure options are properly typed
-    return polls.map(poll => ({
-      ...poll,
-      options: poll.options as unknown as PollOption[]
-    }));
+    return (pollsData || []).map(poll => {
+      // Convert options from Record<string, string> to PollOption[]
+      const optionsRecord = poll.options as Record<string, string>;
+      const optionsArray: PollOption[] = Object.entries(optionsRecord).map(([id, text]) => ({
+        id,
+        text
+      }));
+      
+      return {
+        ...poll,
+        options: optionsArray
+      };
+    });
   } catch (error) {
     console.error("Error getting polls:", error);
     throw error;
@@ -32,9 +44,9 @@ export const getPolls = async (electionId: string): Promise<Poll[]> => {
 };
 
 /**
- * Get a specific poll by ID
+ * Get a specific poll by ID with vote counts and user voting status
  */
-export const getPoll = async (pollId: string): Promise<Poll | null> => {
+export const getPoll = async (pollId: string, includeVoteData: boolean = true): Promise<Poll | null> => {
   try {
     const { data, error } = await supabase
       .from('polls')
@@ -44,11 +56,63 @@ export const getPoll = async (pollId: string): Promise<Poll | null> => {
       
     if (error) throw error;
     
-    // Transform options to ensure they're properly typed
-    return data ? {
+    if (!data) return null;
+    
+    // Convert options from Record<string, string> to PollOption[]
+    const optionsRecord = data.options as Record<string, string>;
+    const optionsArray: PollOption[] = Object.entries(optionsRecord).map(([id, text]) => ({
+      id,
+      text
+    }));
+    
+    const poll: Poll = {
       ...data,
-      options: data.options as unknown as PollOption[]
-    } : null;
+      options: optionsArray
+    };
+    
+    if (includeVoteData) {
+      // Get vote counts and user voting status
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      
+      // Fetch all votes for this poll
+      const { data: votes, error: votesError } = await supabase
+        .from('poll_votes')
+        .select('*')
+        .eq('poll_id', pollId);
+      
+      if (!votesError && votes) {
+        // Calculate vote counts for each option
+        const voteCounts: Record<string, number> = {};
+        let hasUserVoted = false;
+        
+        votes.forEach(vote => {
+          if (userId && vote.user_id === userId) {
+            hasUserVoted = true;
+          }
+          
+          const voteOptions = vote.options as Record<string, boolean>;
+          Object.entries(voteOptions).forEach(([optionId, selected]) => {
+            if (selected) {
+              voteCounts[optionId] = (voteCounts[optionId] || 0) + 1;
+            }
+          });
+        });
+        
+        // Update poll options with vote counts and percentages
+        const totalVotes = votes.length;
+        poll.options = poll.options.map(option => ({
+          ...option,
+          votes: voteCounts[option.id] || 0,
+          percentage: totalVotes > 0 ? ((voteCounts[option.id] || 0) / totalVotes) * 100 : 0
+        }));
+        
+        poll.votes_count = totalVotes;
+        poll.has_voted = hasUserVoted;
+      }
+    }
+    
+    return poll;
   } catch (error) {
     console.error("Error getting poll:", error);
     throw error;
@@ -56,7 +120,7 @@ export const getPoll = async (pollId: string): Promise<Poll | null> => {
 };
 
 /**
- * Create a new poll
+ * Create a new poll with proper authentication and validation
  */
 export const createPoll = async (pollData: {
   question: string;
@@ -66,37 +130,66 @@ export const createPoll = async (pollData: {
   multiple_choice?: boolean;
   ends_at?: string;
   election_id: string;
-  created_by: string;
 }): Promise<Poll | null> => {
   try {
-    // Ensure each option has an ID
-    const pollOptions = pollData.options.map(option => ({
-      id: option.id || uuidv4(),
-      text: option.text
-    }));
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to create polls");
+    }
+
+    const userId = sessionData.session.user.id;
+
+    // Validate poll data
+    if (!pollData.question.trim()) {
+      throw new Error("Poll question is required");
+    }
+    
+    if (!pollData.options || pollData.options.length < 2) {
+      throw new Error("Poll must have at least 2 options");
+    }
+
+    // Prepare options as a record for database storage
+    const pollOptions: Record<string, string> = {};
+    pollData.options.forEach(option => {
+      const optionId = option.id || uuidv4();
+      pollOptions[optionId] = option.text.trim();
+    });
+    
+    const insertData = {
+      question: pollData.question.trim(),
+      description: pollData.description?.trim() || null,
+      options: pollOptions,
+      topic_id: pollData.topic_id || null,
+      multiple_choice: pollData.multiple_choice || false,
+      created_by: userId,
+      ends_at: pollData.ends_at || null,
+      ...getElectionIdCondition(pollData.election_id)
+    };
     
     const { data, error } = await supabase
       .from('polls')
-      .insert({
-        question: pollData.question,
-        description: pollData.description,
-        options: pollOptions,
-        ...getElectionIdCondition(pollData.election_id),
-        topic_id: pollData.topic_id,
-        multiple_choice: pollData.multiple_choice || false,
-        created_by: pollData.created_by,
-        ends_at: pollData.ends_at
-      })
+      .insert(insertData)
       .select()
       .single();
       
     if (error) throw error;
     
-    // Transform options to ensure they're properly typed
-    return data ? {
-      ...data,
-      options: data.options as unknown as PollOption[]
-    } : null;
+    // Transform options back to PollOption array
+    if (data) {
+      const optionsRecord = data.options as Record<string, string>;
+      const optionsArray: PollOption[] = Object.entries(optionsRecord).map(([id, text]) => ({
+        id,
+        text
+      }));
+      
+      return {
+        ...data,
+        options: optionsArray
+      };
+    }
+    
+    return null;
   } catch (error) {
     console.error("Error creating poll:", error);
     throw error;
@@ -104,33 +197,75 @@ export const createPoll = async (pollData: {
 };
 
 /**
- * Update an existing poll
+ * Update an existing poll with proper authorization
  */
 export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promise<Poll | null> => {
   try {
-    // Convert options to the format expected by Supabase if present
-    const updateData: any = { ...updates };
-    if (updates.options) {
-      updateData.options = updates.options.map(option => ({
-        id: option.id,
-        text: option.text
-      }));
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to update polls");
+    }
+
+    const userId = sessionData.session.user.id;
+
+    // Prepare update data
+    const updateData: any = {};
+    
+    if (updates.question !== undefined) {
+      updateData.question = updates.question.trim();
+    }
+    
+    if (updates.description !== undefined) {
+      updateData.description = updates.description?.trim() || null;
+    }
+    
+    if (updates.options !== undefined) {
+      // Convert options array to record for database
+      const optionsRecord: Record<string, string> = {};
+      updates.options.forEach(opt => {
+        optionsRecord[opt.id] = opt.text.trim();
+      });
+      updateData.options = optionsRecord;
+    }
+    
+    if (updates.multiple_choice !== undefined) {
+      updateData.multiple_choice = updates.multiple_choice;
+    }
+    
+    if (updates.is_closed !== undefined) {
+      updateData.is_closed = updates.is_closed;
+    }
+    
+    if (updates.ends_at !== undefined) {
+      updateData.ends_at = updates.ends_at;
     }
     
     const { data, error } = await supabase
       .from('polls')
       .update(updateData)
       .eq('id', pollId)
+      .eq('created_by', userId) // Ensure user can only update their own polls
       .select()
       .single();
       
     if (error) throw error;
     
-    // Transform options to ensure they're properly typed
-    return data ? {
-      ...data,
-      options: data.options as unknown as PollOption[]
-    } : null;
+    // Transform options back to PollOption array
+    if (data) {
+      const optionsRecord = data.options as Record<string, string>;
+      const optionsArray: PollOption[] = Object.entries(optionsRecord).map(([id, text]) => ({
+        id,
+        text
+      }));
+      
+      return {
+        ...data,
+        options: optionsArray
+      };
+    }
+    
+    return null;
   } catch (error) {
     console.error("Error updating poll:", error);
     throw error;
@@ -138,14 +273,22 @@ export const updatePoll = async (pollId: string, updates: Partial<Poll>): Promis
 };
 
 /**
- * Delete a poll by ID
+ * Delete a poll by ID with proper authorization
  */
 export const deletePoll = async (pollId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('polls')
-      .delete()
-      .eq('id', pollId);
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to delete polls");
+    }
+
+    const userId = sessionData.session.user.id;
+
+    // Use the database function to safely delete poll with votes
+    const { error } = await supabase.rpc('delete_poll_with_votes', {
+      poll_id_param: pollId
+    });
       
     if (error) throw error;
     

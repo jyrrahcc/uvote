@@ -30,7 +30,7 @@ export const getElectionIdCondition = (electionId: string) => {
 };
 
 /**
- * Create or update a discussion topic
+ * Create or update a discussion topic with proper user authentication
  */
 export const manageGlobalDiscussionTopic = async (
   action: 'create' | 'update',
@@ -38,14 +38,22 @@ export const manageGlobalDiscussionTopic = async (
   topicId?: string
 ): Promise<Discussion | null> => {
   try {
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to manage discussion topics");
+    }
+
+    const userId = sessionData.session.user.id;
+
     if (action === 'create') {
       const { data: newTopic, error } = await supabase
         .from('discussion_topics')
         .insert({
-          title: data.title,
-          content: data.content,
+          title: data.title!,
+          content: data.content || null,
           election_id: null, // Global discussion has null election_id
-          created_by: data.created_by,
+          created_by: userId,
           is_pinned: data.is_pinned || false,
           is_locked: data.is_locked || false
         })
@@ -65,6 +73,7 @@ export const manageGlobalDiscussionTopic = async (
           updated_at: new Date().toISOString()
         })
         .eq('id', topicId)
+        .eq('created_by', userId) // Ensure user can only update their own topics
         .select('*')
         .single();
         
@@ -80,7 +89,7 @@ export const manageGlobalDiscussionTopic = async (
 };
 
 /**
- * Create or update a poll
+ * Create or update a poll with proper user authentication and validation
  */
 export const manageGlobalPoll = async (
   action: 'create' | 'update',
@@ -91,29 +100,43 @@ export const manageGlobalPoll = async (
     topic_id?: string;
     multiple_choice?: boolean;
     ends_at?: string;
-    created_by: string;
     is_closed?: boolean;
   },
   pollId?: string
 ): Promise<Poll | null> => {
   try {
-    const pollOptions = data.options.map(option => ({
-      id: option.id || uuidv4(),
-      text: option.text
-    }));
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to manage polls");
+    }
+
+    const userId = sessionData.session.user.id;
+
+    // Validate poll options
+    if (!data.options || data.options.length < 2) {
+      throw new Error("Poll must have at least 2 options");
+    }
+
+    // Prepare options as a record for database storage
+    const pollOptions: Record<string, string> = {};
+    data.options.forEach(option => {
+      const optionId = option.id || uuidv4();
+      pollOptions[optionId] = option.text;
+    });
 
     if (action === 'create') {
       const { data: newPoll, error } = await supabase
         .from('polls')
         .insert({
           question: data.question,
-          description: data.description,
+          description: data.description || null,
           options: pollOptions,
           election_id: null, // Global poll has null election_id
-          topic_id: data.topic_id,
+          topic_id: data.topic_id || null,
           multiple_choice: data.multiple_choice || false,
-          created_by: data.created_by,
-          ends_at: data.ends_at,
+          created_by: userId,
+          ends_at: data.ends_at || null,
           is_closed: data.is_closed || false
         })
         .select('*')
@@ -121,11 +144,18 @@ export const manageGlobalPoll = async (
         
       if (error) throw error;
       
-      // Convert Json options back to proper PollOption type
-      return newPoll ? {
-        ...newPoll,
-        options: newPoll.options as unknown as PollOption[]
-      } : null;
+      // Transform the response to match our Poll type
+      if (newPoll) {
+        const transformedOptions: PollOption[] = Object.entries(newPoll.options as Record<string, string>)
+          .map(([id, text]) => ({ id, text }));
+        
+        return {
+          ...newPoll,
+          options: transformedOptions
+        };
+      }
+      
+      return null;
     } else if (action === 'update' && pollId) {
       const { data: updatedPoll, error } = await supabase
         .from('polls')
@@ -138,21 +168,81 @@ export const manageGlobalPoll = async (
           is_closed: data.is_closed
         })
         .eq('id', pollId)
+        .eq('created_by', userId) // Ensure user can only update their own polls
         .select('*')
         .single();
         
       if (error) throw error;
       
-      // Convert Json options back to proper PollOption type
-      return updatedPoll ? {
-        ...updatedPoll,
-        options: updatedPoll.options as unknown as PollOption[]
-      } : null;
+      // Transform the response to match our Poll type
+      if (updatedPoll) {
+        const transformedOptions: PollOption[] = Object.entries(updatedPoll.options as Record<string, string>)
+          .map(([id, text]) => ({ id, text }));
+        
+        return {
+          ...updatedPoll,
+          options: transformedOptions
+        };
+      }
+      
+      return null;
     }
     
     return null;
   } catch (error) {
     console.error(`Error ${action}ing global poll:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a global discussion topic with proper authorization
+ */
+export const deleteGlobalDiscussionTopic = async (topicId: string): Promise<boolean> => {
+  try {
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to delete discussion topics");
+    }
+
+    const userId = sessionData.session.user.id;
+
+    // Use the database function to safely delete topic with comments
+    const { error } = await supabase.rpc('delete_topic_with_comments', {
+      topic_id_param: topicId
+    });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting global discussion topic:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a global poll with proper authorization
+ */
+export const deleteGlobalPoll = async (pollId: string): Promise<boolean> => {
+  try {
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error("User must be authenticated to delete polls");
+    }
+
+    const userId = sessionData.session.user.id;
+
+    // Use the database function to safely delete poll with votes
+    const { error } = await supabase.rpc('delete_poll_with_votes', {
+      poll_id_param: pollId
+    });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting global poll:", error);
     throw error;
   }
 };

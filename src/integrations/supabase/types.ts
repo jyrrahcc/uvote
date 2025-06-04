@@ -166,6 +166,39 @@ export type Database = {
         }
         Relationships: []
       }
+      discussion_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id: string
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       discussion_comments: {
         Row: {
           content: string
@@ -204,6 +237,20 @@ export type Database = {
           },
           {
             foreignKeyName: "discussion_comments_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_discussion_comments_parent"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_discussion_comments_topic"
             columns: ["topic_id"]
             isOneToOne: false
             referencedRelation: "discussion_topics"
@@ -251,6 +298,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "discussion_topics_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_discussion_topics_election"
             columns: ["election_id"]
             isOneToOne: false
             referencedRelation: "elections"
@@ -380,6 +434,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_poll_votes_poll"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "poll_votes_poll_id_fkey"
             columns: ["poll_id"]
             isOneToOne: false
@@ -429,6 +490,20 @@ export type Database = {
           topic_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_polls_election"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_polls_topic"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_topics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "polls_election_id_fkey"
             columns: ["election_id"]

@@ -14,21 +14,24 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useDiscussions } from "@/features/discussions/hooks/useDiscussions";
 import { usePolls } from "@/features/discussions/hooks/usePolls";
-import { MessageSquare, Plus, PlusCircle, LineChart } from "lucide-react";
+import { MessageSquare, Plus, PlusCircle, LineChart, AlertCircle } from "lucide-react";
 import DiscussionList from "@/features/discussions/components/DiscussionList";
 import PollsList from "@/features/discussions/components/PollsList";
 import NewTopicDialog from "@/features/discussions/components/NewTopicDialog";
 import NewPollDialog from "@/features/discussions/components/NewPollDialog";
 import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
 
 const Discussions = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [newTopicDialogOpen, setNewTopicDialogOpen] = useState(false);
   const [newPollDialogOpen, setNewPollDialogOpen] = useState(false);
   const [globalElectionId, setGlobalElectionId] = useState<string>("global");
+  
   const { 
     topics, 
     loading: topicsLoading, 
@@ -43,35 +46,50 @@ const Discussions = () => {
     removePoll 
   } = usePolls(globalElectionId);
 
+  // Authentication check handlers
+  const handleRequireAuth = (action: string) => {
+    if (!isAuthenticated) {
+      toast.error("Authentication Required", {
+        description: `You must be logged in to ${action}. Please sign in to continue.`,
+      });
+      return false;
+    }
+    return true;
+  };
+
   // Create a handler for selecting a topic (stub for now)
   const handleSelectTopic = () => {
-    // This is a placeholder - we'll implement topic selection functionality later
     console.log("Topic selected");
   };
 
   // Create a handler for selecting a poll (stub for now)
   const handleSelectPoll = () => {
-    // This is a placeholder - we'll implement poll selection functionality later
     console.log("Poll selected");
   };
 
   // Create a handler for refreshing topics
   const handleRefreshTopics = () => {
-    // This should call the loadTopics function from useDiscussions
     console.log("Refreshing topics");
   };
 
   // Handler for creating a topic that matches the required signature
   const handleCreateTopic = async (title: string, content: string) => {
-    if (!user) {
-      console.error("User not authenticated");
-      return null;
-    }
+    if (!handleRequireAuth("create discussions")) return null;
     
     try {
-      return await addTopic(title, content);
+      const result = await addTopic(title, content);
+      if (result) {
+        toast.success("Discussion Created", {
+          description: "Your discussion has been created successfully.",
+        });
+        setNewTopicDialogOpen(false);
+      }
+      return result;
     } catch (error) {
       console.error("Error creating topic:", error);
+      toast.error("Failed to Create Discussion", {
+        description: "There was an error creating your discussion. Please try again.",
+      });
       return null;
     }
   };
@@ -84,18 +102,36 @@ const Discussions = () => {
     multipleChoice?: boolean,
     endsAt?: string
   ) => {
-    if (!user) {
-      console.error("User not authenticated");
-      return null;
-    }
+    if (!handleRequireAuth("create polls")) return null;
     
     try {
-      // Ensuring we pass parameters in the correct order and with the correct types
-      // Passing null for topicId as we're creating from the polls tab
-      return await addPoll(question, options, description || null, null, multipleChoice || false, endsAt || null);
+      const result = await addPoll(question, options, description || null, null, multipleChoice || false, endsAt || null);
+      if (result) {
+        toast.success("Poll Created", {
+          description: "Your poll has been created successfully.",
+        });
+        setNewPollDialogOpen(false);
+      }
+      return result;
     } catch (error) {
       console.error("Error creating poll:", error);
+      toast.error("Failed to Create Poll", {
+        description: "There was an error creating your poll. Please try again.",
+      });
       return null;
+    }
+  };
+
+  // Handler for opening dialogs with authentication check
+  const handleOpenNewTopicDialog = () => {
+    if (handleRequireAuth("create discussions")) {
+      setNewTopicDialogOpen(true);
+    }
+  };
+
+  const handleOpenNewPollDialog = () => {
+    if (handleRequireAuth("create polls")) {
+      setNewPollDialogOpen(true);
     }
   };
 
@@ -109,22 +145,29 @@ const Discussions = () => {
           </p>
         </div>
 
-        {user && (
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setNewTopicDialogOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" /> New Discussion
-            </Button>
-            <Button 
-              onClick={() => setNewPollDialogOpen(true)}
-            >
-              <PlusCircle className="mr-2 h-4 w-4" /> Create Poll
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleOpenNewTopicDialog}
+          >
+            <Plus className="mr-2 h-4 w-4" /> New Discussion
+          </Button>
+          <Button 
+            onClick={handleOpenNewPollDialog}
+          >
+            <PlusCircle className="mr-2 h-4 w-4" /> Create Poll
+          </Button>
+        </div>
       </div>
+
+      {!isAuthenticated && (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            You are viewing discussions as a guest. <strong>Sign in</strong> to create discussions, polls, and participate in the community.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="discussions" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-8">
@@ -156,7 +199,7 @@ const Discussions = () => {
                   <p className="text-muted-foreground mb-4">
                     Be the first to start a discussion for the community
                   </p>
-                  <Button onClick={() => setNewTopicDialogOpen(true)}>
+                  <Button onClick={handleOpenNewTopicDialog}>
                     Start a Discussion
                   </Button>
                 </div>
@@ -194,7 +237,7 @@ const Discussions = () => {
                   <p className="text-muted-foreground mb-4">
                     Be the first to create a poll for the community to vote on
                   </p>
-                  <Button onClick={() => setNewPollDialogOpen(true)}>
+                  <Button onClick={handleOpenNewPollDialog}>
                     Create a Poll
                   </Button>
                 </div>
@@ -212,19 +255,23 @@ const Discussions = () => {
         </TabsContent>
       </Tabs>
 
-      <NewTopicDialog 
-        isOpen={newTopicDialogOpen} 
-        onClose={() => setNewTopicDialogOpen(false)} 
-        onCreateTopic={handleCreateTopic}
-        electionId={globalElectionId}
-      />
+      {isAuthenticated && (
+        <>
+          <NewTopicDialog 
+            isOpen={newTopicDialogOpen} 
+            onClose={() => setNewTopicDialogOpen(false)} 
+            onCreateTopic={handleCreateTopic}
+            electionId={globalElectionId}
+          />
 
-      <NewPollDialog
-        isOpen={newPollDialogOpen}
-        onClose={() => setNewPollDialogOpen(false)}
-        onCreatePoll={handleCreatePoll}
-        electionId={globalElectionId}
-      />
+          <NewPollDialog
+            isOpen={newPollDialogOpen}
+            onClose={() => setNewPollDialogOpen(false)}
+            onCreatePoll={handleCreatePoll}
+            electionId={globalElectionId}
+          />
+        </>
+      )}
     </div>
   );
 };
