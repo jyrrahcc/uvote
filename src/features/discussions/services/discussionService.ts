@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Discussion, DiscussionTopic, DiscussionComment } from "@/types/discussions";
 import { getElectionIdCondition, isGlobalDiscussion } from "./globalDiscussionService";
@@ -10,66 +9,94 @@ export const getTopics = async (electionId: string): Promise<DiscussionTopic[]> 
   try {
     if (isGlobalDiscussion(electionId)) {
       // For global discussions, fetch topics with author information
-      const { data, error } = await supabase
+      const { data: topics, error: topicsError } = await supabase
         .from('discussion_topics')
         .select(`
           *,
-          profiles!discussion_topics_created_by_fkey(
-            id,
-            first_name,
-            last_name,
-            image_url
-          ),
           comments:discussion_comments(count)
         `)
         .is('election_id', null)
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (topicsError) throw topicsError;
+      
+      // Get unique user IDs
+      const userIds = topics?.map(topic => topic.created_by).filter(Boolean) || [];
+      
+      // Fetch profiles separately
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, image_url')
+        .in('id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Create a map of profiles by user ID
+      const profilesMap = (profiles || []).reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as Record<string, any>);
       
       // Transform the data to match expected format
-      return (data || []).map(topic => ({
-        ...topic,
-        author: topic.profiles ? {
-          id: topic.profiles.id,
-          firstName: topic.profiles.first_name || '',
-          lastName: topic.profiles.last_name || '',
-          imageUrl: topic.profiles.image_url || undefined
-        } : undefined,
-        repliesCount: topic.comments[0]?.count || 0
-      }));
+      return (topics || []).map(topic => {
+        const profile = profilesMap[topic.created_by];
+        return {
+          ...topic,
+          author: profile ? {
+            id: profile.id,
+            firstName: profile.first_name || '',
+            lastName: profile.last_name || '',
+            imageUrl: profile.image_url || undefined
+          } : undefined,
+          repliesCount: topic.comments[0]?.count || 0
+        };
+      });
     } else {
       // For election-specific discussions, we'll need to fetch with joins
-      const { data, error } = await supabase
+      const { data: topics, error: topicsError } = await supabase
         .from('discussion_topics')
         .select(`
           *,
-          profiles!discussion_topics_created_by_fkey(
-            id,
-            first_name,
-            last_name,
-            image_url
-          ),
           comments:discussion_comments(count)
         `)
         .eq('election_id', electionId)
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (topicsError) throw topicsError;
+      
+      // Get unique user IDs
+      const userIds = topics?.map(topic => topic.created_by).filter(Boolean) || [];
+      
+      // Fetch profiles separately
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, image_url')
+        .in('id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Create a map of profiles by user ID
+      const profilesMap = (profiles || []).reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as Record<string, any>);
       
       // Transform the data to match expected format
-      return (data || []).map(topic => ({
-        ...topic,
-        author: topic.profiles ? {
-          id: topic.profiles.id,
-          firstName: topic.profiles.first_name || '',
-          lastName: topic.profiles.last_name || '',
-          imageUrl: topic.profiles.image_url || undefined
-        } : undefined,
-        repliesCount: topic.comments[0]?.count || 0
-      }));
+      return (topics || []).map(topic => {
+        const profile = profilesMap[topic.created_by];
+        return {
+          ...topic,
+          author: profile ? {
+            id: profile.id,
+            firstName: profile.first_name || '',
+            lastName: profile.last_name || '',
+            imageUrl: profile.image_url || undefined
+          } : undefined,
+          repliesCount: topic.comments[0]?.count || 0
+        };
+      });
     }
   } catch (error) {
     console.error("Error getting topics:", error);
