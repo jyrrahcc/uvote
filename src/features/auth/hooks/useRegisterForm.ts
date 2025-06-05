@@ -87,7 +87,7 @@ export const useRegisterForm = () => {
         lastName: formData.lastName 
       });
       
-      const { error } = await signUp(
+      const { error, data } = await signUp(
         formData.email, 
         formData.password, 
         formData.firstName, 
@@ -100,15 +100,16 @@ export const useRegisterForm = () => {
         // Handle specific Supabase errors
         let errorMessage = "Something went wrong. Please try again.";
         
-        if (error.message.includes("User already registered")) {
+        // Check for specific error types
+        if (error.message.includes("User already registered") || 
+            error.message.includes("already been registered") ||
+            error.message.includes("email address is already registered")) {
           errorMessage = "This email is already registered. Please try logging in instead.";
           setErrors({ email: errorMessage });
-        } else if (error.message.includes("invalid_credentials")) {
-          errorMessage = "Invalid credentials. Please check your information and try again.";
-        } else if (error.message.includes("email")) {
+        } else if (error.message.includes("Invalid email")) {
           errorMessage = "Please enter a valid email address.";
           setErrors({ email: errorMessage });
-        } else if (error.message.includes("password")) {
+        } else if (error.message.includes("Password") || error.message.includes("password")) {
           errorMessage = "Password doesn't meet the requirements.";
           setErrors({ password: errorMessage });
         } else if (error.message.includes("signup_disabled")) {
@@ -126,11 +127,25 @@ export const useRegisterForm = () => {
         return;
       }
       
-      toast.success("Account created successfully!", {
-        description: "Please check your email to verify your account before logging in.",
-      });
-      
-      navigate("/login");
+      // Check if user was actually created (not just a duplicate response)
+      if (data?.user && !data?.session) {
+        // User created successfully, verification email should be sent
+        toast.success("Account created successfully!", {
+          description: "Please check your email to verify your account before logging in.",
+          duration: 5000,
+        });
+        
+        navigate("/login");
+      } else if (data?.user && data?.session) {
+        // User created and automatically signed in (email verification disabled)
+        toast.success("Account created and logged in successfully!");
+        navigate("/dashboard");
+      } else {
+        // This shouldn't happen, but handle it gracefully
+        toast.error("Registration failed", {
+          description: "Unable to create account. Please try again.",
+        });
+      }
     } catch (error) {
       console.error("Unexpected registration error:", error);
       const errorMessage = "An unexpected error occurred. Please try again later.";

@@ -129,6 +129,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log("Signing up user with data:", { email, firstName, lastName });
       
+      // First, check if user already exists by attempting to sign in
+      const { data: existingUser } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: "dummy-password-check"
+      });
+      
+      // If sign in succeeds with any password, user exists
+      if (existingUser?.user) {
+        console.log("User already exists");
+        return {
+          error: {
+            message: "User already registered",
+            name: "UserAlreadyExistsError"
+          } as AuthError,
+          data: null
+        };
+      }
+      
+      // Proceed with signup
       const result = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -137,25 +156,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
           },
-          // Specify redirect URL to dashboard after email confirmation
-          emailRedirectTo: window.location.origin + '/dashboard', 
+          // Ensure email verification is required
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
       
       console.log("Sign up result:", result);
       
-      // Check for specific signup errors
+      // Enhanced error handling for signup
       if (result.error) {
         console.error("Signup error details:", result.error);
         
-        // Handle specific error cases
-        if (result.error.message.includes('already registered')) {
+        // Map specific Supabase error codes to user-friendly messages
+        if (result.error.message.includes('already') || result.error.message.includes('registered')) {
           result.error.message = 'User already registered';
-        } else if (result.error.message.includes('invalid email')) {
+        } else if (result.error.message.includes('invalid email') || result.error.message.includes('Invalid email')) {
           result.error.message = 'Please enter a valid email address';
-        } else if (result.error.message.includes('weak password')) {
+        } else if (result.error.message.includes('weak password') || result.error.message.includes('Password')) {
           result.error.message = 'Password is too weak. Please choose a stronger password';
+        } else if (result.error.message.includes('signup_disabled')) {
+          result.error.message = 'Account registration is currently disabled. Please contact support.';
         }
+      }
+      
+      // Check if this is a successful signup without immediate session (email confirmation required)
+      if (result.data?.user && !result.data?.session && !result.error) {
+        console.log("User created successfully, email verification required");
       }
       
       return result;
