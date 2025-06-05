@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AuthError, Session, User } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -37,8 +36,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Process authentication errors from URL
   useEffect(() => {
-    // Check URL for authentication errors
     const oauthInProgress = sessionStorage.getItem('oauthInProgress');
     if (oauthInProgress) {
       sessionStorage.removeItem('oauthInProgress');
@@ -64,27 +63,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [location]);
 
+  // Set up the authentication state listener
   useEffect(() => {
-    // Set up the auth state listener
+    // First, set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         console.log("Auth state changed:", event, !!newSession);
+        
+        // Update session and user state synchronously
         setSession(newSession);
         setUser(newSession?.user ?? null);
         setLoading(false);
         
-        // Only redirect on fresh sign-in events, not on every auth state change
+        // Only redirect on fresh sign-in events
         if (event === 'SIGNED_IN' && newSession && !initialAuthCheckDone) {
+          console.log("User signed in, redirecting to dashboard");
           navigate('/dashboard');
+        } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out");
+          navigate('/login');
         }
       }
     );
 
-    // Check for existing session
+    // Then check for existing session
     const getInitialSession = async () => {
       try {
         setLoading(true);
-        const { data } = await supabase.auth.getSession();
+        console.log("Checking for existing session...");
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw error;
+        }
+        
+        console.log("Session check result:", !!data.session);
         setSession(data.session);
         setUser(data.session?.user ?? null);
         setInitialAuthCheckDone(true);
@@ -103,15 +116,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [navigate, initialAuthCheckDone]);
 
   const signIn = async (email: string, password: string) => {
+    console.log("Signing in with email:", email);
     setLoading(true);
+    
     try {
-      const result = await supabase.auth.signInWithPassword({ email, password });
-      console.log("Sign in result:", result);
+      const result = await supabase.auth.signInWithPassword({ 
+        email: email.trim().toLowerCase(), 
+        password 
+      });
+      
+      console.log("Sign in result:", !!result.data.session);
+      
+      // Handle specific errors better
+      if (result.error) {
+        console.error("Sign in error details:", result.error);
+        
+        // Map error codes to better messages if needed
+        if (result.error.message.includes('Email not confirmed')) {
+          result.error.message = 'Please verify your email address before logging in';
+        }
+      }
+      
       return result;
     } catch (error) {
-      console.error("Sign in error:", error);
+      console.error("Unexpected sign in error:", error);
       return { 
-        error: error as AuthError, 
+        error: {
+          message: "An unexpected error occurred during sign in",
+          name: "SignInError"
+        } as AuthError, 
         data: null 
       };
     } finally {
@@ -202,19 +235,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithGoogle = async () => {
     setLoading(true);
     try {
+      console.log("Initiating Google sign in");
       // Store that we're in an OAuth flow
       sessionStorage.setItem('oauthInProgress', 'true');
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/dashboard',
+          redirectTo: `${window.location.origin}/dashboard`,
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Google sign in error:", error);
+        throw error;
+      }
+      
+      console.log("Google auth redirect initiated:", !!data);
     } catch (error) {
-      console.error("Google sign in error:", error);
+      console.error("Google sign in unexpected error:", error);
       sessionStorage.removeItem('oauthInProgress');
       toast.error("Failed to sign in with Google", {
         description: error instanceof Error ? error.message : "Unknown error occurred",
@@ -228,13 +267,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithMicrosoft = async () => {
     setLoading(true);
     try {
+      console.log("Initiating Microsoft sign in");
       // Store that we're in an OAuth flow
       sessionStorage.setItem('oauthInProgress', 'true');
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-          redirectTo: window.location.origin + '/dashboard',
+          redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
             // Request additional scopes to ensure we get the email
             scope: 'email openid profile User.Read',
@@ -242,9 +282,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Microsoft sign in error:", error);
+        throw error;
+      }
+      
+      console.log("Microsoft auth redirect initiated:", !!data);
     } catch (error) {
-      console.error("Microsoft sign in error:", error);
+      console.error("Microsoft sign in unexpected error:", error);
       sessionStorage.removeItem('oauthInProgress');
       toast.error("Failed to sign in with Microsoft", {
         description: error instanceof Error ? error.message : "Unknown error occurred",
@@ -256,9 +301,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    console.log("Signing out");
     setLoading(true);
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      
+      console.log("Successfully signed out");
       navigate("/login");
     } catch (error) {
       console.error("Sign out error:", error);

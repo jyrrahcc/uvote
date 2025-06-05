@@ -5,7 +5,7 @@ import LoginForm from "@/features/auth/components/LoginForm";
 import { ArrowRight, Vote } from "lucide-react";
 
 /**
- * Login page component with enhanced design
+ * Login page component with enhanced design and improved error handling
  */
 const Login = () => {
   return (
