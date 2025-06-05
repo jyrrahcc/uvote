@@ -1,154 +1,25 @@
-import { supabase } from "@/integrations/supabase/client";
-import { AuthError, Session, User } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
-type AuthContextType = {
-  session: Session | null;
-  user: User | null;
-  signIn: (email: string, password: string) => Promise<{
-    error: AuthError | null;
-    data: { session: Session | null; user: User | null } | null;
-  }>;
-  signUp: (
-    email: string,
-    password: string,
-    firstName: string,
-    lastName: string
-  ) => Promise<{
-    error: AuthError | null;
-    data: { session: Session | null; user: User | null } | null;
-  }>;
-  signInWithGoogle: () => Promise<void>;
-  signInWithMicrosoft: () => Promise<void>;
-  signOut: () => Promise<void>;
-  loading: boolean;
-};
+import { createContext, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useAuthState } from "../hooks/useAuthState";
+import { authService } from "../services/authService";
+import { AuthContextType } from "../types/authTypes";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [initialAuthCheckDone, setInitialAuthCheckDone] = useState(false);
+  const { user, session, loading, updateAuthState } = useAuthState();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Process authentication errors from URL
-  useEffect(() => {
-    const oauthInProgress = sessionStorage.getItem('oauthInProgress');
-    if (oauthInProgress) {
-      sessionStorage.removeItem('oauthInProgress');
-      setLoading(false);
-    }
-
-    if (location.hash || location.search) {
-      const urlParams = new URLSearchParams(location.search || location.hash.substring(1));
-      const error = urlParams.get('error');
-      const errorDescription = urlParams.get('error_description');
-      
-      if (error) {
-        // Clean the URL by removing error parameters
-        const cleanUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-        
-        // Show error toast
-        toast.error(`Authentication Error: ${errorDescription || error}`, {
-          description: "Please try a different sign-in method or contact support.",
-          duration: 5000
-        });
-      }
-    }
-  }, [location]);
-
-  // Set up the authentication state listener
-  useEffect(() => {
-    // First, set up the auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        console.log("Auth state changed:", event, !!newSession);
-        
-        // Update session and user state synchronously
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        setLoading(false);
-        
-        // Only redirect on fresh sign-in events
-        if (event === 'SIGNED_IN' && newSession && !initialAuthCheckDone) {
-          console.log("User signed in, redirecting to dashboard");
-          navigate('/dashboard');
-        } else if (event === 'SIGNED_OUT') {
-          console.log("User signed out");
-          navigate('/login');
-        }
-      }
-    );
-
-    // Then check for existing session
-    const getInitialSession = async () => {
-      try {
-        setLoading(true);
-        console.log("Checking for existing session...");
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          throw error;
-        }
-        
-        console.log("Session check result:", !!data.session);
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
-        setInitialAuthCheckDone(true);
-      } catch (error) {
-        console.error("Error getting initial session:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getInitialSession();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate, initialAuthCheckDone]);
 
   const signIn = async (email: string, password: string) => {
-    console.log("Signing in with email:", email);
-    setLoading(true);
+    updateAuthState({ loading: true });
     
     try {
-      const result = await supabase.auth.signInWithPassword({ 
-        email: email.trim().toLowerCase(), 
-        password 
-      });
-      
-      console.log("Sign in result:", !!result.data.session);
-      
-      // Handle specific errors better
-      if (result.error) {
-        console.error("Sign in error details:", result.error);
-        
-        // Map error codes to better messages if needed
-        if (result.error.message.includes('Email not confirmed')) {
-          result.error.message = 'Please verify your email address before logging in';
-        }
-      }
-      
+      const result = await authService.signIn(email, password);
       return result;
-    } catch (error) {
-      console.error("Unexpected sign in error:", error);
-      return { 
-        error: {
-          message: "An unexpected error occurred during sign in",
-          name: "SignInError"
-        } as AuthError, 
-        data: null 
-      };
     } finally {
-      setLoading(false);
+      updateAuthState({ loading: false });
     }
   };
 
@@ -158,166 +29,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     firstName: string,
     lastName: string
   ) => {
-    setLoading(true);
+    updateAuthState({ loading: true });
+    
     try {
-      console.log("Signing up user with data:", { email, firstName, lastName });
-      
-      // First, check if user already exists by attempting to sign in
-      const { data: existingUser } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password: "dummy-password-check"
-      });
-      
-      // If sign in succeeds with any password, user exists
-      if (existingUser?.user) {
-        console.log("User already exists");
-        return {
-          error: {
-            message: "User already registered",
-            name: "UserAlreadyExistsError"
-          } as AuthError,
-          data: null
-        };
-      }
-      
-      // Proceed with signup
-      const result = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: {
-          data: {
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
-          },
-          // Ensure email verification is required
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-      
-      console.log("Sign up result:", result);
-      
-      // Enhanced error handling for signup
-      if (result.error) {
-        console.error("Signup error details:", result.error);
-        
-        // Map specific Supabase error codes to user-friendly messages
-        if (result.error.message.includes('already') || result.error.message.includes('registered')) {
-          result.error.message = 'User already registered';
-        } else if (result.error.message.includes('invalid email') || result.error.message.includes('Invalid email')) {
-          result.error.message = 'Please enter a valid email address';
-        } else if (result.error.message.includes('weak password') || result.error.message.includes('Password')) {
-          result.error.message = 'Password is too weak. Please choose a stronger password';
-        } else if (result.error.message.includes('signup_disabled')) {
-          result.error.message = 'Account registration is currently disabled. Please contact support.';
-        }
-      }
-      
-      // Check if this is a successful signup without immediate session (email confirmation required)
-      if (result.data?.user && !result.data?.session && !result.error) {
-        console.log("User created successfully, email verification required");
-      }
-      
+      const result = await authService.signUp(email, password, firstName, lastName);
       return result;
-    } catch (error) {
-      console.error("Unexpected signup error:", error);
-      return { 
-        error: { 
-          message: "An unexpected error occurred during signup. Please try again.", 
-          name: "SignUpError" 
-        } as AuthError, 
-        data: null 
-      };
     } finally {
-      setLoading(false);
+      updateAuthState({ loading: false });
     }
   };
 
   const signInWithGoogle = async () => {
-    setLoading(true);
+    updateAuthState({ loading: true });
     try {
-      console.log("Initiating Google sign in");
-      // Store that we're in an OAuth flow
-      sessionStorage.setItem('oauthInProgress', 'true');
-      
-      const { error, data } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        }
-      });
-      
-      if (error) {
-        console.error("Google sign in error:", error);
-        throw error;
-      }
-      
-      console.log("Google auth redirect initiated:", !!data);
-    } catch (error) {
-      console.error("Google sign in unexpected error:", error);
-      sessionStorage.removeItem('oauthInProgress');
-      toast.error("Failed to sign in with Google", {
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-      });
-      throw error;
+      await authService.signInWithGoogle();
+      // Redirect happens in AuthContext after successful OAuth
     } finally {
-      setLoading(false);
+      updateAuthState({ loading: false });
     }
   };
 
   const signInWithMicrosoft = async () => {
-    setLoading(true);
+    updateAuthState({ loading: true });
     try {
-      console.log("Initiating Microsoft sign in");
-      // Store that we're in an OAuth flow
-      sessionStorage.setItem('oauthInProgress', 'true');
-
-      const { error, data } = await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-          queryParams: {
-            // Request additional scopes to ensure we get the email
-            scope: 'email openid profile User.Read',
-          },
-        }
-      });
-      
-      if (error) {
-        console.error("Microsoft sign in error:", error);
-        throw error;
-      }
-      
-      console.log("Microsoft auth redirect initiated:", !!data);
-    } catch (error) {
-      console.error("Microsoft sign in unexpected error:", error);
-      sessionStorage.removeItem('oauthInProgress');
-      toast.error("Failed to sign in with Microsoft", {
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-      });
-      throw error;
+      await authService.signInWithMicrosoft();
+      // Redirect happens in AuthContext after successful OAuth
     } finally {
-      setLoading(false);
+      updateAuthState({ loading: false });
     }
   };
 
   const signOut = async () => {
-    console.log("Signing out");
-    setLoading(true);
+    updateAuthState({ loading: true });
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
-      
-      console.log("Successfully signed out");
+      await authService.signOut();
       navigate("/login");
-    } catch (error) {
-      console.error("Sign out error:", error);
-      toast.error("Error signing out", {
-        description: "Please try again or refresh the page",
-      });
     } finally {
-      setLoading(false);
+      updateAuthState({ loading: false });
     }
   };
 
