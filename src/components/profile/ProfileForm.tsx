@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ interface ProfileFormProps {
   isPendingVerification: boolean;
   setIsPendingVerification: (value: boolean) => void;
   onSignOut: () => void;
+  onCreateProfile?: () => void;
+  isCreatingProfile?: boolean;
 }
 
 const ProfileForm = ({
@@ -43,7 +46,9 @@ const ProfileForm = ({
   isVerified,
   isPendingVerification,
   setIsPendingVerification,
-  onSignOut
+  onSignOut,
+  onCreateProfile,
+  isCreatingProfile = false
 }: ProfileFormProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +66,13 @@ const ProfileForm = ({
       return;
     }
 
-    if (!profile) return;
+    if (!profile) {
+      // If no profile exists, create one first
+      if (onCreateProfile) {
+        onCreateProfile();
+      }
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -131,18 +142,21 @@ const ProfileForm = ({
           </div>
         )}
         
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={profile?.email || ""}
-            disabled
-          />
-          <p className="text-xs text-muted-foreground">
-            Email cannot be changed
-          </p>
-        </div>
+        {profile && (
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={profile?.email || ""}
+              disabled
+            />
+            <p className="text-xs text-muted-foreground">
+              Email cannot be changed
+            </p>
+          </div>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="firstName">First Name</Label>
           <Input
@@ -219,56 +233,71 @@ const ProfileForm = ({
             Required for verification and year-specific elections
           </p>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="joined">Joined</Label>
-          <Input
-            id="joined"
-            value={profile?.created_at 
-              ? new Date(profile.created_at).toLocaleDateString() 
-              : ""
-            }
-            disabled
-          />
-        </div>
         
-        <div className="pt-2 flex flex-col space-y-2">
-          <Label className="font-semibold">Verification Status</Label>
-          <div className={`px-3 py-2 rounded-md text-center ${
-            isVerified 
-              ? 'bg-green-100 text-green-800' 
-              : isPendingVerification 
-                ? 'bg-amber-100 text-amber-800'
-                : 'bg-gray-100 text-gray-800'
-          }`}>
-            {isVerified ? (
-              <div className="flex items-center justify-center space-x-2">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Verified</span>
-              </div>
-            ) : isPendingVerification ? (
-              <div className="flex items-center justify-center space-x-2">
-                <Clock className="h-4 w-4" />
-                <span>Pending Verification</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center space-x-2">
-                <InfoIcon className="h-4 w-4" />
-                <span>Not Submitted</span>
-              </div>
-            )}
+        {profile && (
+          <div className="space-y-2">
+            <Label htmlFor="joined">Joined</Label>
+            <Input
+              id="joined"
+              value={profile?.created_at 
+                ? new Date(profile.created_at).toLocaleDateString() 
+                : ""
+              }
+              disabled
+            />
           </div>
-        </div>
+        )}
+        
+        {profile && (
+          <div className="pt-2 flex flex-col space-y-2">
+            <Label className="font-semibold">Verification Status</Label>
+            <div className={`px-3 py-2 rounded-md text-center ${
+              isVerified 
+                ? 'bg-green-100 text-green-800' 
+                : isPendingVerification 
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-gray-100 text-gray-800'
+            }`}>
+              {isVerified ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Verified</span>
+                </div>
+              ) : isPendingVerification ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Pending Verification</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center space-x-2">
+                  <InfoIcon className="h-4 w-4" />
+                  <span>Not Submitted</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex flex-col space-y-4">
-        <Button 
-          type="submit" 
-          className="w-full bg-[#008f50] hover:bg-[#007a45]" 
-          disabled={isSaving || isVerified}
-        >
-          {isSaving ? "Saving..." : "Save Changes"}
-        </Button>
+        {!profile ? (
+          <Button 
+            type="submit" 
+            className="w-full bg-[#008f50] hover:bg-[#007a45]" 
+            disabled={isCreatingProfile || !firstName || !lastName}
+          >
+            {isCreatingProfile ? "Creating Profile..." : "Create Profile"}
+          </Button>
+        ) : (
+          <Button 
+            type="submit" 
+            className="w-full bg-[#008f50] hover:bg-[#007a45]" 
+            disabled={isSaving || isVerified}
+          >
+            {isSaving ? "Saving..." : "Save Changes"}
+          </Button>
+        )}
         
-        {isProfileComplete && !isVerified && !isPendingVerification && (
+        {profile && isProfileComplete && !isVerified && !isPendingVerification && (
           <Button 
             type="button"
             onClick={handleSubmitForVerification}

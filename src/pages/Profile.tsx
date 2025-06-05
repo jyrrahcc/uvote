@@ -24,6 +24,7 @@ const Profile = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isPendingVerification, setIsPendingVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileExists, setProfileExists] = useState(false);
   const navigate = useNavigate();
 
   // Function to fetch and update the profile
@@ -42,9 +43,13 @@ const Profile = () => {
         .single();
 
       if (error) {
-        // If the profile doesn't exist yet, create it
+        // If the profile doesn't exist yet, that's normal for new users
         if (error.code === 'PGRST116') {
-          await createNewProfile();
+          console.log("Profile doesn't exist yet - this is normal for new users");
+          setProfileExists(false);
+          // Initialize form with user metadata if available
+          setFirstName(user.user_metadata?.first_name || "");
+          setLastName(user.user_metadata?.last_name || "");
           return;
         }
         throw error;
@@ -52,6 +57,7 @@ const Profile = () => {
 
       if (data) {
         setProfile(data);
+        setProfileExists(true);
         setFirstName(data.first_name || "");
         setLastName(data.last_name || "");
         setStudentId(data.student_id || "");
@@ -66,6 +72,41 @@ const Profile = () => {
     } catch (error) {
       console.error("Error fetching profile:", error);
       toast.error("Failed to load profile information");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to create a new profile manually
+  const createProfile = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          email: user.email,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      if (data) {
+        setProfile(data);
+        setProfileExists(true);
+        toast.success("Profile created successfully");
+      }
+    } catch (error) {
+      console.error("Error creating profile:", error);
+      toast.error("Failed to create profile");
     } finally {
       setIsLoading(false);
     }
@@ -93,44 +134,6 @@ const Profile = () => {
       supabase.removeChannel(channel);
     };
   }, [user, isVoter]); // Add isVoter to dependency array to ensure profile is refreshed when role changes
-
-  // Helper function to create a new profile if it doesn't exist
-  const createNewProfile = async () => {
-    try {
-      if (!user) return;
-      
-      // Extract user metadata
-      const firstName = user.user_metadata?.first_name || '';
-      const lastName = user.user_metadata?.last_name || '';
-      
-      const { data, error } = await supabase
-        .from("profiles")
-        .insert({
-          id: user.id,
-          first_name: firstName,
-          last_name: lastName,
-          email: user.email,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      if (data) {
-        setProfile(data);
-        setFirstName(data.first_name || "");
-        setLastName(data.last_name || "");
-        toast.success("Profile created successfully");
-      }
-    } catch (error) {
-      console.error("Error creating profile:", error);
-      toast.error("Failed to create profile");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -170,39 +173,70 @@ const Profile = () => {
             isVoter={isVoter}
           />
           
-          <Card>
-            <CardHeader>
-              <ProfileImageUpload 
-                profile={profile}
-                onImageUpdate={handleImageUpdate}
-                isVerified={effectivelyVerified}
+          {!profileExists ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Welcome to uVote!</CardTitle>
+                <CardDescription>
+                  Let's set up your profile to get started. You'll need to provide your DLSU-D student details for verification.
+                </CardDescription>
+              </CardHeader>
+              
+              <ProfileForm
+                profile={null}
+                firstName={firstName}
+                setFirstName={setFirstName}
+                lastName={lastName}
+                setLastName={setLastName}
+                studentId={studentId}
+                setStudentId={setStudentId}
+                department={department}
+                setDepartment={setDepartment}
+                yearLevel={yearLevel}
+                setYearLevel={setYearLevel}
+                isVerified={false}
+                isPendingVerification={false}
+                setIsPendingVerification={setIsPendingVerification}
+                onSignOut={handleSignOut}
+                onCreateProfile={createProfile}
+                isCreatingProfile={isLoading}
               />
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>
-                {effectivelyVerified 
-                  ? "Your verified DLSU-D student details" 
-                  : "Update your DLSU-D student details"}
-              </CardDescription>
-            </CardHeader>
-            
-            <ProfileForm
-              profile={profile}
-              firstName={firstName}
-              setFirstName={setFirstName}
-              lastName={lastName}
-              setLastName={setLastName}
-              studentId={studentId}
-              setStudentId={setStudentId}
-              department={department}
-              setDepartment={setDepartment}
-              yearLevel={yearLevel}
-              setYearLevel={setYearLevel}
-              isVerified={effectivelyVerified} // Consider verified if user has voter role
-              isPendingVerification={isPendingVerification}
-              setIsPendingVerification={setIsPendingVerification}
-              onSignOut={handleSignOut}
-            />
-          </Card>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <ProfileImageUpload 
+                  profile={profile}
+                  onImageUpdate={handleImageUpdate}
+                  isVerified={effectivelyVerified}
+                />
+                <CardTitle>Personal Information</CardTitle>
+                <CardDescription>
+                  {effectivelyVerified 
+                    ? "Your verified DLSU-D student details" 
+                    : "Update your DLSU-D student details"}
+                </CardDescription>
+              </CardHeader>
+              
+              <ProfileForm
+                profile={profile}
+                firstName={firstName}
+                setFirstName={setFirstName}
+                lastName={lastName}
+                setLastName={setLastName}
+                studentId={studentId}
+                setStudentId={setStudentId}
+                department={department}
+                setDepartment={setDepartment}
+                yearLevel={yearLevel}
+                setYearLevel={setYearLevel}
+                isVerified={effectivelyVerified} // Consider verified if user has voter role
+                isPendingVerification={isPendingVerification}
+                setIsPendingVerification={setIsPendingVerification}
+                onSignOut={handleSignOut}
+              />
+            </Card>
+          )}
         </div>
       </div>
     </PageLayout>
