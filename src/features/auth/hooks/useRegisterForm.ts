@@ -101,10 +101,12 @@ export const useRegisterForm = () => {
         let errorMessage = "Something went wrong. Please try again.";
         
         // Check for specific error types
-        if (error.message.includes("User already registered") || 
+        if (error.message.includes("already registered") || 
             error.message.includes("already been registered") ||
-            error.message.includes("email address is already registered")) {
-          errorMessage = "This email is already registered. Please try logging in instead.";
+            error.message.includes("email address is already registered") ||
+            error.message.includes("already") ||
+            error.name === "UserAlreadyExistsError") {
+          errorMessage = "This email address is already registered. Please try logging in instead.";
           setErrors({ email: errorMessage });
         } else if (error.message.includes("Invalid email")) {
           errorMessage = "Please enter a valid email address.";
