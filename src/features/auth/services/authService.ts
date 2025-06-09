@@ -42,7 +42,6 @@ export const authService = {
     try {
       console.log("Signing up user with data:", { email, firstName, lastName });
       
-      // Proceed with signup - Supabase will handle duplicate email detection
       const result = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -62,8 +61,10 @@ export const authService = {
       if (result.error) {
         console.error("Signup error details:", result.error);
         
-        // Map specific Supabase error codes to user-friendly messages
-        if (result.error.message.includes('already') || result.error.message.includes('registered')) {
+        // Handle Supabase-specific error messages
+        if (result.error.message.includes('User already registered') || 
+            result.error.message.includes('already been registered') ||
+            result.error.status === 422) {
           result.error.message = 'This email address is already registered. Please try logging in instead.';
         } else if (result.error.message.includes('invalid email') || result.error.message.includes('Invalid email')) {
           result.error.message = 'Please enter a valid email address';
@@ -72,24 +73,20 @@ export const authService = {
         } else if (result.error.message.includes('signup_disabled')) {
           result.error.message = 'Account registration is currently disabled. Please contact support.';
         }
+        
+        return result;
       }
       
-      // Check if this is a duplicate signup attempt (user exists but no session created)
-      if (result.data?.user && !result.data?.session && !result.error) {
-        // Check if the user already exists by looking at the user object
-        // If user.email_confirmed_at is null, it's likely a new user awaiting confirmation
-        // If it's not null, it might be an existing user trying to sign up again
-        if (result.data.user.email_confirmed_at !== null) {
-          console.log("User already exists and is confirmed");
-          return {
-            error: {
-              message: "This email address is already registered. Please try logging in instead.",
-              name: "UserAlreadyExistsError"
-            } as AuthError,
-            data: null
-          };
-        }
+      // Successful signup case - user created but needs email verification
+      if (result.data?.user && !result.data?.session) {
         console.log("User created successfully, email verification required");
+        return result;
+      }
+      
+      // User created and automatically signed in (email verification disabled)
+      if (result.data?.user && result.data?.session) {
+        console.log("User created and signed in automatically");
+        return result;
       }
       
       return result;

@@ -100,12 +100,10 @@ export const useRegisterForm = () => {
         // Handle specific Supabase errors
         let errorMessage = "Something went wrong. Please try again.";
         
-        // Check for specific error types
-        if (error.message.includes("already registered") || 
+        // Check for specific error types based on actual Supabase error messages
+        if (error.message.includes("User already registered") || 
             error.message.includes("already been registered") ||
-            error.message.includes("email address is already registered") ||
-            error.message.includes("already") ||
-            error.name === "UserAlreadyExistsError") {
+            error.message.includes("This email address is already registered")) {
           errorMessage = "This email address is already registered. Please try logging in instead.";
           setErrors({ email: errorMessage });
         } else if (error.message.includes("Invalid email")) {
